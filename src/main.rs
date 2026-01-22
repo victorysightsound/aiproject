@@ -7,6 +7,7 @@ mod database;
 mod models;
 mod paths;
 mod schema;
+mod session;
 
 use anyhow::Result;
 use clap::Parser;
