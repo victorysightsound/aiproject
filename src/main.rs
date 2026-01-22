@@ -46,6 +46,5 @@ fn main() -> Result<()> {
         Commands::Check => commands::check::run(),
         Commands::Extend { extension_type } => commands::extend::run(extension_type),
         Commands::Archive => commands::archive::run(),
-        Commands::Help => commands::help::run(),
     }
 }

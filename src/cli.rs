@@ -93,8 +93,6 @@ pub enum Commands {
     },
     /// Archive completed project
     Archive,
-    /// Show all commands
-    Help,
 }
 
 #[derive(Parser)]
