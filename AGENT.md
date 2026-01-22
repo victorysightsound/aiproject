@@ -1,48 +1,60 @@
 # proj-rs Agent Notes
 
+## Current State (2026-01-21)
+
+**Phases 1-5 complete (v0.0.1-v0.0.5)**
+
+Next task: Phase 6, Task #43 - Implement cmd_delta (snapshot comparison)
+
 ## Build Commands
 
 ```bash
-# Development build
-cargo build
-
-# Release build
-cargo build --release
-
-# Run tests
-cargo test
-
-# Run with arguments
-cargo run -- status
-cargo run -- help
+cd /Users/johndeaton/projects/global/tools/proj/proj-rs
+cargo build        # Development build
+cargo run -- help  # Test CLI
 ```
 
 ## Project Structure
 
 ```
 proj-rs/
-├── Cargo.toml          # Dependencies and package config
+├── Cargo.toml
 ├── src/
-│   ├── main.rs         # Entry point and command dispatch
+│   ├── main.rs         # Entry point, command dispatch
 │   ├── cli.rs          # CLI definitions (clap derive)
 │   ├── commands/       # Command implementations
-│   │   ├── mod.rs
-│   │   ├── status.rs
-│   │   ├── session.rs
-│   │   └── ...
+│   │   ├── status.rs   # DONE - all 4 tiers
+│   │   ├── session.rs  # DONE - start/end/list
+│   │   ├── log.rs      # DONE - decision/note/blocker/question
+│   │   ├── task.rs     # DONE - add/update/list
+│   │   ├── resume.rs   # DONE - human + JSON output
+│   │   ├── context.rs  # DONE - search + ranked
+│   │   ├── delta.rs    # STUB - needs implementation
+│   │   ├── compress.rs # STUB
+│   │   ├── cleanup.rs  # STUB
+│   │   └── ...         # Other stubs
 │   ├── config.rs       # ProjectConfig, Registry models
 │   ├── database.rs     # SQLite connection helpers
-│   ├── models.rs       # Data models (Session, Task, etc.)
+│   ├── models.rs       # Data models
 │   ├── paths.rs        # Path utilities
-│   └── schema.rs       # SQL schema constants
+│   ├── schema.rs       # SQL schema constants
+│   └── session.rs      # Session management functions
 ```
 
-## Gotchas
+## Key Files for Resuming
 
-1. **Module system**: All modules referenced in main.rs must exist for compilation
-2. **Dead code warnings**: Expected during foundation phase; modules used in later phases
-3. **rusqlite bundled**: Uses bundled SQLite, no system dependency needed
+- **fix_plan.md** - Task list with current focus
+- **specs/*.md** - Detailed specifications for each command
+- **PROMPT.md** - DIAL execution instructions
 
-## Testing Patterns
+## Remaining Phases
 
-(To be added as tests are written)
+- Phase 6: delta, compress, cleanup (efficiency)
+- Phase 7: register, registered, dashboard (multi-project)
+- Phase 8: upgrade system (migrations)
+- Phase 9: init, migrate, extend, export, backup, check, archive, snapshot
+- Phase 10: colors, --no-color, CHANGELOG, README, CI, release
+
+## Git Tags
+
+v0.0.1 through v0.0.5 created for recovery points.
