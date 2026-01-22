@@ -1,11 +1,11 @@
 [package]
-name = "proj-cli"
-version = "0.9.0"
+name = "aiproject"
+version = "1.0.0"
 edition = "2021"
 authors = ["John Deaton <john@victorysightsound.com>"]
 description = "Project tracking and context management for AI-assisted development"
 license = "MIT"
-repository = "https://github.com/victorysightsound/proj"
+repository = "https://github.com/victorysightsound/aiproject"
 readme = "README.md"
 keywords = ["cli", "project-management", "ai", "context", "tracking"]
 categories = ["command-line-utilities", "development-tools"]

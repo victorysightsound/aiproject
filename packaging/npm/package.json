@@ -1,5 +1,5 @@
 {
-  "name": "@victorysightsound/proj",
+  "name": "aiproject",
   "version": "1.0.0",
   "description": "Project tracking and context management for AI-assisted development",
   "keywords": [
@@ -13,11 +13,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/victorysightsound/proj.git"
+    "url": "https://github.com/victorysightsound/aiproject.git"
   },
-  "homepage": "https://github.com/victorysightsound/proj",
+  "homepage": "https://github.com/victorysightsound/aiproject",
   "bugs": {
-    "url": "https://github.com/victorysightsound/proj/issues"
+    "url": "https://github.com/victorysightsound/aiproject/issues"
   },
   "bin": {
     "proj": "bin/proj"

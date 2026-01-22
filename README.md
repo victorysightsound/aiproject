@@ -11,8 +11,8 @@ Project tracking and context management for AI-assisted development.
 ### From Source
 
 ```bash
-git clone https://github.com/victorysightsound/proj
-cd proj/proj-rs
+git clone https://github.com/victorysightsound/aiproject
+cd aiproject
 cargo build --release
 # Binary at target/release/proj
 ```
@@ -20,7 +20,13 @@ cargo build --release
 ### Homebrew (coming soon)
 
 ```bash
-brew install victorysightsound/tap/proj
+brew install victorysightsound/tap/aiproject
+```
+
+### npm (coming soon)
+
+```bash
+npm install -g aiproject
 ```
 
 ## Quick Start
