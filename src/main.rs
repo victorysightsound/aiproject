@@ -10,8 +10,10 @@ mod schema;
 mod session;
 
 use anyhow::Result;
+use atty::Stream;
 use clap::Parser;
 use cli::{Cli, Commands};
+use colored::control;
 
 /// Version constants
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -20,6 +22,14 @@ pub const MIN_SCHEMA_VERSION: &str = "1.0";
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    // Configure color output:
+    // 1. Disable if --no-color flag is set
+    // 2. Disable if not a TTY (piped/redirected output)
+    // 3. Respect NO_COLOR environment variable (handled by colored crate)
+    if cli.no_color || !atty::is(Stream::Stdout) {
+        control::set_override(false);
+    }
 
     match cli.command {
         Commands::Init => commands::init::run(),

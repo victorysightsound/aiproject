@@ -8,6 +8,10 @@ use clap::{Parser, Subcommand};
 #[command(version)]
 #[command(about = "Project tracking and context management for AI-assisted development")]
 pub struct Cli {
+    /// Disable colored output
+    #[arg(long, global = true)]
+    pub no_color: bool,
+
     #[command(subcommand)]
     pub command: Commands,
 }

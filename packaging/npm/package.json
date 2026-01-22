@@ -1,0 +1,40 @@
+{
+  "name": "@victorysightsound/proj",
+  "version": "1.0.0",
+  "description": "Project tracking and context management for AI-assisted development",
+  "keywords": [
+    "cli",
+    "project-management",
+    "ai",
+    "context",
+    "tracking"
+  ],
+  "author": "John Deaton <john@victorysightsound.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/victorysightsound/proj.git"
+  },
+  "homepage": "https://github.com/victorysightsound/proj",
+  "bugs": {
+    "url": "https://github.com/victorysightsound/proj/issues"
+  },
+  "bin": {
+    "proj": "bin/proj"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js"
+  },
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=14"
+  }
+}
