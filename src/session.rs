@@ -1,20 +1,70 @@
 // Session management - get_or_create_session and related functions
 
 use anyhow::{Context, Result};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use rusqlite::Connection;
 
 use crate::models::Session;
 
-/// Gets the currently active session, or creates a new one if none exists
+/// Stale session threshold in hours
+const STALE_SESSION_HOURS: i64 = 8;
+
+/// Result of get_or_create_session that indicates if a stale session was closed
+pub struct SessionResult {
+    pub session: Session,
+    pub auto_closed_session: Option<Session>,
+}
+
+/// Gets the currently active session, or creates a new one if none exists.
+/// If an active session is stale (8+ hours old), it will be auto-closed.
 pub fn get_or_create_session(conn: &Connection) -> Result<Session> {
+    let result = get_or_create_session_with_info(conn)?;
+    Ok(result.session)
+}
+
+/// Gets the currently active session with info about whether a stale session was closed
+pub fn get_or_create_session_with_info(conn: &Connection) -> Result<SessionResult> {
     // Try to get active session first
     if let Some(session) = get_active_session(conn)? {
-        return Ok(session);
+        // Check if session is stale (8+ hours since started)
+        let now = Utc::now();
+        let session_age = now - session.started_at;
+
+        if session_age > Duration::hours(STALE_SESSION_HOURS) {
+            // Auto-close the stale session
+            auto_close_session(conn, session.session_id)?;
+            let closed_session = session;
+
+            // Create a new session
+            let new_session = create_session(conn)?;
+
+            return Ok(SessionResult {
+                session: new_session,
+                auto_closed_session: Some(closed_session),
+            });
+        }
+
+        return Ok(SessionResult {
+            session,
+            auto_closed_session: None,
+        });
     }
 
     // No active session, create a new one
-    create_session(conn)
+    let session = create_session(conn)?;
+    Ok(SessionResult {
+        session,
+        auto_closed_session: None,
+    })
+}
+
+/// Auto-closes a stale session with a marker summary
+fn auto_close_session(conn: &Connection, session_id: i64) -> Result<()> {
+    conn.execute(
+        "UPDATE sessions SET ended_at = datetime('now'), status = 'completed', summary = '(auto-closed)' WHERE session_id = ?1",
+        [session_id],
+    )?;
+    Ok(())
 }
 
 /// Gets the currently active session if one exists

@@ -8,7 +8,7 @@ use crate::config::ProjectConfig;
 use crate::database::open_database;
 use crate::models::{Blocker, Decision, Question, Task};
 use crate::paths::{get_config_path, get_tracking_db_path};
-use crate::session::{get_active_session, get_or_create_session, get_last_completed_session, mark_full_context_shown};
+use crate::session::{get_active_session, get_or_create_session_with_info, get_last_completed_session, mark_full_context_shown};
 
 /// Status tier levels
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -40,8 +40,24 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
     let conn = open_database(&db_path)
         .with_context(|| format!("Failed to open tracking database at {:?}", db_path))?;
 
-    // Get or create session
-    let session = get_or_create_session(&conn)?;
+    // Get or create session (handles stale session auto-close)
+    let session_result = get_or_create_session_with_info(&conn)?;
+    let session = session_result.session;
+
+    // If a stale session was auto-closed, notify the user
+    if let Some(closed) = session_result.auto_closed_session {
+        println!(
+            "{} Previous session #{} was stale (8+ hours). Auto-closed.",
+            "⚠".yellow(),
+            closed.session_id
+        );
+        println!(
+            "{} Started new session #{}",
+            "✓".green(),
+            session.session_id
+        );
+        println!();
+    }
 
     // First-run enforcement: if full_context_shown is false, force Full tier
     let effective_tier = if !session.full_context_shown {
