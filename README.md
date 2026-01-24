@@ -159,10 +159,9 @@ Database location: `.tracking/tracking.db`
 Add domain-specific tables for specialized tracking:
 
 ```bash
-proj extend --type book    # Book chapters and notes
-proj extend --type sermon  # Sermons and points
-proj extend --type api     # API endpoints and models
-proj extend --type course  # Course modules and lessons
+proj extend --type api       # API endpoints and models
+proj extend --type schema    # Database tables, columns, migrations
+proj extend --type releases  # Version releases and deployment tracking
 ```
 
 ## Environment Variables

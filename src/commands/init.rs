@@ -20,8 +20,6 @@ const PROJECT_TYPES: &[&str] = &[
     "javascript",
     "web",
     "documentation",
-    "book",
-    "sermon_series",
     "other",
 ];
 

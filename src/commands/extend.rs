@@ -8,54 +8,9 @@ use crate::database::open_database;
 use crate::paths::{get_config_path, get_tracking_db_path};
 
 /// Valid extension types
-const VALID_EXTENSIONS: &[&str] = &["book", "sermon", "api", "course"];
+const VALID_EXTENSIONS: &[&str] = &["api", "schema", "releases"];
 
 /// Extension schemas
-const BOOK_EXTENSION: &str = r#"
-CREATE TABLE IF NOT EXISTS book_chapters (
-    chapter_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    chapter_number INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    summary TEXT,
-    word_count INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'draft',
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS book_notes (
-    note_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    chapter_id INTEGER,
-    content TEXT NOT NULL,
-    created_at TEXT DEFAULT (datetime('now')),
-    FOREIGN KEY (chapter_id) REFERENCES book_chapters(chapter_id)
-);
-"#;
-
-const SERMON_EXTENSION: &str = r#"
-CREATE TABLE IF NOT EXISTS sermons (
-    sermon_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    scripture_ref TEXT,
-    scripture_text TEXT,
-    outline TEXT,
-    full_text TEXT,
-    status TEXT DEFAULT 'draft',
-    preached_date TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS sermon_points (
-    point_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    sermon_id INTEGER NOT NULL,
-    point_number INTEGER NOT NULL,
-    heading TEXT NOT NULL,
-    content TEXT,
-    FOREIGN KEY (sermon_id) REFERENCES sermons(sermon_id)
-);
-"#;
-
 const API_EXTENSION: &str = r#"
 CREATE TABLE IF NOT EXISTS api_endpoints (
     endpoint_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,25 +32,78 @@ CREATE TABLE IF NOT EXISTS api_models (
 );
 "#;
 
-const COURSE_EXTENSION: &str = r#"
-CREATE TABLE IF NOT EXISTS course_modules (
-    module_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    module_number INTEGER NOT NULL,
-    title TEXT NOT NULL,
+const SCHEMA_EXTENSION: &str = r#"
+CREATE TABLE IF NOT EXISTS db_tables (
+    table_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
     description TEXT,
-    status TEXT DEFAULT 'draft',
-    created_at TEXT DEFAULT (datetime('now'))
+    status TEXT DEFAULT 'planned',
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS course_lessons (
-    lesson_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    module_id INTEGER NOT NULL,
-    lesson_number INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    content TEXT,
-    duration_minutes INTEGER,
-    status TEXT DEFAULT 'draft',
-    FOREIGN KEY (module_id) REFERENCES course_modules(module_id)
+CREATE TABLE IF NOT EXISTS db_columns (
+    column_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    data_type TEXT NOT NULL,
+    nullable INTEGER DEFAULT 1,
+    default_value TEXT,
+    is_primary_key INTEGER DEFAULT 0,
+    is_foreign_key INTEGER DEFAULT 0,
+    references_table TEXT,
+    references_column TEXT,
+    description TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (table_id) REFERENCES db_tables(table_id)
+);
+
+CREATE TABLE IF NOT EXISTS db_migrations (
+    migration_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    version TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    sql_up TEXT,
+    sql_down TEXT,
+    status TEXT DEFAULT 'pending',
+    applied_at TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+);
+"#;
+
+const RELEASES_EXTENSION: &str = r#"
+CREATE TABLE IF NOT EXISTS releases (
+    release_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    version TEXT NOT NULL,
+    name TEXT,
+    description TEXT,
+    status TEXT DEFAULT 'planned',
+    release_date TEXT,
+    created_at TEXT DEFAULT (datetime('now')),
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS release_targets (
+    target_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    release_id INTEGER NOT NULL,
+    platform TEXT NOT NULL,
+    environment TEXT DEFAULT 'production',
+    status TEXT DEFAULT 'pending',
+    deployed_at TEXT,
+    notes TEXT,
+    FOREIGN KEY (release_id) REFERENCES releases(release_id)
+);
+
+CREATE TABLE IF NOT EXISTS release_changes (
+    change_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    release_id INTEGER NOT NULL,
+    change_type TEXT NOT NULL,
+    description TEXT NOT NULL,
+    breaking INTEGER DEFAULT 0,
+    task_id INTEGER,
+    created_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (release_id) REFERENCES releases(release_id),
+    FOREIGN KEY (task_id) REFERENCES tasks(task_id)
 );
 "#;
 
@@ -118,10 +126,9 @@ pub fn run(extension_type: String) -> Result<()> {
 
     // Check if extension already exists
     let table_name = match extension_type.as_str() {
-        "book" => "book_chapters",
-        "sermon" => "sermons",
         "api" => "api_endpoints",
-        "course" => "course_modules",
+        "schema" => "db_tables",
+        "releases" => "releases",
         _ => unreachable!(),
     };
 
@@ -140,10 +147,9 @@ pub fn run(extension_type: String) -> Result<()> {
 
     // Apply extension schema
     let schema = match extension_type.as_str() {
-        "book" => BOOK_EXTENSION,
-        "sermon" => SERMON_EXTENSION,
         "api" => API_EXTENSION,
-        "course" => COURSE_EXTENSION,
+        "schema" => SCHEMA_EXTENSION,
+        "releases" => RELEASES_EXTENSION,
         _ => unreachable!(),
     };
 

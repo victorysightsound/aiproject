@@ -245,8 +245,8 @@ fn search_notes(conn: &Connection, topic: &str) -> Result<Vec<(i64, String, Stri
 
 /// Search FTS index
 fn search_fts(conn: &Connection, topic: &str) -> Result<Vec<(String, i64, String)>> {
-    // Try FTS match first, fall back to LIKE if FTS fails
-    let mut stmt = conn.prepare(
+    // Try FTS match first, fall back gracefully if FTS fails or returns invalid data
+    let stmt = conn.prepare(
         "SELECT table_name, record_id, content
          FROM tracking_fts
          WHERE tracking_fts MATCH ?1
@@ -256,15 +256,22 @@ fn search_fts(conn: &Connection, topic: &str) -> Result<Vec<(String, i64, String
     match stmt {
         Ok(mut s) => {
             let results = s.query_map([topic], |row| {
-                Ok((
-                    row.get::<_, String>(0)?,
-                    row.get::<_, i64>(1)?,
-                    row.get::<_, String>(2)?,
-                ))
+                // Handle potential NULL values gracefully
+                let table_name: Option<String> = row.get(0).ok();
+                let record_id: Option<i64> = row.get(1).ok();
+                let content: Option<String> = row.get(2).ok();
+
+                match (table_name, record_id, content) {
+                    (Some(t), Some(r), Some(c)) => Ok(Some((t, r, c))),
+                    _ => Ok(None),
+                }
             });
 
             match results {
-                Ok(r) => r.collect::<Result<Vec<_>, _>>().map_err(|e| e.into()),
+                Ok(r) => {
+                    let collected: Vec<_> = r.filter_map(|res| res.ok().flatten()).collect();
+                    Ok(collected)
+                }
                 Err(_) => Ok(Vec::new()),
             }
         }

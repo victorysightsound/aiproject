@@ -31,6 +31,7 @@ impl Default for ProjectConfig {
 pub struct RegistryEntry {
     pub path: String,
     pub name: String,
+    #[serde(alias = "type")]
     pub project_type: String,
     pub registered_at: String,
     pub schema_version: String,

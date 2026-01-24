@@ -45,7 +45,7 @@ All notable changes to proj will be documented in this file.
 #### Initialization & Utilities
 - `proj init` - Interactive project initialization
 - `proj migrate` - Convert existing project to proj format
-- `proj extend --type <type>` - Add extension tables (book, sermon, api, course)
+- `proj extend --type <type>` - Add extension tables (api, schema, releases)
 - `proj export [--format md|json]` - Export session history
 - `proj backup` - Manual database backup
 - `proj check` - Verify database integrity
