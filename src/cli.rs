@@ -203,7 +203,26 @@ pub struct DocsCommands {
 #[derive(Subcommand)]
 pub enum DocsSubcommand {
     /// Initialize documentation database
-    Init,
+    Init {
+        /// Generate from source analysis (non-interactive)
+        #[arg(long)]
+        generate: bool,
+        /// Import from markdown files (non-interactive)
+        #[arg(long)]
+        import: bool,
+        /// Create skeleton documentation (non-interactive)
+        #[arg(long)]
+        new: bool,
+        /// Documentation type: architecture, framework, guide, api, spec
+        #[arg(long, default_value = "architecture")]
+        doc_type: String,
+        /// Project name (defaults to directory name)
+        #[arg(long)]
+        name: Option<String>,
+        /// Project description (for --new mode)
+        #[arg(long)]
+        description: Option<String>,
+    },
     /// Show documentation database status
     Status,
     /// Refresh documentation from source analysis

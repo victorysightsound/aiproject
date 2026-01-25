@@ -10,6 +10,7 @@ mod paths;
 mod schema;
 mod schema_docs;
 mod session;
+mod source_analyzer;
 
 use anyhow::Result;
 use atty::Stream;

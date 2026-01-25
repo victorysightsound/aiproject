@@ -228,6 +228,54 @@ pub fn insert_section(
     Ok(conn.last_insert_rowid())
 }
 
+/// Update an existing section's content
+pub fn update_section(
+    conn: &Connection,
+    section_id: &str,
+    title: &str,
+    content: &str,
+    source_file: Option<&str>,
+) -> Result<()> {
+    let word_count = content.split_whitespace().count() as i32;
+    let now = Utc::now().format("%Y-%m-%dT%H:%M:%S%.6f").to_string();
+
+    conn.execute(
+        r#"UPDATE sections
+           SET title = ?1, content = ?2, word_count = ?3, source_file = ?4, updated_at = ?5
+           WHERE section_id = ?6"#,
+        rusqlite::params![title, content, word_count, source_file, now, section_id],
+    )?;
+
+    Ok(())
+}
+
+/// Delete all generated sections (for refresh)
+pub fn delete_generated_sections(conn: &Connection) -> Result<usize> {
+    let count = conn.execute("DELETE FROM sections WHERE generated = 1", [])?;
+    Ok(count)
+}
+
+/// Get count of generated vs manual sections
+pub fn get_section_counts(conn: &Connection) -> Result<(i64, i64)> {
+    let generated: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sections WHERE generated = 1",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    let manual: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sections WHERE generated = 0 OR generated IS NULL",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    Ok((generated, manual))
+}
+
 /// Check if sections table has the 'generated' column (new schema)
 fn has_generated_column(conn: &Connection) -> bool {
     conn.query_row(
