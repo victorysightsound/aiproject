@@ -8,6 +8,7 @@ pub mod compress;
 pub mod context;
 pub mod dashboard;
 pub mod delta;
+pub mod docs;
 pub mod export;
 pub mod extend;
 pub mod help;

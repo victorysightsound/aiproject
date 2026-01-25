@@ -4,9 +4,11 @@ mod cli;
 mod commands;
 mod config;
 mod database;
+mod docs_db;
 mod models;
 mod paths;
 mod schema;
+mod schema_docs;
 mod session;
 
 use anyhow::Result;
@@ -61,5 +63,6 @@ fn main() -> Result<()> {
         Commands::Update => commands::update_check::run(),
         Commands::Release { version, check } => commands::release::run(version, check),
         Commands::Rollback { version } => commands::rollback::run(version),
+        Commands::Docs(cmd) => commands::docs::run(cmd),
     }
 }

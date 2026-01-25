@@ -112,6 +112,8 @@ pub enum Commands {
         /// Version to rollback (defaults to latest)
         version: Option<String>,
     },
+    /// Project documentation database
+    Docs(DocsCommands),
 }
 
 #[derive(Parser)]
@@ -190,4 +192,73 @@ pub enum TaskSubcommand {
     },
     /// List tasks
     List,
+}
+
+#[derive(Parser)]
+pub struct DocsCommands {
+    #[command(subcommand)]
+    pub command: DocsSubcommand,
+}
+
+#[derive(Subcommand)]
+pub enum DocsSubcommand {
+    /// Initialize documentation database
+    Init,
+    /// Show documentation database status
+    Status,
+    /// Refresh documentation from source analysis
+    Refresh {
+        /// Force refresh all sections, including manually edited ones
+        #[arg(long)]
+        force: bool,
+    },
+    /// Search documentation
+    Search {
+        /// Search query
+        query: String,
+    },
+    /// Export documentation
+    Export {
+        /// Output format (md, html)
+        #[arg(long, default_value = "md")]
+        format: String,
+        /// Output file (defaults to stdout)
+        #[arg(long)]
+        output: Option<String>,
+    },
+    /// Display a section
+    Show {
+        /// Section ID to display (e.g., "1.2.3")
+        section: Option<String>,
+    },
+    /// Manage terminology
+    Term(DocsTermCommands),
+}
+
+#[derive(Parser)]
+pub struct DocsTermCommands {
+    #[command(subcommand)]
+    pub command: DocsTermSubcommand,
+}
+
+#[derive(Subcommand)]
+pub enum DocsTermSubcommand {
+    /// Add a term to the glossary
+    Add {
+        /// The canonical form of the term
+        term: String,
+        /// Definition of the term
+        #[arg(long)]
+        def: String,
+        /// Category (e.g., architecture, technology, workflow)
+        #[arg(long)]
+        category: Option<String>,
+    },
+    /// List all terms
+    List,
+    /// Search terms
+    Search {
+        /// Search query
+        query: String,
+    },
 }
