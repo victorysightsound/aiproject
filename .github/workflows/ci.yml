@@ -62,6 +62,14 @@ jobs:
           git push origin "v${VERSION}"
           echo "Created and pushed tag v${VERSION}"
 
+      - name: Trigger release workflow
+        if: steps.check.outputs.NEEDS_RELEASE == 'true'
+        run: |
+          VERSION="${{ steps.cargo_version.outputs.VERSION }}"
+          gh workflow run release.yml --ref "v${VERSION}" -f version="${VERSION}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test:
     name: Test
     runs-on: ${{ matrix.os }}
