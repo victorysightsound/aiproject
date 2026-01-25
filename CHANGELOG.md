@@ -2,6 +2,16 @@
 
 All notable changes to proj are documented here.
 
+## [1.6.3] - 2026-01-25
+
+### Changed
+- **Comprehensive documentation update**: All documentation files updated for v1.6.x features and novice-friendliness
+  - README: Added docs database section, VS Code extension reference, updated installation order
+  - Getting Started: All installation methods, docs setup wizard, FTS5 troubleshooting
+  - Concepts: Session summary guidance, documentation database explanation
+  - Manual: Complete `proj docs` command reference, updated schema version
+  - Cheat Sheet: Documentation database commands, updated workflows
+
 ## [1.6.2] - 2026-01-25
 
 ### Added
