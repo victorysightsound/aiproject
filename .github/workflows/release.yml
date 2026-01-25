@@ -16,8 +16,51 @@ env:
   RELEASE_VERSION: ${{ github.event.inputs.version || github.ref_name }}
 
 jobs:
+  validate-changelog:
+    name: Validate Changelog
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.version && format('v{0}', github.event.inputs.version) || github.ref }}
+
+      - name: Get version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check changelog has entry for this version
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+
+          # Look for version heading in CHANGELOG.md
+          # Matches: ## [v1.2.3], ## v1.2.3, ## [1.2.3], ## 1.2.3
+          if grep -qE "^## \[?v?${VERSION}\]?" CHANGELOG.md; then
+            echo "✓ Found changelog entry for v${VERSION}"
+          else
+            echo "::error::CHANGELOG.md is missing an entry for v${VERSION}"
+            echo ""
+            echo "Please add a changelog section before releasing:"
+            echo ""
+            echo "  ## [v${VERSION}] - $(date +%Y-%m-%d)"
+            echo "  "
+            echo "  ### Added"
+            echo "  - New feature description"
+            echo "  "
+            echo "  ### Fixed"
+            echo "  - Bug fix description"
+            echo ""
+            exit 1
+          fi
+
   build-linux:
     name: Build Linux ${{ matrix.target }}
+    needs: [validate-changelog]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -54,6 +97,7 @@ jobs:
 
   build-macos:
     name: Build macOS ${{ matrix.target }}
+    needs: [validate-changelog]
     runs-on: macos-latest
     strategy:
       matrix:
@@ -88,6 +132,7 @@ jobs:
 
   build-windows:
     name: Build Windows
+    needs: [validate-changelog]
     runs-on: windows-latest
 
     steps:
@@ -221,7 +266,7 @@ jobs:
 
   notify-on-failure:
     name: Notify on Failure
-    needs: [build-linux, build-macos, build-windows, release, update-homebrew]
+    needs: [validate-changelog, build-linux, build-macos, build-windows, release, update-homebrew]
     if: failure()
     runs-on: ubuntu-latest
     permissions:
