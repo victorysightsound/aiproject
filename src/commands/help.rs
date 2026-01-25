@@ -44,7 +44,7 @@ pub fn run() -> Result<()> {
 
 {}
   proj session start     Start new session explicitly
-  proj session end <summary>
+  proj session end <summary>   (1-3 substantive sentences)
 
 {}
   proj register          Add current project to global registry

@@ -124,8 +124,11 @@ pub struct SessionCommands {
 pub enum SessionSubcommand {
     /// Start new session
     Start,
-    /// End session with summary
-    End { summary: String },
+    /// End session with summary (1-3 sentences describing what was accomplished)
+    End {
+        /// What was accomplished this session (be specific, not generic)
+        summary: String,
+    },
     /// List recent sessions
     List,
 }

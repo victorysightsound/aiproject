@@ -169,13 +169,23 @@ End the current session with a summary.
 proj session end "What we accomplished"
 ```
 
-The summary is like a commit message - short description of what happened.
+**Writing Good Summaries:**
 
-**Examples:**
+The summary should answer "what was accomplished?" so future sessions (or another AI) can understand where you left off. Aim for 1-3 substantive sentences that capture the actual work done.
+
+**Good summaries (substantive):**
 ```bash
-proj session end "Added user authentication"
-proj session end "Fixed bug in payment processing"
-proj session end "Refactored database layer, improved tests"
+proj session end "Implemented automated release pipeline with version bump triggering GitHub Actions. Added rollback command. Released v1.1.0 and v1.2.0."
+proj session end "Fixed authentication bug in login flow - token refresh was failing silently. Added error logging."
+proj session end "Refactored database layer to use connection pooling. Updated tests to use mock connections."
+```
+
+**Avoid generic summaries (not helpful):**
+```bash
+# These tell you nothing useful for resuming work
+proj session end "Reviewed project status"
+proj session end "Worked on the codebase"
+proj session end "Made some changes"
 ```
 
 **Auto-commit:** If enabled in config, also creates a git commit with the session summary:

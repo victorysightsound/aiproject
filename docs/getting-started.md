@@ -130,10 +130,10 @@ You don't have to run these yourself - your AI assistant handles this.
 When you're done for the day:
 
 ```bash
-proj session end "Added user authentication, fixed login bug"
+proj session end "Added user authentication with JWT tokens. Fixed login bug where tokens weren't refreshing properly."
 ```
 
-The summary is just a quick note - like a commit message.
+Write summaries that answer "what was accomplished?" - 1-3 substantive sentences work best. Avoid generic summaries like "worked on code" that don't help when resuming later.
 
 ### Auto-Commit (Optional)
 

@@ -266,6 +266,8 @@ const SESSION_RULE: &str = r#"
 3. Stale sessions (8+ hours) auto-close automatically
 
 If no `.tracking/` folder exists, skip this step.
+
+**When ending sessions**, write substantive summaries (1-3 sentences) that answer "what was accomplished?" Avoid generic summaries like "reviewed status" - future sessions need specific context to resume effectively.
 "#;
 
 /// Ensure session management rule exists in global AGENTS.md

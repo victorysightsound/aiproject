@@ -145,7 +145,7 @@ Init also:
 ```bash
 proj status                           # Morning
 # ... work with AI assistant ...
-proj session end "What we did"        # End of day
+proj session end "Implemented X, fixed Y, updated Z"  # End of day (be specific!)
 ```
 
 ### Quick Task Management
