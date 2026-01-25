@@ -59,6 +59,7 @@ The biggest finding: without tracking, AI agents literally cannot recover what t
 - **[Concepts](docs/concepts.md)** - What are sessions, decisions, tasks?
 - **[Command Reference](docs/manual.md)** - Every command explained
 - **[Cheat Sheet](docs/cheatsheet.md)** - One-page quick reference
+- **[Changelog](CHANGELOG.md)** - Version history and release notes
 
 ## For AI Assistants
 
