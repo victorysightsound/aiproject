@@ -51,14 +51,24 @@ Before you can use this extension, you need three things:
 
 The proj command-line tool stores all your project data. Choose one of these installation methods:
 
-#### Option A: Homebrew (macOS/Linux)
+#### Option A: Cargo / crates.io (All Platforms)
+
+If you have Rust installed:
+
+```bash
+cargo install aiproject
+```
+
+This works on macOS, Linux, and Windows.
+
+#### Option B: Homebrew (macOS/Linux)
 
 ```bash
 brew tap victorysightsound/tap
 brew install aiproject
 ```
 
-#### Option B: Download from GitHub Releases
+#### Option C: Download from GitHub Releases
 
 1. Go to https://github.com/victorysightsound/aiproject/releases/latest
 2. Download the file for your system:
@@ -75,7 +85,7 @@ tar -xzf proj-*.tar.gz
 sudo mv proj /usr/local/bin/
 ```
 
-#### Option C: Build from Source
+#### Option D: Build from Source
 
 Requires Rust 1.70+:
 
@@ -92,7 +102,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see a version number like `1.5.1`.
+You should see a version number like `1.5.2`.
 
 ### 2. Initialize proj in your project
 
