@@ -11,25 +11,28 @@ When you work with AI assistants on code, a lot happens: decisions get made, tas
 - What tasks are pending
 - What's blocking you
 - Where you left off
+- Project documentation (architecture, API, concepts)
 
 Next session, your AI assistant runs `proj status` automatically and picks up exactly where you stopped.
 
 ## Quick Start
 
 ```bash
-# Install (see Installation section for options)
-cargo install --path .
+# Install (pick one)
+cargo install aiproject        # From crates.io
+brew install aiproject         # Homebrew (macOS/Linux)
 
 # In any project directory
-proj init              # First time setup (interactive)
+proj init
 ```
 
-That's it. After init, proj automatically:
-- Adds session rules to your global AGENTS.md (for Claude, Gemini, etc.)
-- AI assistants will run `proj status` at the start of each conversation
-- Optionally commits your changes when you end a session
+The init wizard walks you through:
+1. **Tracking database** - For sessions, decisions, tasks, blockers
+2. **Documentation database** - Optional project docs with search
+3. **Auto-commit** - Optionally commit changes when sessions end
+4. **AGENTS.md rules** - So AI assistants use proj automatically
 
-Everything else happens automatically.
+After init, AI assistants will run `proj status` at the start of each conversation and pick up where you left off.
 
 ## The Simple Version
 
@@ -61,6 +64,32 @@ The biggest finding: without tracking, AI agents literally cannot recover what t
 - **[Cheat Sheet](docs/cheatsheet.md)** - One-page quick reference
 - **[Changelog](CHANGELOG.md)** - Version history and release notes
 
+## Documentation Database (New in v1.6.0)
+
+proj can also manage project documentation with full-text search:
+
+```bash
+# Set up docs (also available during init)
+proj docs init
+
+# Four options:
+# - Generate: Analyze source code (Rust, Python, TypeScript, Go)
+# - Import: Import existing markdown files
+# - New Project: Answer questions to create skeleton docs
+# - Skip: Set up later
+
+# Search your docs
+proj docs search "authentication"
+
+# Show table of contents
+proj docs show
+
+# Add terminology
+proj docs term add "API" --definition "Application Programming Interface"
+```
+
+The docs database supports staleness detection - it warns you when source files change so you can refresh generated documentation.
+
 ## For AI Assistants
 
 When you run `proj init`, it automatically adds session management rules to your global AGENTS.md file. This tells AI assistants (Claude, Gemini, Codex) to:
@@ -87,6 +116,14 @@ Database location: `.tracking/tracking.db`
 
 ## Installation
 
+### From crates.io (Recommended)
+
+```bash
+cargo install aiproject
+```
+
+This installs the `proj` command globally. Requires Rust toolchain.
+
 ### Homebrew (macOS/Linux)
 
 ```bash
@@ -94,7 +131,11 @@ brew tap victorysightsound/tap
 brew install aiproject
 ```
 
-### From Source
+### Download Binary
+
+Pre-built binaries for macOS (Intel & Apple Silicon), Linux, and Windows are available on the [Releases page](https://github.com/victorysightsound/aiproject/releases).
+
+### Build from Source
 
 ```bash
 git clone https://github.com/victorysightsound/aiproject
@@ -103,9 +144,16 @@ cargo build --release
 sudo cp target/release/proj /usr/local/bin/
 ```
 
-### Download Binary
+## VS Code Extension
 
-Pre-built binaries for macOS, Linux, and Windows are available on the [Releases page](https://github.com/victorysightsound/aiproject/releases).
+A VS Code extension is available that integrates with GitHub Copilot:
+
+- Automatic logging via Language Model Tools
+- Status bar with quick menu
+- Session notification on workspace open
+- Auto-generate session summaries
+
+See the [VS Code extension README](vscode/README.md) for details.
 
 ## License
 

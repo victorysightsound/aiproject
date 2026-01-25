@@ -40,6 +40,20 @@ Session #4: "Fixed database migration bug"
 
 When you come back later, you can see "what did I do last time?" at a glance.
 
+### Session Summaries
+
+When ending a session, write summaries that answer "what was accomplished?" - 1-3 substantive sentences work best:
+
+```bash
+# Good: Specific and actionable
+proj session end "Implemented JWT authentication. Added login/logout endpoints. Fixed token refresh bug that was causing 401 errors."
+
+# Bad: Generic and unhelpful
+proj session end "Worked on auth"
+```
+
+Good summaries help future you (or another AI assistant) pick up exactly where you left off.
+
 ### Auto-Close
 
 If you forget to end your session (power outage, got distracted, life happened), proj handles it. After 8 hours of inactivity, it automatically closes the session when you next run `proj status`:
@@ -210,7 +224,7 @@ Session #5
 
 When you end the session, you summarize what happened. When you start the next one, you see the full picture.
 
-## The Database
+## The Tracking Database
 
 All of this lives in a SQLite database at `.tracking/tracking.db`. You can query it directly:
 
@@ -224,8 +238,67 @@ ORDER BY created_at DESC LIMIT 5;
 SELECT task_id, description, priority FROM tasks
 WHERE status IN ('pending', 'in_progress');
 
--- Full-text search
+-- Full-text search across all tracking data
 SELECT * FROM tracking_fts WHERE tracking_fts MATCH 'authentication';
 ```
 
 The database is the source of truth. The commands are just convenient ways to read and write it.
+
+## Documentation Database (Optional)
+
+In addition to tracking sessions and decisions, proj can manage project documentation. This is separate from the tracking database.
+
+### Why a Docs Database?
+
+Documentation lives in a separate database because:
+- **Different lifespan**: Sessions are transient; docs are persistent
+- **Different audience**: Sessions help AI assistants; docs help everyone
+- **Different queries**: "What happened?" vs "How does this work?"
+
+### What Gets Documented
+
+The docs database can hold:
+- **Architecture** - How the system is organized
+- **Components** - Individual parts and their responsibilities
+- **Terminology** - What your project-specific terms mean
+- **Anything else** - Whatever helps understand the codebase
+
+### Generated vs Manual
+
+Documentation can be:
+- **Generated** - Created by analyzing source code (Rust, Python, TypeScript, Go)
+- **Imported** - Brought in from existing markdown files
+- **Manual** - Written directly
+
+proj tracks which sections are generated vs manual, so you know what's safe to regenerate.
+
+### Staleness Detection
+
+When you generate docs from source code, proj remembers which files were analyzed. If those files change, `proj docs status` warns you:
+
+```
+Documentation Status
+  Created: 2026-01-24
+  Sections: 12
+
+⚠ Source has changed since last generation
+  Modified: src/auth.rs, src/database.rs
+
+Run 'proj docs refresh' to update generated sections
+```
+
+This keeps your docs in sync with your code.
+
+### Full-Text Search
+
+Both databases support full-text search:
+
+```bash
+# Search tracking data (sessions, decisions, tasks)
+proj context "authentication"
+
+# Search documentation
+proj docs search "authentication"
+```
+
+This makes it easy for AI assistants to find relevant context quickly.

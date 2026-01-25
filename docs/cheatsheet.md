@@ -22,6 +22,9 @@ That's 90% of what you need.
 | `proj session end "msg"` | End session with summary |
 | `proj session list` | Show recent sessions |
 
+**Good summaries:** "Implemented JWT auth. Fixed token refresh bug." (specific)
+**Bad summaries:** "Worked on code." (useless for resuming)
+
 ---
 
 ## Logging (AI Assistant Uses These)
@@ -61,9 +64,28 @@ That's 90% of what you need.
 
 ---
 
+## Documentation Database
+
+| Command | What It Does |
+|---------|--------------|
+| `proj docs init` | Set up project documentation |
+| `proj docs status` | Show docs info and staleness |
+| `proj docs show` | Table of contents |
+| `proj docs search "topic"` | Search documentation |
+| `proj docs refresh` | Update generated docs |
+| `proj docs export` | Export to markdown |
+| `proj docs term add "X"` | Add terminology |
+
+**Init modes:**
+- `--generate` - Analyze source code (Rust, Python, TypeScript, Go)
+- `--import path/` - Import markdown files
+- `--new` - Create documentation skeleton
+
+---
+
 ## Database Direct Access
 
-Database: `.tracking/tracking.db`
+**Tracking database:** `.tracking/tracking.db`
 
 ```sql
 -- Recent decisions
@@ -74,6 +96,19 @@ SELECT task_id, description FROM tasks WHERE status='pending';
 
 -- Search everything
 SELECT * FROM tracking_fts WHERE tracking_fts MATCH 'keyword';
+```
+
+**Documentation database:** `<project>_docs.db`
+
+```sql
+-- Table of contents
+SELECT section_id, title FROM sections ORDER BY sort_order;
+
+-- Search docs
+SELECT * FROM sections_fts WHERE sections_fts MATCH 'keyword';
+
+-- Get terminology
+SELECT canonical, definition FROM terminology;
 ```
 
 ---
@@ -95,6 +130,7 @@ SELECT * FROM tracking_fts WHERE tracking_fts MATCH 'keyword';
 | `proj backup` | Manual backup |
 | `proj export --format md` | Export as markdown |
 | `proj upgrade` | Upgrade schema |
+| `proj migrate` | Fix schema issues (FTS5, etc.) |
 | `proj update` | Check for proj updates |
 
 ---
@@ -137,9 +173,11 @@ proj init          # Interactive setup (run in terminal)
 proj status        # Verify it worked
 ```
 
-Init also:
-- Adds session rules to global AGENTS.md
-- Optionally enables auto-commit for git repos
+Init wizard walks through:
+- Project info (name, type, description)
+- Documentation setup (generate/import/new/skip)
+- Auto-commit for git repos
+- AGENTS.md rules for AI assistants
 
 ### Daily Work
 ```bash
@@ -157,8 +195,17 @@ proj task update 1 --status completed # Done
 
 ### Finding Old Decisions
 ```bash
-proj context "authentication"         # Search
+proj context "authentication"         # Search tracking data
+proj docs search "authentication"     # Search documentation
 proj export --format md               # Full dump
+```
+
+### Setting Up Documentation Later
+```bash
+proj docs init                        # Interactive wizard
+# Or non-interactive:
+proj docs init --generate             # Analyze source code
+proj docs init --import docs/         # Import markdown files
 ```
 
 ---
@@ -168,5 +215,6 @@ proj export --format md               # Full dump
 | Location | What It Is |
 |----------|------------|
 | `.tracking/config.json` | Project settings |
-| `.tracking/tracking.db` | All your data |
+| `.tracking/tracking.db` | Sessions, decisions, tasks |
+| `<project>_docs.db` | Documentation (optional) |
 | `~/.proj/registry.json` | Global project list |

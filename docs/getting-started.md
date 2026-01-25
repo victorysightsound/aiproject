@@ -5,34 +5,63 @@ This guide walks you through setting up proj for the first time.
 ## What You Need
 
 - A Mac, Linux, or Windows computer with a terminal
-- Rust installed (for building from source)
 - A project folder you want to track
+- (Optional) Rust toolchain if installing from source
 
 ## Installation
 
-### Option 1: Build from Source
+Pick whichever method works best for you:
 
-Open your terminal and run:
+### Option 1: From crates.io (Recommended)
+
+If you have Rust installed:
 
 ```bash
-# Clone the repository
+cargo install aiproject
+```
+
+This installs the `proj` command globally.
+
+### Option 2: Homebrew (macOS/Linux)
+
+```bash
+brew tap victorysightsound/tap
+brew install aiproject
+```
+
+### Option 3: Download Binary
+
+Pre-built binaries are available on the [Releases page](https://github.com/victorysightsound/aiproject/releases).
+
+Download the right one for your system:
+- **macOS Apple Silicon**: `proj-aarch64-apple-darwin.tar.gz`
+- **macOS Intel**: `proj-x86_64-apple-darwin.tar.gz`
+- **Linux ARM**: `proj-aarch64-unknown-linux-gnu.tar.gz`
+- **Linux x86**: `proj-x86_64-unknown-linux-gnu.tar.gz`
+
+Extract and move to your PATH:
+
+```bash
+tar -xzf proj-*.tar.gz
+sudo mv proj /usr/local/bin/
+```
+
+### Option 4: Build from Source
+
+```bash
 git clone https://github.com/victorysightsound/aiproject
 cd aiproject
-
-# Build it
 cargo build --release
-
-# Install it (makes 'proj' available everywhere)
 sudo cp target/release/proj /usr/local/bin/
 ```
 
-### Verify It Worked
+### Verify Installation
 
 ```bash
 proj --version
 ```
 
-You should see the current version (e.g., `proj 1.3.0`).
+You should see the current version (e.g., `proj 1.6.2`).
 
 ## Your First Project
 
@@ -48,16 +77,17 @@ cd ~/projects/my-project
 proj init
 ```
 
-This starts an interactive setup. It will ask you:
-1. What type of project is this? (rust, python, javascript, etc.)
-2. What's the project name?
-3. A short description (optional)
-4. If it's a git repo: Enable auto-commit on session end? (optional)
+This starts an interactive setup wizard. It walks you through:
 
-**What happens during init:**
-- Creates `.tracking/` folder with config and database
-- Registers project in global registry
-- Adds session rules to your global AGENTS.md (so AI assistants automatically run `proj status`)
+1. **Project info** - Name, type (rust, python, javascript, etc.), description
+2. **Tracking database** - Creates `.tracking/` folder with session tracking
+3. **Documentation database** - Optional project docs with full-text search:
+   - **Skip** - Set up documentation later
+   - **Generate** - Analyze your source code (Rust, Python, TypeScript, Go) and create docs automatically
+   - **Import** - Import existing markdown files into the docs database
+   - **New Project** - Answer questions to create a documentation skeleton
+4. **Auto-commit** (git repos only) - Optionally commit changes when sessions end
+5. **AGENTS.md rules** - Adds session rules so AI assistants automatically use proj
 
 **Note:** `proj init` requires a terminal. Run it directly, not through an AI assistant.
 
@@ -77,11 +107,11 @@ FULL PROJECT CONTEXT
 Project: my-project
 Type: rust
 Description: My awesome project
-Schema Version: 1.2
+Schema Version: 1.3
 
 ----------------------------------------
 CURRENT SESSION #1
-Started: 2026-01-24 10:30:00
+Started: 2026-01-25 10:30:00
 
 ----------------------------------------
 BLOCKERS:
@@ -183,6 +213,39 @@ Inside `tracking.db`:
 - **Blockers** - What's in your way
 - **Notes** - Anything else worth remembering
 
+All of this data is full-text searchable using `proj context <query>`.
+
+## Documentation Database (Optional)
+
+If you chose to set up documentation during init (or want to add it later), proj creates a separate docs database:
+
+```
+my-project/
+├── .tracking/
+│   └── tracking.db        # Session/decision tracking
+├── my-project_docs.db     # Documentation database
+└── ...
+```
+
+Useful commands:
+
+```bash
+# Show documentation status
+proj docs status
+
+# Search documentation
+proj docs search "authentication"
+
+# Show table of contents
+proj docs show
+
+# Refresh if source files changed
+proj docs refresh
+
+# Add terminology
+proj docs term add "API" --definition "Application Programming Interface"
+```
+
 ## Next Steps
 
 - Read [Concepts](concepts.md) to understand sessions, decisions, and tasks
@@ -199,14 +262,24 @@ You're not in a folder with proj initialized. Either:
 
 ### "proj: command not found"
 
-The binary isn't in your PATH. Make sure you copied it:
-```bash
-sudo cp target/release/proj /usr/local/bin/
-```
+The binary isn't in your PATH. Depending on how you installed:
+
+**crates.io**: Make sure `~/.cargo/bin` is in your PATH
+**Homebrew**: Run `brew link aiproject`
+**Manual**: Run `sudo cp proj /usr/local/bin/`
 
 ### "Permission denied"
 
 On Mac/Linux, you might need `sudo`:
 ```bash
-sudo cp target/release/proj /usr/local/bin/
+sudo cp proj /usr/local/bin/
 ```
+
+### "FTS5 not available" or search not working
+
+If you upgraded from an older version, run:
+```bash
+proj migrate
+```
+
+This adds the full-text search tables if they're missing.

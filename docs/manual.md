@@ -30,18 +30,17 @@ Initialize a new project with proj tracking.
 proj init
 ```
 
-**Interactive** - asks for:
-- Project type (rust, python, javascript, web, documentation, other)
-- Project name
-- Description (optional)
-- Auto-commit on session end? (if git repo detected)
-- Auto-commit mode: prompt or auto
+**Interactive wizard** - asks for:
+1. **Project info** - type (rust, python, javascript, web, documentation, other), name, description
+2. **Documentation database** - choose how to set up project docs:
+   - **Skip** - Set up documentation later with `proj docs init`
+   - **Generate** - Analyze source code (Rust, Python, TypeScript, Go) to create docs
+   - **Import** - Import existing markdown files into the docs database
+   - **New Project** - Answer questions to create documentation skeleton
+3. **Auto-commit** (git repos only) - Optionally commit changes when sessions end
+4. **AGENTS.md rules** - Adds session rules so AI assistants automatically use proj
 
 Creates `.tracking/` folder with `config.json` and `tracking.db`.
-
-**Also:**
-- Registers project in global registry
-- Adds session rules to global AGENTS.md (for AI assistants)
 
 **Note:** Run this in a terminal, not through an AI assistant.
 
@@ -49,13 +48,16 @@ Creates `.tracking/` folder with `config.json` and `tracking.db`.
 
 ### proj migrate
 
-Convert an existing project to use proj tracking.
+Update an existing project's database schema and fix issues.
 
 ```bash
 proj migrate
 ```
 
-For projects that have content but no proj tracking. Interactive.
+Use this if:
+- You upgraded proj and need the latest schema
+- Full-text search isn't working (adds FTS5 tables if missing)
+- You get schema version errors
 
 ---
 
@@ -354,6 +356,121 @@ Icons:
 
 ---
 
+## Documentation Database
+
+These commands manage project documentation with full-text search.
+
+### proj docs init
+
+Initialize the documentation database.
+
+```bash
+proj docs init                    # Interactive wizard
+proj docs init --generate         # Non-interactive: analyze source code
+proj docs init --import <path>    # Non-interactive: import markdown files
+proj docs init --new              # Non-interactive: create skeleton
+```
+
+**Four setup modes:**
+1. **Generate** - Analyze source code (Rust, Python, TypeScript, Go) and create documentation
+2. **Import** - Import existing markdown files into the database
+3. **New Project** - Answer questions to create documentation skeleton
+4. **Manual** - Start with empty database
+
+Creates `<project-name>_docs.db` in the project root.
+
+---
+
+### proj docs status
+
+Show documentation database status.
+
+```bash
+proj docs status
+```
+
+Output:
+```
+Documentation Status
+  Database: my-project_docs.db
+  Created: 2026-01-24
+  Sections: 12
+  Terms: 5
+
+⚠ Source has changed since last generation
+  Modified: src/auth.rs, src/database.rs
+
+Run 'proj docs refresh' to update generated sections
+```
+
+Shows staleness warnings if source files have changed since documentation was generated.
+
+---
+
+### proj docs show
+
+Display documentation contents.
+
+```bash
+proj docs show              # Table of contents
+proj docs show <section>    # Specific section
+```
+
+---
+
+### proj docs search
+
+Full-text search across documentation.
+
+```bash
+proj docs search "authentication"
+proj docs search "database schema"
+```
+
+---
+
+### proj docs refresh
+
+Update documentation when source files change.
+
+```bash
+proj docs refresh           # Update generated sections only
+proj docs refresh --force   # Regenerate everything including manual edits
+```
+
+Only affects sections that were auto-generated from source code. Manual sections are preserved unless `--force` is used.
+
+---
+
+### proj docs export
+
+Export documentation to markdown.
+
+```bash
+proj docs export                    # Export to stdout
+proj docs export --output docs.md   # Export to file
+```
+
+---
+
+### proj docs term
+
+Manage terminology glossary.
+
+```bash
+# Add a term
+proj docs term add "API" --definition "Application Programming Interface"
+proj docs term add "JWT" --definition "JSON Web Token" --category security
+
+# List all terms
+proj docs term list
+
+# Search terms
+proj docs term search "token"
+```
+
+---
+
 ## Database Management
 
 ### proj extend
@@ -484,12 +601,12 @@ Registered Projects (3):
   ✓ my-app
       Type: rust
       Path: /Users/me/projects/my-app
-      Schema: v1.2
+      Schema: v1.3
 
   ✓ website
       Type: web
       Path: /Users/me/projects/website
-      Schema: v1.2
+      Schema: v1.3
 ```
 
 ---
@@ -542,6 +659,7 @@ Release management (for maintainers).
 
 ```bash
 proj release              # Interactive release wizard
+proj release 1.5.0        # Skip version selection
 proj release --check      # Verify/update Homebrew formula
 ```
 
@@ -576,7 +694,8 @@ Deletes GitHub release and tags (local and remote). Interactive confirmation req
 | Path | Description |
 |------|-------------|
 | `.tracking/config.json` | Project configuration |
-| `.tracking/tracking.db` | Project database |
+| `.tracking/tracking.db` | Session/decision tracking database |
+| `<project>_docs.db` | Documentation database (optional) |
 | `~/.proj/registry.json` | Global project registry |
 | `~/.proj/backups/` | Backup storage |
 
@@ -591,7 +710,7 @@ The `.tracking/config.json` file contains project settings:
   "name": "my-project",
   "project_type": "rust",
   "description": "My awesome project",
-  "schema_version": "1.2",
+  "schema_version": "1.3",
   "auto_backup": true,
   "auto_session": true,
   "auto_commit": false,
@@ -604,7 +723,7 @@ The `.tracking/config.json` file contains project settings:
 | `name` | string | - | Project name |
 | `project_type` | string | - | rust, python, javascript, web, documentation, other |
 | `description` | string | null | Optional description |
-| `schema_version` | string | "1.2" | Database schema version |
+| `schema_version` | string | "1.3" | Database schema version |
 | `auto_backup` | bool | true | Auto-backup on session end |
 | `auto_session` | bool | true | Auto-start sessions on status |
 | `auto_commit` | bool | false | Git commit on session end |
