@@ -157,7 +157,7 @@ cd vscode
 npm install
 npm run compile
 npm run package
-code --install-extension proj-1.5.2.vsix
+code --install-extension proj-1.5.3.vsix
 ```
 
 ---
@@ -639,7 +639,7 @@ Creates a `.vsix` file you can install or distribute.
 
 ```bash
 npm run package
-code --install-extension proj-1.5.2.vsix --force
+code --install-extension proj-1.5.3.vsix --force
 ```
 
 Then restart VS Code.
@@ -648,10 +648,18 @@ Then restart VS Code.
 
 ## Version History
 
+### 1.5.3
+
+- Added crates.io installation option (`cargo install aiproject`)
+- Reordered installation methods (cargo first as cross-platform option)
+
+### 1.5.2
+
+- Updated CLI installation documentation with multiple methods (Homebrew, GitHub releases, build from source)
+
 ### 1.5.1
 
 - Added custom extension icon (clipboard with progress indicators)
-- Updated CLI installation documentation with multiple methods (Homebrew, GitHub releases, build from source)
 
 ### 1.5.0
 

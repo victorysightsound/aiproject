@@ -2,6 +2,14 @@
 
 All notable changes to proj are documented here.
 
+## [1.5.3] - 2026-01-25
+
+### Added
+- **crates.io installation**: Added `cargo install aiproject` as primary installation method
+
+### Changed
+- Reordered CLI installation options (cargo first, then Homebrew, GitHub releases, build from source)
+
 ## [1.5.2] - 2026-01-25
 
 ### Changed
