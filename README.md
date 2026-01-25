@@ -39,6 +39,20 @@ That's it. `proj status` to start, summary to end. Everything else happens autom
 | Done for the day | `proj session end "summary"` |
 | Forgot to end? | No problem - auto-closes after 8 hours |
 
+## Does It Actually Help?
+
+Yes. We ran a controlled test comparing AI agents working with and without proj:
+
+| Metric | With proj | Without proj | Improvement |
+|--------|-----------|--------------|-------------|
+| Files read | 11 | 34 | **68% reduction** |
+| Token usage | ~10K | ~20K | **50% reduction** |
+| Context recovery | 100% | 0% | **Critical** |
+
+The biggest finding: without tracking, AI agents literally cannot recover what the previous session was working on. With proj, they pick up exactly where you left off.
+
+**[Read the full case study (PDF)](docs/CASE_STUDY.pdf)** | **[Markdown version](docs/CASE_STUDY.md)**
+
 ## Documentation
 
 - **[Getting Started](docs/getting-started.md)** - First-time setup, your first project
