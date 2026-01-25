@@ -37,94 +37,30 @@ jobs:
           echo "LATEST=$LATEST" >> $GITHUB_OUTPUT
           echo "Latest release: $LATEST"
 
-      - name: Compare versions and notify
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const cargoVersion = '${{ steps.cargo_version.outputs.VERSION }}';
-            const latestRelease = '${{ steps.latest_release.outputs.LATEST }}' || '0.0.0';
+      - name: Check if release needed
+        id: check
+        run: |
+          CARGO_VERSION="${{ steps.cargo_version.outputs.VERSION }}"
+          LATEST="${{ steps.latest_release.outputs.LATEST }}"
 
-            function compareVersions(a, b) {
-              const pa = a.split('.').map(Number);
-              const pb = b.split('.').map(Number);
-              for (let i = 0; i < 3; i++) {
-                if (pa[i] > pb[i]) return 1;
-                if (pa[i] < pb[i]) return -1;
-              }
-              return 0;
-            }
+          # Compare versions
+          if [ "$(printf '%s\n' "$LATEST" "$CARGO_VERSION" | sort -V | tail -n1)" = "$CARGO_VERSION" ] && [ "$CARGO_VERSION" != "$LATEST" ]; then
+            echo "NEEDS_RELEASE=true" >> $GITHUB_OUTPUT
+            echo "Version $CARGO_VERSION is ahead of $LATEST - will auto-release"
+          else
+            echo "NEEDS_RELEASE=false" >> $GITHUB_OUTPUT
+            echo "Version $CARGO_VERSION is not ahead of $LATEST - no release needed"
+          fi
 
-            if (compareVersions(cargoVersion, latestRelease) > 0) {
-              console.log(`Version ${cargoVersion} is ahead of latest release ${latestRelease}`);
-
-              // Check for existing release reminder issue
-              const issues = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'open',
-                labels: 'release-reminder'
-              });
-
-              if (issues.data.length === 0) {
-                // Create new issue
-                await github.rest.issues.create({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  title: `📦 Ready to release v${cargoVersion}`,
-                  body: `## New Version Ready for Release
-
-            **Cargo.toml version:** \`${cargoVersion}\`
-            **Latest release:** \`v${latestRelease}\`
-
-            The code version is ahead of the latest release. When you're ready to publish:
-
-            ### Option 1: Use the release wizard (recommended)
-            \`\`\`bash
-            cd ~/projects/global/tools/proj
-            proj release
-            \`\`\`
-
-            ### Option 2: Manual tag
-            \`\`\`bash
-            git tag v${cargoVersion}
-            git push --tags
-            \`\`\`
-
-            The release workflow will automatically:
-            - Build all platform binaries
-            - Create GitHub release
-            - Update Homebrew formula
-
-            ---
-            *This issue will close automatically when the release is created.*
-            `,
-                  labels: ['release-reminder', 'automated']
-                });
-                console.log('Created release reminder issue');
-              } else {
-                console.log('Release reminder issue already exists');
-              }
-            } else {
-              console.log(`Version ${cargoVersion} is not ahead of ${latestRelease}, no release needed`);
-
-              // Close any existing release reminder issues
-              const issues = await github.rest.issues.listForRepo({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                state: 'open',
-                labels: 'release-reminder'
-              });
-
-              for (const issue of issues.data) {
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: issue.number,
-                  state: 'closed'
-                });
-                console.log(`Closed release reminder issue #${issue.number}`);
-              }
-            }
+      - name: Create and push release tag
+        if: steps.check.outputs.NEEDS_RELEASE == 'true'
+        run: |
+          VERSION="${{ steps.cargo_version.outputs.VERSION }}"
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
+          echo "Created and pushed tag v${VERSION}"
 
   test:
     name: Test

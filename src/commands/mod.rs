@@ -24,3 +24,4 @@ pub mod task;
 pub mod update_check;
 pub mod upgrade;
 pub mod release;
+pub mod rollback;

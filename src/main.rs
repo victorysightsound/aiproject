@@ -58,5 +58,6 @@ fn main() -> Result<()> {
         Commands::Archive => commands::archive::run(),
         Commands::Update => commands::update_check::run(),
         Commands::Release { check } => commands::release::run(check),
+        Commands::Rollback { version } => commands::rollback::run(version),
     }
 }

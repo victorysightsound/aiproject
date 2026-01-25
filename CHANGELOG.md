@@ -2,6 +2,18 @@
 
 All notable changes to proj will be documented in this file.
 
+## [1.2.0] - 2026-01-25
+
+### Added
+- **Fully automated releases**: Just bump version in Cargo.toml and push - release happens automatically
+- `proj rollback [version]` - Undo a release (deletes tag and GitHub release)
+- Auto-release detection in CI workflow
+
+### Changed
+- No more manual `proj release` needed for normal releases
+- GitHub Actions now creates and pushes version tags automatically
+- Homebrew formula updates are fully automated
+
 ## [1.1.0] - 2026-01-25
 
 ### Added

@@ -105,6 +105,11 @@ pub enum Commands {
         #[arg(long)]
         check: bool,
     },
+    /// Rollback a release (delete tag and GitHub release)
+    Rollback {
+        /// Version to rollback (defaults to latest)
+        version: Option<String>,
+    },
 }
 
 #[derive(Parser)]
