@@ -2,6 +2,32 @@
 
 All notable changes to proj are documented here.
 
+## [1.6.0] - 2026-01-25
+
+### Added
+- **Documentation Database Feature**: New `proj docs` command for managing project documentation
+  - `proj docs init` - Interactive wizard with multiple setup modes
+  - `proj docs init --generate` - Auto-generate docs from source code analysis
+  - `proj docs init --import` - Import existing markdown files
+  - `proj docs init --new` - Create documentation skeleton from questions
+  - `proj docs status` - Show database info with staleness detection
+  - `proj docs refresh` - Update generated sections when source changes
+  - `proj docs show` - Display table of contents or specific section
+  - `proj docs search` - FTS5 full-text search across documentation
+  - `proj docs export` - Export to markdown format
+  - `proj docs term add/list/search` - Terminology glossary management
+
+- **Multi-language Source Analysis**: Automatic documentation generation from code
+  - Rust: modules, structs, enums, traits, functions, impl blocks
+  - Python: classes, functions, async functions, docstrings
+  - TypeScript: interfaces, classes, enums, types, functions, JSDoc
+  - Go: structs, interfaces, functions, methods, constants
+
+- **Change Detection**: Track source file modifications
+  - Staleness warnings in `proj docs status` when source files change
+  - `proj docs refresh` regenerates only generated sections
+  - `--force` flag to regenerate all sections including manual edits
+
 ## [1.5.4] - 2026-01-25
 
 ### Changed
