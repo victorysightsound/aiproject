@@ -2,7 +2,7 @@
   "name": "proj",
   "displayName": "proj - AI Project Tracker",
   "description": "Project tracking and context management for AI-assisted development",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "publisher": "victorysightsound",
   "license": "MIT",
   "repository": {
@@ -73,8 +73,17 @@
         "title": "proj: End Session"
       },
       {
+        "command": "proj.endSessionWithOptions",
+        "title": "proj: End Session...",
+        "shortTitle": "End Session"
+      },
+      {
         "command": "proj.refresh",
         "title": "proj: Refresh"
+      },
+      {
+        "command": "proj.showMenu",
+        "title": "proj: Show Menu"
       }
     ],
     "configuration": {
@@ -91,7 +100,167 @@
           "description": "Show proj status in the status bar"
         }
       }
-    }
+    },
+    "languageModelTools": [
+      {
+        "name": "proj_get_status",
+        "displayName": "Get Project Status",
+        "description": "Gets the current project status including active tasks, blockers, and recent decisions. Use this at the start of conversations to understand project context.",
+        "modelDescription": "Get current project tracking status including tasks, blockers, decisions, and session info. Call this to understand what the user is working on and what context exists.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "proj_log_decision",
+        "displayName": "Log Decision",
+        "description": "Logs an architectural or design decision for future reference. Use when making technical choices.",
+        "modelDescription": "Log a decision that was made during the conversation. Use when the user makes a technical choice, architectural decision, or picks between options. Include topic, the decision made, and the rationale.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "topic": {
+              "type": "string",
+              "description": "The topic or area of the decision (e.g., 'database', 'authentication', 'UI framework')"
+            },
+            "decision": {
+              "type": "string",
+              "description": "What was decided"
+            },
+            "rationale": {
+              "type": "string",
+              "description": "Why this decision was made (optional but recommended)"
+            }
+          },
+          "required": ["topic", "decision"]
+        }
+      },
+      {
+        "name": "proj_add_task",
+        "displayName": "Add Task",
+        "description": "Adds a new task to the project tracking system.",
+        "modelDescription": "Add a task when the user identifies something that needs to be done, a TODO item, or work to complete later. Set priority based on urgency.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Description of the task to be done"
+            },
+            "priority": {
+              "type": "string",
+              "enum": ["high", "medium", "low"],
+              "description": "Task priority level"
+            }
+          },
+          "required": ["description"]
+        }
+      },
+      {
+        "name": "proj_log_blocker",
+        "displayName": "Log Blocker",
+        "description": "Logs a blocker that is preventing progress on the project.",
+        "modelDescription": "Log a blocker when the user encounters something preventing progress - missing dependencies, waiting on external input, permissions issues, etc.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string",
+              "description": "Description of what is blocking progress"
+            }
+          },
+          "required": ["description"]
+        }
+      },
+      {
+        "name": "proj_log_note",
+        "displayName": "Log Note",
+        "description": "Logs a context note for future reference in a specific category.",
+        "modelDescription": "Log important context that should be remembered for future sessions - constraints, requirements, findings, or other information worth preserving.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "string",
+              "description": "Category for the note (e.g., 'constraint', 'requirement', 'finding', 'architecture')"
+            },
+            "title": {
+              "type": "string",
+              "description": "Short title for the note"
+            },
+            "content": {
+              "type": "string",
+              "description": "The full content of the note"
+            }
+          },
+          "required": ["category", "title", "content"]
+        }
+      },
+      {
+        "name": "proj_update_task",
+        "displayName": "Update Task",
+        "description": "Updates the status of an existing task.",
+        "modelDescription": "Update a task's status when work begins (in_progress), completes (completed), gets blocked (blocked), or is no longer needed (cancelled).",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "taskId": {
+              "type": "number",
+              "description": "The numeric ID of the task to update"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["pending", "in_progress", "completed", "blocked", "cancelled"],
+              "description": "New status for the task"
+            }
+          },
+          "required": ["taskId", "status"]
+        }
+      },
+      {
+        "name": "proj_end_session",
+        "displayName": "End Session",
+        "description": "Ends the current tracking session with a summary of what was accomplished.",
+        "modelDescription": "End the session when the user is done working or explicitly asks to end. Provide a concise summary of what was accomplished.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "summary": {
+              "type": "string",
+              "description": "Brief summary of what was accomplished in this session"
+            }
+          },
+          "required": ["summary"]
+        }
+      },
+      {
+        "name": "proj_search_context",
+        "displayName": "Search Project Context",
+        "description": "Searches project history for decisions, notes, and context about a specific topic.",
+        "modelDescription": "Search for past decisions, notes, and context about a topic. Use when the user asks about previous choices or when you need historical context.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "topic": {
+              "type": "string",
+              "description": "The topic to search for in project history"
+            }
+          },
+          "required": ["topic"]
+        }
+      },
+      {
+        "name": "proj_get_session_activity",
+        "displayName": "Get Session Activity",
+        "description": "Gets all activity from the current session for generating an end-of-session summary.",
+        "modelDescription": "Get detailed activity from the current session including decisions made, tasks added/completed, blockers logged, and git commits. Use this before calling proj_end_session to generate an accurate summary of what was accomplished. Always call this first when the user wants to end their session, then use the activity to write a concise summary.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

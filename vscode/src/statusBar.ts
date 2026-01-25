@@ -22,8 +22,8 @@ export function createStatusBar(context: vscode.ExtensionContext): void {
         100
     );
 
-    statusBarItem.command = 'proj.status';
-    statusBarItem.tooltip = 'Click to show proj status';
+    statusBarItem.command = 'proj.showMenu';
+    statusBarItem.tooltip = 'Click for proj options';
 
     context.subscriptions.push(statusBarItem);
 

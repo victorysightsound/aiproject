@@ -164,6 +164,13 @@ async function handleStatusCommand(
             }
         }
 
+        // Add action buttons
+        response.markdown('\n---\n');
+        response.button({
+            command: 'proj.endSessionWithOptions',
+            title: '$(stop-circle) End Session'
+        });
+
     } catch (e: any) {
         response.markdown('```\n' + result.stdout + '\n```\n');
     }
@@ -346,6 +353,20 @@ async function handleQuery(
 
     if (lowerPrompt.includes('block') || lowerPrompt.includes('stuck') || lowerPrompt.includes('waiting')) {
         return handleBlockersQuery(response);
+    }
+
+    // Handle end session requests
+    if (lowerPrompt.includes('end') && (lowerPrompt.includes('session') || lowerPrompt.includes('done') || lowerPrompt.includes('finish'))) {
+        response.markdown(
+            'To end your session, use one of these options:\n\n' +
+            '1. **With your own summary:** `@proj /end Your summary here`\n' +
+            '2. **Auto-generate:** Click the End Session button below, or use the status bar menu\n\n'
+        );
+        response.button({
+            command: 'proj.endSessionWithOptions',
+            title: '$(stop-circle) End Session'
+        });
+        return { metadata: { command: 'end-help' } };
     }
 
     // Search for topic

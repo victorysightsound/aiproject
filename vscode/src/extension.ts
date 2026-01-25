@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import * as cli from './cli';
 import { registerParticipant } from './participant';
 import * as statusBar from './statusBar';
+import { registerTools } from './tools';
 
 /**
  * Extension activation
@@ -33,18 +34,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Register chat participant (@proj)
     registerParticipant(context);
 
+    // Register Language Model Tools for Copilot
+    registerTools(context);
+
     // Create status bar
     statusBar.createStatusBar(context);
 
     // Register commands
     registerCommands(context);
 
-    // Auto-run status on workspace open if tracking exists
+    // Auto-status notification on workspace open if tracking exists
     if (await cli.hasTracking()) {
-        // Run status quietly to start/resume session
-        cli.getStatus().catch(() => {
-            // Ignore errors on auto-status
-        });
+        showSessionNotification();
     }
 
     console.log('proj extension activated');
@@ -71,34 +72,34 @@ function registerCommands(context: vscode.ExtensionContext): void {
             try {
                 const data = JSON.parse(result.stdout);
                 outputChannel.appendLine(`Project: ${data.project?.name || 'Unknown'}`);
-                outputChannel.appendLine(`Session: #${data.session?.id || 'N/A'}`);
+                outputChannel.appendLine(`Session: #${data.current_session?.session_id || 'N/A'}`);
                 outputChannel.appendLine('');
 
-                if (data.last_session_summary) {
-                    outputChannel.appendLine(`Last session: ${data.last_session_summary}`);
+                if (data.last_session?.summary) {
+                    outputChannel.appendLine(`Last session: ${data.last_session.summary}`);
                     outputChannel.appendLine('');
                 }
 
-                if (data.blockers && data.blockers.length > 0) {
+                if (data.active_blockers && data.active_blockers.length > 0) {
                     outputChannel.appendLine('BLOCKERS:');
-                    for (const blocker of data.blockers) {
+                    for (const blocker of data.active_blockers) {
                         outputChannel.appendLine(`  - ${blocker.description}`);
                     }
                     outputChannel.appendLine('');
                 }
 
-                if (data.tasks && data.tasks.length > 0) {
+                if (data.active_tasks && data.active_tasks.length > 0) {
                     outputChannel.appendLine('TASKS:');
-                    for (const task of data.tasks) {
+                    for (const task of data.active_tasks) {
                         const icon = task.status === 'in_progress' ? '>' : '-';
                         outputChannel.appendLine(`  ${icon} [${task.priority}] ${task.description}`);
                     }
                     outputChannel.appendLine('');
                 }
 
-                if (data.decisions && data.decisions.length > 0) {
+                if (data.recent_decisions && data.recent_decisions.length > 0) {
                     outputChannel.appendLine('RECENT DECISIONS:');
-                    for (const decision of data.decisions.slice(0, 5)) {
+                    for (const decision of data.recent_decisions.slice(0, 5)) {
                         outputChannel.appendLine(`  - ${decision.topic}: ${decision.decision}`);
                     }
                 }
@@ -159,6 +160,190 @@ function registerCommands(context: vscode.ExtensionContext): void {
             vscode.window.showInformationMessage('proj status refreshed');
         })
     );
+
+    // proj.showMenu - Quick menu from status bar
+    context.subscriptions.push(
+        vscode.commands.registerCommand('proj.showMenu', async () => {
+            const choice = await vscode.window.showQuickPick([
+                {
+                    label: '$(info) View Status',
+                    description: 'Show current project status',
+                    value: 'status'
+                },
+                {
+                    label: '$(checklist) View Tasks',
+                    description: 'List all active tasks',
+                    value: 'tasks'
+                },
+                {
+                    label: '$(stop-circle) End Session...',
+                    description: 'End session with summary',
+                    value: 'end'
+                },
+                {
+                    label: '$(refresh) Refresh',
+                    description: 'Refresh status bar',
+                    value: 'refresh'
+                }
+            ], {
+                placeHolder: 'proj - Choose an action'
+            });
+
+            if (!choice) {
+                return;
+            }
+
+            switch (choice.value) {
+                case 'status':
+                    vscode.commands.executeCommand('proj.status');
+                    break;
+                case 'tasks':
+                    vscode.commands.executeCommand('proj.tasks');
+                    break;
+                case 'end':
+                    vscode.commands.executeCommand('proj.endSessionWithOptions');
+                    break;
+                case 'refresh':
+                    vscode.commands.executeCommand('proj.refresh');
+                    break;
+            }
+        })
+    );
+
+    // proj.endSessionWithOptions - End session with choice of manual or auto summary
+    context.subscriptions.push(
+        vscode.commands.registerCommand('proj.endSessionWithOptions', async () => {
+            const choice = await vscode.window.showQuickPick([
+                {
+                    label: '$(edit) Enter summary manually',
+                    description: 'Type your own session summary',
+                    value: 'manual'
+                },
+                {
+                    label: '$(sparkle) Auto-generate summary',
+                    description: 'Let Copilot generate a summary from session activity',
+                    value: 'auto'
+                }
+            ], {
+                placeHolder: 'How do you want to end this session?'
+            });
+
+            if (!choice) {
+                return;
+            }
+
+            if (choice.value === 'manual') {
+                // Manual: prompt for summary
+                const summary = await vscode.window.showInputBox({
+                    prompt: 'Session summary',
+                    placeHolder: 'What did you accomplish?'
+                });
+
+                if (!summary) {
+                    return;
+                }
+
+                const result = await cli.endSession(summary);
+
+                if (result.success) {
+                    vscode.window.showInformationMessage(`Session ended: ${summary}`);
+                    statusBar.refresh();
+                } else {
+                    vscode.window.showErrorMessage(`Failed to end session: ${result.stderr}`);
+                }
+            } else {
+                // Auto: open Copilot Chat WITHOUT @proj so Copilot uses the Language Model Tools directly
+                // This triggers Copilot to use proj_get_session_activity and proj_end_session tools
+                try {
+                    await vscode.commands.executeCommand('workbench.action.chat.open', {
+                        query: 'I want to end my proj tracking session. Please use the proj_get_session_activity tool to see what I accomplished, then generate a concise 1-2 sentence summary and call proj_end_session with that summary.'
+                    });
+                } catch {
+                    // Fallback if chat command doesn't support query parameter
+                    vscode.window.showInformationMessage(
+                        'Open Copilot Chat and say: "End my proj session and generate a summary"'
+                    );
+                }
+            }
+        })
+    );
+}
+
+/**
+ * Show session notification on workspace open
+ */
+async function showSessionNotification(): Promise<void> {
+    // Delay slightly to ensure VS Code window is fully ready
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    try {
+        // Get project status
+        const result = cli.runProjSync(['resume', '--for-ai']);
+
+        if (!result.success) {
+            return; // Silently fail - don't bother user with errors on startup
+        }
+
+        const data = JSON.parse(result.stdout);
+
+        // Build notification message
+        const parts: string[] = [];
+
+        // Session info
+        if (data.current_session) {
+            parts.push(`Session #${data.current_session.session_id}`);
+        } else {
+            parts.push('Session started');
+        }
+
+        // Task count
+        const taskCount = data.active_tasks?.length || 0;
+        if (taskCount > 0) {
+            parts.push(`${taskCount} task${taskCount > 1 ? 's' : ''}`);
+        }
+
+        // Blocker count
+        const blockerCount = data.active_blockers?.length || 0;
+        if (blockerCount > 0) {
+            parts.push(`${blockerCount} blocker${blockerCount > 1 ? 's' : ''}`);
+        }
+
+        // Last session summary
+        const lastSummary = data.last_session?.summary;
+
+        // Project name
+        const projectName = data.project?.name || 'Project';
+
+        // Show notification with more detail - use showWarningMessage for visibility
+        // It stays until user clicks a button (doesn't auto-dismiss)
+        let message = `proj: ${projectName} | ${parts.join(' | ')}`;
+        if (lastSummary) {
+            // Truncate if too long
+            const truncatedSummary = lastSummary.length > 60
+                ? lastSummary.substring(0, 57) + '...'
+                : lastSummary;
+            message += `\n\nLast: ${truncatedSummary}`;
+        }
+
+        // Use modal-style notification that requires user interaction
+        const selection = await vscode.window.showInformationMessage(
+            message,
+            { modal: false },
+            'View Full Status',
+            'End Session',
+            'OK'
+        );
+
+        if (selection === 'View Full Status') {
+            vscode.commands.executeCommand('proj.status');
+        } else if (selection === 'End Session') {
+            vscode.commands.executeCommand('proj.endSessionWithOptions');
+        }
+
+    } catch (error) {
+        // Silently fail - don't bother user with parsing errors on startup
+        console.log('[proj] Failed to show session notification:', error);
+    }
 }
 
 /**
