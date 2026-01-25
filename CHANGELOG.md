@@ -2,6 +2,17 @@
 
 All notable changes to proj are documented here.
 
+## [1.4.0] - 2026-01-25
+
+### Added
+- **Automated changelog in `proj release`**: Prompts for changelog entries interactively, opens editor for each entry, auto-updates CHANGELOG.md
+- **Changelog validation in release workflow**: Releases fail early if CHANGELOG.md is missing an entry for the version being released
+- **Version argument for release**: `proj release 1.4.0` skips version selection prompt
+
+### Changed
+- Release command now checks for uncommitted changes before proceeding
+- Release workflow validates changelog before building binaries
+
 ## [1.3.0] - 2026-01-25
 
 ### Added
