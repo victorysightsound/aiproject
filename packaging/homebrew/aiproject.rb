@@ -1,7 +1,7 @@
 class Aiproject < Formula
   desc "Project tracking and context management for AI-assisted development"
   homepage "https://github.com/victorysightsound/aiproject"
-  version "1.6.1"
+  version "1.6.2"
   license "MIT"
 
   on_macos do

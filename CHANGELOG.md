@@ -2,6 +2,11 @@
 
 All notable changes to proj are documented here.
 
+## [1.6.2] - 2026-01-25
+
+### Added
+- **Documentation setup in init wizard**: `proj init` now includes documentation database setup with options to generate from source, import markdown, create skeleton, or skip
+
 ## [1.6.1] - 2026-01-25
 
 ### Fixed
