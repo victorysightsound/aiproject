@@ -122,3 +122,154 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew Formula
+    needs: [release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download and compute SHA256 hashes
+        id: hashes
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}"
+
+          # Download and hash each platform
+          for target in aarch64-apple-darwin x86_64-apple-darwin aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu; do
+            echo "Downloading proj-${target}.tar.gz..."
+            curl -sL "${BASE_URL}/proj-${target}.tar.gz" -o "/tmp/proj-${target}.tar.gz"
+            HASH=$(sha256sum "/tmp/proj-${target}.tar.gz" | cut -d' ' -f1)
+            echo "${target}=${HASH}" >> $GITHUB_OUTPUT
+            echo "  ${target}: ${HASH}"
+          done
+
+      - name: Update Homebrew formula
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          FORMULA="packaging/homebrew/aiproject.rb"
+
+          # Update version
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" "$FORMULA"
+
+          # Update SHA256 hashes
+          # This uses a Python script for reliable multi-line sed replacement
+          python3 << 'PYTHON'
+          import re
+
+          hashes = {
+              "aarch64-apple-darwin": "${{ steps.hashes.outputs.aarch64-apple-darwin }}",
+              "x86_64-apple-darwin": "${{ steps.hashes.outputs.x86_64-apple-darwin }}",
+              "aarch64-unknown-linux-gnu": "${{ steps.hashes.outputs.aarch64-unknown-linux-gnu }}",
+              "x86_64-unknown-linux-gnu": "${{ steps.hashes.outputs.x86_64-unknown-linux-gnu }}",
+          }
+
+          with open("packaging/homebrew/aiproject.rb", "r") as f:
+              content = f.read()
+
+          for platform, sha in hashes.items():
+              # Match url line containing platform, then update the next sha256 line
+              pattern = rf'(url ".*{platform}.*"\n\s+)sha256 "[a-f0-9]+"'
+              replacement = rf'\1sha256 "{sha}"'
+              content = re.sub(pattern, replacement, content)
+
+          with open("packaging/homebrew/aiproject.rb", "w") as f:
+              f.write(content)
+
+          print("Updated Homebrew formula")
+          PYTHON
+
+          cat "$FORMULA"
+
+      - name: Commit and push formula update
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add packaging/homebrew/aiproject.rb
+          git commit -m "Update Homebrew formula for v${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
+          git push origin main
+
+  notify-on-failure:
+    name: Notify on Failure
+    needs: [build-linux, build-macos, build-windows, release, update-homebrew]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const tagName = context.ref.replace('refs/tags/', '');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Release ${tagName} failed`,
+              body: `## Release Build Failed
+
+            The automated release build for **${tagName}** has failed.
+
+            ### What to do:
+
+            1. **Check the workflow logs**: [View failed run](${runUrl})
+
+            2. **Common issues:**
+               - Build failures: Check compiler errors in the logs
+               - Network issues: The workflow may need to be re-run
+               - Permission issues: Check repository settings
+
+            3. **To retry the release:**
+               \`\`\`bash
+               # Delete the tag
+               git push --delete origin ${tagName}
+               git tag -d ${tagName}
+
+               # Fix the issue, then re-tag
+               git tag ${tagName}
+               git push --tags
+               \`\`\`
+
+            4. **If Homebrew formula update failed:**
+               \`\`\`bash
+               cd ~/projects/global/tools/proj
+               proj release --check
+               \`\`\`
+
+            ---
+            *This issue was automatically created by the release workflow.*
+            `,
+              labels: ['release', 'automated', 'needs-attention']
+            });
+
+  notify-success:
+    name: Release Complete Notification
+    needs: [update-homebrew]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Summary
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "## ✅ Release v${VERSION} Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All binaries built and Homebrew formula updated automatically." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Install/Upgrade:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`brew upgrade proj\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`npm update -g create-aiproj\`" >> $GITHUB_STEP_SUMMARY
+          echo "- [Download binaries](https://github.com/${{ github.repository }}/releases/tag/v${VERSION})" >> $GITHUB_STEP_SUMMARY
