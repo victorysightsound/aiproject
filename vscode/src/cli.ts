@@ -2,11 +2,60 @@
  * CLI wrapper for executing proj commands
  */
 
-import { exec } from 'child_process';
+import { exec, execSync } from 'child_process';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
 
 const execAsync = promisify(exec);
+
+/**
+ * Execute a proj command synchronously (for debugging)
+ */
+export function runProjSync(args: string[]): ProjResult {
+    const projPath = getProjPath();
+    const workspacePath = getWorkspacePath();
+
+    if (!workspacePath) {
+        return {
+            success: false,
+            stdout: '',
+            stderr: 'No workspace folder open'
+        };
+    }
+
+    // Use full path to proj to avoid PATH issues
+    const fullProjPath = '/usr/local/bin/proj';
+    const command = `${fullProjPath} ${args.join(' ')}`;
+    console.log(`[proj] Running sync: ${command} in ${workspacePath}`);
+
+    try {
+        const stdout = execSync(command, {
+            cwd: workspacePath,
+            timeout: 10000,
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'], // Explicit stdio
+            env: {
+                ...process.env,
+                NO_COLOR: '1',
+                PATH: '/usr/local/bin:/usr/bin:/bin'
+            }
+        });
+
+        console.log(`[proj] Sync success, length: ${stdout?.length}`);
+        return {
+            success: true,
+            stdout: stdout.trim(),
+            stderr: ''
+        };
+    } catch (error: any) {
+        console.log(`[proj] Sync error: ${error.message}`);
+        return {
+            success: false,
+            stdout: error.stdout?.toString().trim() || '',
+            stderr: error.stderr?.toString().trim() || error.message
+        };
+    }
+}
 
 export interface ProjResult {
     success: boolean;
@@ -16,10 +65,11 @@ export interface ProjResult {
 
 /**
  * Get the configured path to the proj CLI
+ * Defaults to full path since VS Code extension host may not have /usr/local/bin in PATH
  */
 function getProjPath(): string {
     const config = vscode.workspace.getConfiguration('proj');
-    return config.get<string>('cliPath') || 'proj';
+    return config.get<string>('cliPath') || '/usr/local/bin/proj';
 }
 
 /**
@@ -49,19 +99,23 @@ export async function runProj(args: string[]): Promise<ProjResult> {
     }
 
     const command = `${projPath} ${args.join(' ')}`;
+    console.log(`[proj] Running: ${command} in ${workspacePath}`);
 
     try {
         const { stdout, stderr } = await execAsync(command, {
             cwd: workspacePath,
-            timeout: 30000 // 30 second timeout
+            timeout: 30000, // 30 second timeout
+            env: { ...process.env, NO_COLOR: '1' } // Disable colors for clean output
         });
 
+        console.log(`[proj] Success: ${stdout.substring(0, 100)}...`);
         return {
             success: true,
             stdout: stdout.trim(),
             stderr: stderr.trim()
         };
     } catch (error: any) {
+        console.log(`[proj] Error: ${error.message}`);
         // exec throws on non-zero exit code
         return {
             success: false,

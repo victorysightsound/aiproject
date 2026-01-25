@@ -36,36 +36,40 @@ async function handleChatRequest(
     response: vscode.ChatResponseStream,
     token: vscode.CancellationToken
 ): Promise<ProjChatResult> {
-    // Check if proj is available
-    const hasProj = await cli.checkProjInstalled();
-    if (!hasProj) {
-        response.markdown(
-            '**proj CLI not found.**\n\n' +
-            'Please install proj first:\n\n' +
-            '```bash\nbrew install aiproject\n```\n\n' +
-            'Or see [installation instructions](https://github.com/victorysightsound/aiproject#installation).'
-        );
+    try {
+        // Check if proj is available
+        const hasProj = await cli.checkProjInstalled();
+        if (!hasProj) {
+            response.markdown(
+                '**proj CLI not found.**\n\n' +
+                'Install it first:\n' +
+                '```bash\nbrew install aiproject\n```\n'
+            );
+            return { metadata: { command: 'error' } };
+        }
+
+        // Check if workspace has tracking
+        const hasTracking = await cli.hasTracking();
+        if (!hasTracking) {
+            response.markdown(
+                '**No proj tracking in this workspace.**\n\n' +
+                'Initialize it first:\n' +
+                '```bash\nproj init\n```\n'
+            );
+            return { metadata: { command: 'error' } };
+        }
+
+        // Handle slash commands
+        if (request.command) {
+            return await handleCommand(request.command, request.prompt, response, token);
+        }
+
+        // Handle natural language queries
+        return await handleQuery(request.prompt, response, token);
+    } catch (error: any) {
+        response.markdown(`**Error:** ${error.message || 'Unknown error'}`);
         return { metadata: { command: 'error' } };
     }
-
-    // Check if workspace has tracking
-    const hasTracking = await cli.hasTracking();
-    if (!hasTracking) {
-        response.markdown(
-            '**No proj tracking in this workspace.**\n\n' +
-            'Initialize proj in your terminal:\n\n' +
-            '```bash\nproj init\n```'
-        );
-        return { metadata: { command: 'error' } };
-    }
-
-    // Handle slash commands
-    if (request.command) {
-        return handleCommand(request.command, request.prompt, response, token);
-    }
-
-    // Handle natural language queries
-    return handleQuery(request.prompt, response, token);
 }
 
 /**
@@ -105,22 +109,63 @@ async function handleCommand(
 async function handleStatusCommand(
     response: vscode.ChatResponseStream
 ): Promise<ProjChatResult> {
-    response.progress('Getting project status...');
-
-    const result = await cli.getResume();
+    const result = cli.runProjSync(['resume', '--for-ai']);
 
     if (!result.success) {
-        response.markdown(`**Error:** ${result.stderr}`);
+        response.markdown(`**Error:** ${result.stderr}\n`);
         return { metadata: { command: 'status' } };
     }
 
     try {
-        // Parse JSON output from --for-ai
         const data = JSON.parse(result.stdout);
-        formatStatusResponse(data, response);
-    } catch {
-        // Fall back to raw output
-        response.markdown('```\n' + result.stdout + '\n```');
+
+        // Project header
+        response.markdown(`## ${data.project?.name || 'Project'}\n\n`);
+        if (data.project?.description) {
+            response.markdown(`_${data.project.description}_\n\n`);
+        }
+
+        // Session info
+        if (data.current_session) {
+            response.markdown(`**Session #${data.current_session.session_id}** (started ${data.current_session.started_at})\n\n`);
+        }
+
+        // Last session summary
+        if (data.last_session?.summary) {
+            response.markdown(`**Last session:** ${data.last_session.summary}\n\n`);
+        }
+
+        // Blockers
+        if (data.active_blockers && data.active_blockers.length > 0) {
+            response.markdown('### Blockers\n');
+            for (const blocker of data.active_blockers) {
+                response.markdown(`- ${blocker.description}\n`);
+            }
+            response.markdown('\n');
+        }
+
+        // Tasks
+        if (data.active_tasks && data.active_tasks.length > 0) {
+            response.markdown('### Tasks\n');
+            for (const task of data.active_tasks) {
+                const status = task.status === 'in_progress' ? '🔄' : '⭕';
+                response.markdown(`${status} [${task.priority}] ${task.description}\n`);
+            }
+            response.markdown('\n');
+        } else {
+            response.markdown('**Tasks:** None\n\n');
+        }
+
+        // Recent decisions
+        if (data.recent_decisions && data.recent_decisions.length > 0) {
+            response.markdown('### Recent Decisions\n');
+            for (const decision of data.recent_decisions.slice(0, 3)) {
+                response.markdown(`- **${decision.topic}:** ${decision.decision}\n`);
+            }
+        }
+
+    } catch (e: any) {
+        response.markdown('```\n' + result.stdout + '\n```\n');
     }
 
     return { metadata: { command: 'status' } };
@@ -132,9 +177,7 @@ async function handleStatusCommand(
 async function handleTasksCommand(
     response: vscode.ChatResponseStream
 ): Promise<ProjChatResult> {
-    response.progress('Getting tasks...');
-
-    const result = await cli.getTasks();
+    const result = cli.runProjSync(['tasks']);
 
     if (!result.success) {
         response.markdown(`**Error:** ${result.stderr}`);
@@ -144,7 +187,7 @@ async function handleTasksCommand(
     if (!result.stdout || result.stdout.includes('(none)')) {
         response.markdown('No pending tasks.');
     } else {
-        response.markdown('**Tasks:**\n\n```\n' + result.stdout + '\n```');
+        response.markdown('### Tasks\n\n```\n' + result.stdout + '\n```');
     }
 
     return { metadata: { command: 'tasks' } };
@@ -156,9 +199,7 @@ async function handleTasksCommand(
 async function handleDecisionsCommand(
     response: vscode.ChatResponseStream
 ): Promise<ProjChatResult> {
-    response.progress('Getting recent decisions...');
-
-    const result = await cli.getSnapshot();
+    const result = cli.runProjSync(['snapshot']);
 
     if (!result.success) {
         response.markdown(`**Error:** ${result.stderr}`);
@@ -167,12 +208,13 @@ async function handleDecisionsCommand(
 
     try {
         const data = JSON.parse(result.stdout);
-        if (data.decisions && data.decisions.length > 0) {
-            response.markdown('**Recent Decisions:**\n');
-            for (const decision of data.decisions) {
+        const decisions = data.recent_decisions || data.decisions || [];
+        if (decisions.length > 0) {
+            response.markdown('### Recent Decisions\n\n');
+            for (const decision of decisions) {
                 response.markdown(
-                    `\n- **${decision.topic}**: ${decision.decision}` +
-                    (decision.rationale ? ` _(${decision.rationale})_` : '')
+                    `- **${decision.topic}**: ${decision.decision}` +
+                    (decision.rationale ? ` _(${decision.rationale})_` : '') + '\n'
                 );
             }
         } else {
@@ -192,16 +234,16 @@ async function handleLogCommand(
     prompt: string,
     response: vscode.ChatResponseStream
 ): Promise<ProjChatResult> {
-    // Parse the prompt to determine what to log
     const lowerPrompt = prompt.toLowerCase();
 
     if (lowerPrompt.startsWith('decision')) {
-        // Try to parse: decision "topic" "decision" "rationale"
         const match = prompt.match(/decision\s+"([^"]+)"\s+"([^"]+)"(?:\s+"([^"]+)")?/i);
         if (match) {
-            const result = await cli.logDecision(match[1], match[2], match[3]);
+            const args = ['log', 'decision', match[1], match[2]];
+            if (match[3]) args.push(match[3]);
+            const result = cli.runProjSync(args);
             if (result.success) {
-                response.markdown(`Logged decision: **${match[1]}** - ${match[2]}`);
+                response.markdown(`✓ Logged decision: **${match[1]}** - ${match[2]}`);
             } else {
                 response.markdown(`**Error:** ${result.stderr}`);
             }
@@ -214,9 +256,9 @@ async function handleLogCommand(
     } else if (lowerPrompt.startsWith('blocker')) {
         const match = prompt.match(/blocker\s+"([^"]+)"/i);
         if (match) {
-            const result = await cli.logBlocker(match[1]);
+            const result = cli.runProjSync(['log', 'blocker', match[1]]);
             if (result.success) {
-                response.markdown(`Logged blocker: ${match[1]}`);
+                response.markdown(`✓ Logged blocker: ${match[1]}`);
             } else {
                 response.markdown(`**Error:** ${result.stderr}`);
             }
@@ -229,9 +271,9 @@ async function handleLogCommand(
     } else if (lowerPrompt.startsWith('note')) {
         const match = prompt.match(/note\s+"([^"]+)"\s+"([^"]+)"\s+"([^"]+)"/i);
         if (match) {
-            const result = await cli.logNote(match[1], match[2], match[3]);
+            const result = cli.runProjSync(['log', 'note', match[1], match[2], match[3]]);
             if (result.success) {
-                response.markdown(`Logged note: **${match[2]}**`);
+                response.markdown(`✓ Logged note: **${match[2]}**`);
             } else {
                 response.markdown(`**Error:** ${result.stderr}`);
             }
@@ -243,7 +285,7 @@ async function handleLogCommand(
         }
     } else {
         response.markdown(
-            '**Log types:**\n\n' +
+            '### Log Commands\n\n' +
             '- `/log decision "topic" "decision" "rationale"`\n' +
             '- `/log blocker "description"`\n' +
             '- `/log note "category" "title" "content"`'
@@ -268,12 +310,10 @@ async function handleEndCommand(
         return { metadata: { command: 'end' } };
     }
 
-    response.progress('Ending session...');
-
-    const result = await cli.endSession(prompt.trim());
+    const result = cli.runProjSync(['session', 'end', prompt.trim()]);
 
     if (result.success) {
-        response.markdown(`Session ended with summary: "${prompt.trim()}"`);
+        response.markdown(`✓ Session ended: "${prompt.trim()}"`);
     } else {
         response.markdown(`**Error:** ${result.stderr}`);
     }
@@ -305,33 +345,19 @@ async function handleQuery(
     }
 
     if (lowerPrompt.includes('block') || lowerPrompt.includes('stuck') || lowerPrompt.includes('waiting')) {
-        return await handleBlockersQuery(response);
+        return handleBlockersQuery(response);
     }
 
     // Search for topic
     if (lowerPrompt.includes('about') || lowerPrompt.includes('context')) {
         const topic = extractTopic(prompt);
         if (topic) {
-            return await handleSearchQuery(topic, response);
+            return handleSearchQuery(topic, response);
         }
     }
 
-    // Default: show full context
-    response.progress('Getting project context...');
-    const result = await cli.getResume();
-
-    if (result.success) {
-        try {
-            const data = JSON.parse(result.stdout);
-            formatStatusResponse(data, response);
-        } catch {
-            response.markdown('```\n' + result.stdout + '\n```');
-        }
-    } else {
-        response.markdown(`**Error:** ${result.stderr}`);
-    }
-
-    return { metadata: { command: 'query' } };
+    // Default: show status
+    return handleStatusCommand(response);
 }
 
 /**
@@ -340,9 +366,7 @@ async function handleQuery(
 async function handleBlockersQuery(
     response: vscode.ChatResponseStream
 ): Promise<ProjChatResult> {
-    response.progress('Checking for blockers...');
-
-    const result = await cli.getSnapshot();
+    const result = cli.runProjSync(['snapshot']);
 
     if (!result.success) {
         response.markdown(`**Error:** ${result.stderr}`);
@@ -352,12 +376,12 @@ async function handleBlockersQuery(
     try {
         const data = JSON.parse(result.stdout);
         if (data.blockers && data.blockers.length > 0) {
-            response.markdown('**Current Blockers:**\n');
+            response.markdown('### Current Blockers\n\n');
             for (const blocker of data.blockers) {
-                response.markdown(`\n- ${blocker.description}`);
+                response.markdown(`- ${blocker.description}\n`);
             }
         } else {
-            response.markdown('No active blockers.');
+            response.markdown('No active blockers. ');
         }
     } catch {
         response.markdown('Could not parse blockers.');
@@ -373,13 +397,11 @@ async function handleSearchQuery(
     topic: string,
     response: vscode.ChatResponseStream
 ): Promise<ProjChatResult> {
-    response.progress(`Searching for "${topic}"...`);
-
-    const result = await cli.searchContext(topic);
+    const result = cli.runProjSync(['context', topic]);
 
     if (result.success) {
         if (result.stdout) {
-            response.markdown(`**Context for "${topic}":**\n\n` + result.stdout);
+            response.markdown(`### Context for "${topic}"\n\n${result.stdout}`);
         } else {
             response.markdown(`No results found for "${topic}".`);
         }

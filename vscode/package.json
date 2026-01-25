@@ -82,8 +82,8 @@
       "properties": {
         "proj.cliPath": {
           "type": "string",
-          "default": "proj",
-          "description": "Path to the proj CLI executable"
+          "default": "/usr/local/bin/proj",
+          "description": "Full path to the proj CLI executable"
         },
         "proj.showStatusBar": {
           "type": "boolean",
