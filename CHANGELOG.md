@@ -2,6 +2,12 @@
 
 All notable changes to proj are documented here.
 
+## [1.5.4] - 2026-01-25
+
+### Changed
+- **Session summary guidance**: Updated documentation and help text to encourage substantive 1-3 sentence summaries that answer "what was accomplished?" rather than generic summaries like "reviewed status"
+- Updated CLI help text, docs (manual, getting-started, cheatsheet), and SESSION_RULE template for new projects
+
 ## [1.5.3] - 2026-01-25
 
 ### Added
