@@ -49,19 +49,50 @@ Before you can use this extension, you need three things:
 
 ### 1. Install the proj CLI
 
-The proj command-line tool stores all your project data. Install it with Homebrew:
+The proj command-line tool stores all your project data. Choose one of these installation methods:
+
+#### Option A: Homebrew (macOS/Linux)
 
 ```bash
+brew tap victorysightsound/tap
 brew install aiproject
 ```
 
-To verify it's installed, run:
+#### Option B: Download from GitHub Releases
+
+1. Go to https://github.com/victorysightsound/aiproject/releases/latest
+2. Download the file for your system:
+   - **macOS Apple Silicon (M1/M2/M3):** `proj-aarch64-apple-darwin.tar.gz`
+   - **macOS Intel:** `proj-x86_64-apple-darwin.tar.gz`
+   - **Linux x64:** `proj-x86_64-unknown-linux-gnu.tar.gz`
+   - **Linux ARM:** `proj-aarch64-unknown-linux-gnu.tar.gz`
+   - **Windows:** `proj-x86_64-pc-windows-msvc.zip`
+3. Extract and move to your PATH:
+
+```bash
+# macOS/Linux example:
+tar -xzf proj-*.tar.gz
+sudo mv proj /usr/local/bin/
+```
+
+#### Option C: Build from Source
+
+Requires Rust 1.70+:
+
+```bash
+git clone https://github.com/victorysightsound/aiproject.git
+cd aiproject
+cargo build --release
+sudo cp target/release/proj /usr/local/bin/
+```
+
+#### Verify Installation
 
 ```bash
 proj --version
 ```
 
-You should see a version number like `1.4.0`.
+You should see a version number like `1.5.1`.
 
 ### 2. Initialize proj in your project
 
@@ -116,7 +147,7 @@ cd vscode
 npm install
 npm run compile
 npm run package
-code --install-extension proj-1.5.0.vsix
+code --install-extension proj-1.5.2.vsix
 ```
 
 ---
@@ -598,7 +629,7 @@ Creates a `.vsix` file you can install or distribute.
 
 ```bash
 npm run package
-code --install-extension proj-1.5.0.vsix --force
+code --install-extension proj-1.5.2.vsix --force
 ```
 
 Then restart VS Code.
@@ -606,6 +637,11 @@ Then restart VS Code.
 ---
 
 ## Version History
+
+### 1.5.1
+
+- Added custom extension icon (clipboard with progress indicators)
+- Updated CLI installation documentation with multiple methods (Homebrew, GitHub releases, build from source)
 
 ### 1.5.0
 

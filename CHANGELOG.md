@@ -2,6 +2,12 @@
 
 All notable changes to proj are documented here.
 
+## [1.5.2] - 2026-01-25
+
+### Changed
+- **VS Code Extension documentation**: Added multiple CLI installation methods (Homebrew, GitHub releases, build from source)
+- Updated version references in documentation
+
 ## [1.5.1] - 2026-01-25
 
 ### Added
