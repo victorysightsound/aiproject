@@ -120,6 +120,17 @@ pub fn run() -> Result<()> {
         println!("  {} Registered in global registry", "✓".green());
     }
 
+    // Ensure session rule in global AGENTS.md
+    if let Err(e) = ensure_agents_session_rule() {
+        println!(
+            "  {} Could not update global AGENTS.md: {}",
+            "⚠".yellow(),
+            e
+        );
+    } else {
+        println!("  {} Session rule in global AGENTS.md", "✓".green());
+    }
+
     println!(
         "\n{} Project '{}' initialized successfully!",
         "✓".green(),
@@ -204,6 +215,57 @@ fn register_project(path: &PathBuf, name: &str, project_type: &str) -> Result<()
     // Save registry
     let content = serde_json::to_string_pretty(&registry)?;
     std::fs::write(&registry_path, content)?;
+
+    Ok(())
+}
+
+/// Session management rule to add to global AGENTS.md
+const SESSION_RULE: &str = r#"
+## Session Management (proj)
+
+**At the start of every conversation**, if the current directory has a `.tracking/` folder:
+1. Run `proj status` BEFORE responding to the user's first message
+2. This loads project context and starts session tracking
+3. Stale sessions (8+ hours) auto-close automatically
+
+If no `.tracking/` folder exists, skip this step.
+"#;
+
+/// Ensure session management rule exists in global AGENTS.md
+fn ensure_agents_session_rule() -> Result<()> {
+    // Try common locations for global AGENTS.md
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
+    let possible_paths = [
+        home.join("projects/global/AGENTS.md"),
+        home.join("AGENTS.md"),
+    ];
+
+    let agents_path = possible_paths.iter().find(|p| p.exists());
+
+    let agents_path = match agents_path {
+        Some(p) => p.clone(),
+        None => return Ok(()), // No global AGENTS.md found, skip silently
+    };
+
+    // Read current content
+    let content = std::fs::read_to_string(&agents_path)?;
+
+    // Check if rule already exists
+    if content.contains("## Session Management (proj)") {
+        return Ok(()); // Already has the rule
+    }
+
+    // Find insertion point (after the initial instructions, before "## About Me" if it exists)
+    let new_content = if let Some(pos) = content.find("## About Me") {
+        let (before, after) = content.split_at(pos);
+        format!("{}{}\n{}", before.trim_end(), SESSION_RULE, after)
+    } else {
+        // Append to end
+        format!("{}\n{}", content.trim_end(), SESSION_RULE)
+    };
+
+    std::fs::write(&agents_path, new_content)?;
 
     Ok(())
 }
