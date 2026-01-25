@@ -9,8 +9,11 @@ use dialoguer::{Confirm, Input, Select};
 
 use crate::config::{ProjectConfig, Registry, RegistryEntry};
 use crate::database::open_database;
+use crate::docs_db;
 use crate::paths::{ensure_dir, get_registry_path};
 use crate::schema::{TRACKING_SCHEMA, FTS_SCHEMA};
+use crate::schema_docs::DocType;
+use crate::source_analyzer;
 use crate::SCHEMA_VERSION;
 
 /// Project types
@@ -74,6 +77,7 @@ pub fn run() -> Result<()> {
     } else {
         Some(description)
     };
+    let description_for_docs = description.clone();
 
     // Check if this is a git repository
     let is_git_repo = project_root.join(".git").exists();
@@ -166,6 +170,133 @@ pub fn run() -> Result<()> {
         println!("  {} Session rule in global AGENTS.md", "✓".green());
     }
 
+    // Documentation database setup
+    println!("\n{}", "Documentation Setup".bold());
+    println!("{}", "─".repeat(40));
+
+    let docs_options = &[
+        "Skip        - Set up documentation later",
+        "Generate    - Analyze codebase and generate docs",
+        "Import      - Import from existing markdown files",
+        "New Project - Create documentation skeleton",
+    ];
+
+    let docs_selection = Select::new()
+        .with_prompt("Set up project documentation?")
+        .items(docs_options)
+        .default(0)
+        .interact()?;
+
+    match docs_selection {
+        0 => {
+            println!("  {} Skipping documentation setup", "ℹ".blue());
+            println!("  Run 'proj docs init' later to set up documentation.");
+        }
+        1 => {
+            // Generate from source
+            println!("\n  {}", "Analyzing codebase...".cyan());
+            match source_analyzer::analyze_project(&project_root) {
+                Ok(structure) => {
+                    if structure.modules.is_empty() {
+                        println!("  {} No analyzable code found, skipping.", "!".yellow());
+                    } else {
+                        println!(
+                            "  {} Detected {} ({} files, {} items)",
+                            "✓".green(),
+                            structure.language.as_str(),
+                            structure.file_count,
+                            structure.modules.len()
+                        );
+
+                        let doc_type = select_doc_type()?;
+                        let db_filename = crate::schema_docs::docs_db_filename(&project_name, doc_type);
+                        let db_path = project_root.join(&db_filename);
+
+                        let doc_conn = docs_db::create_docs_db(&db_path, &project_name, doc_type)?;
+                        let sections = source_analyzer::generate_sections(&structure);
+
+                        for section in &sections {
+                            docs_db::insert_section(
+                                &doc_conn,
+                                &section.section_id,
+                                &section.title,
+                                None,
+                                section.level,
+                                section.sort_order,
+                                &section.content,
+                                section.generated,
+                                section.source_file.as_deref(),
+                            )?;
+                        }
+
+                        crate::schema_docs::set_meta(&doc_conn, "generated_from", "source_analysis")?;
+                        crate::schema_docs::set_meta(&doc_conn, "language", structure.language.as_str())?;
+
+                        println!("  {} {} ({} sections)", "✓".green(), db_filename, sections.len());
+                    }
+                }
+                Err(e) => {
+                    println!("  {} Could not analyze codebase: {}", "⚠".yellow(), e);
+                }
+            }
+        }
+        2 => {
+            // Import from markdown
+            let md_files = find_markdown_files(&project_root);
+            if md_files.is_empty() {
+                println!("  {} No markdown files found, skipping.", "!".yellow());
+            } else {
+                println!("  Found {} markdown files", md_files.len());
+
+                let doc_type = select_doc_type()?;
+                let db_filename = crate::schema_docs::docs_db_filename(&project_name, doc_type);
+                let db_path = project_root.join(&db_filename);
+
+                let doc_conn = docs_db::create_docs_db(&db_path, &project_name, doc_type)?;
+
+                let mut total_sections = 0;
+                for file_path in &md_files {
+                    match import_markdown_to_db(&doc_conn, file_path, &project_root) {
+                        Ok(count) => total_sections += count,
+                        Err(e) => println!("  {} Failed to import {:?}: {}", "⚠".yellow(), file_path.file_name().unwrap_or_default(), e),
+                    }
+                }
+
+                crate::schema_docs::set_meta(&doc_conn, "generated_from", "import")?;
+                println!("  {} {} ({} sections)", "✓".green(), db_filename, total_sections);
+            }
+        }
+        3 => {
+            // New project skeleton
+            let doc_type = select_doc_type()?;
+            let db_filename = crate::schema_docs::docs_db_filename(&project_name, doc_type);
+            let db_path = project_root.join(&db_filename);
+
+            let doc_conn = docs_db::create_docs_db(&db_path, &project_name, doc_type)?;
+
+            let desc = description_for_docs.clone().unwrap_or_else(|| format!("Documentation for {}", project_name));
+            let sections = vec![
+                ("1", "Overview", 1, desc),
+                ("2", "Architecture", 1, "Describe the system architecture and design decisions.".to_string()),
+                ("3", "Components", 1, "List and describe the main components.".to_string()),
+                ("4", "Data Model", 1, "Describe the data structures and storage.".to_string()),
+                ("5", "API Reference", 1, "Document the public API.".to_string()),
+                ("6", "Configuration", 1, "Document configuration options.".to_string()),
+                ("7", "Development", 1, "Build instructions and contribution guidelines.".to_string()),
+            ];
+
+            let mut sort_order = 0;
+            for (section_id, title, level, content) in &sections {
+                sort_order += 1;
+                docs_db::insert_section(&doc_conn, section_id, title, None, *level, sort_order, content, true, None)?;
+            }
+
+            crate::schema_docs::set_meta(&doc_conn, "generated_from", "skeleton")?;
+            println!("  {} {} ({} sections)", "✓".green(), db_filename, sections.len());
+        }
+        _ => {}
+    }
+
     println!(
         "\n{} Project '{}' initialized successfully!",
         "✓".green(),
@@ -173,10 +304,114 @@ pub fn run() -> Result<()> {
     );
     println!("\nNext steps:");
     println!("  • Run 'proj status' to see project state");
+    println!("  • Run 'proj docs show' to view documentation");
     println!("  • Run 'proj log decision \"topic\" \"decision\" \"why\"' to log decisions");
-    println!("  • Run 'proj task add \"description\"' to add tasks");
 
     Ok(())
+}
+
+/// Select documentation type
+fn select_doc_type() -> Result<DocType> {
+    let type_options = &[
+        "Architecture - System/application design",
+        "Framework    - Library/framework docs",
+        "Guide        - User guide or manual",
+        "API          - API reference",
+        "Spec         - Specification document",
+    ];
+
+    let selection = Select::new()
+        .with_prompt("Documentation type")
+        .items(type_options)
+        .default(0)
+        .interact()?;
+
+    Ok(match selection {
+        0 => DocType::Architecture,
+        1 => DocType::Framework,
+        2 => DocType::Guide,
+        3 => DocType::Api,
+        4 => DocType::Spec,
+        _ => DocType::Architecture,
+    })
+}
+
+/// Find markdown files in project
+fn find_markdown_files(project_root: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut files = Vec::new();
+
+    let check_files = ["README.md", "ARCHITECTURE.md", "CONTRIBUTING.md", "API.md", "GUIDE.md"];
+    for file in &check_files {
+        let path = project_root.join(file);
+        if path.exists() {
+            files.push(path);
+        }
+    }
+
+    let docs_dir = project_root.join("docs");
+    if docs_dir.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(&docs_dir) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let path = entry.path();
+                if path.extension().map_or(false, |ext| ext == "md") {
+                    files.push(path);
+                }
+            }
+        }
+    }
+
+    files
+}
+
+/// Import a markdown file into docs database
+fn import_markdown_to_db(
+    conn: &rusqlite::Connection,
+    file_path: &std::path::Path,
+    project_root: &std::path::Path,
+) -> Result<usize> {
+    let content = std::fs::read_to_string(file_path)?;
+    let relative_path = file_path.strip_prefix(project_root).unwrap_or(file_path).to_string_lossy();
+
+    let mut sections = Vec::new();
+    let mut current_section: Option<(i32, String, String)> = None;
+
+    for line in content.lines() {
+        if let Some(level) = detect_heading(line) {
+            if let Some((lvl, title, content)) = current_section.take() {
+                sections.push((lvl, title, content.trim().to_string()));
+            }
+            let title = line.trim_start_matches('#').trim().to_string();
+            current_section = Some((level, title, String::new()));
+        } else if let Some((_, _, ref mut content)) = current_section {
+            content.push_str(line);
+            content.push('\n');
+        }
+    }
+
+    if let Some((level, title, content)) = current_section {
+        sections.push((level, title, content.trim().to_string()));
+    }
+
+    let mut sort_order = 0;
+    for (level, title, content) in &sections {
+        sort_order += 1;
+        let section_id = format!("{}", sort_order);
+        docs_db::insert_section(conn, &section_id, title, None, *level, sort_order, content, false, Some(&relative_path))?;
+    }
+
+    Ok(sections.len())
+}
+
+/// Detect markdown heading level
+fn detect_heading(line: &str) -> Option<i32> {
+    let trimmed = line.trim_start();
+    if trimmed.starts_with('#') {
+        let level = trimmed.chars().take_while(|&c| c == '#').count();
+        if level <= 6 && trimmed.chars().nth(level) == Some(' ') {
+            return Some(level as i32);
+        }
+    }
+    None
 }
 
 /// Detect project type from files in directory
