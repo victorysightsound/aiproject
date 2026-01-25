@@ -82,7 +82,9 @@ pub fn run() -> Result<()> {
     let (auto_commit, auto_commit_mode) = if is_git_repo {
         println!();
         let enable_auto_commit = Confirm::new()
-            .with_prompt("Enable auto-commit on session end? (creates git commit with session summary)")
+            .with_prompt(
+                "Enable auto-commit on session end? (creates git commit with session summary)",
+            )
             .default(false)
             .interact()?;
 
