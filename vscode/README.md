@@ -102,7 +102,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see a version number like `1.6.0`.
+You should see a version number like `1.6.1`.
 
 ### 2. Initialize proj in your project
 
@@ -157,7 +157,7 @@ cd vscode
 npm install
 npm run compile
 npm run package
-code --install-extension proj-1.6.0.vsix
+code --install-extension proj-1.6.1.vsix
 ```
 
 ---
@@ -639,7 +639,7 @@ Creates a `.vsix` file you can install or distribute.
 
 ```bash
 npm run package
-code --install-extension proj-1.6.0.vsix --force
+code --install-extension proj-1.6.1.vsix --force
 ```
 
 Then restart VS Code.
@@ -648,7 +648,7 @@ Then restart VS Code.
 
 ## Version History
 
-### 1.6.0
+### 1.6.1
 
 - Improved session summary guidance: encourage 1-3 substantive sentences vs generic summaries
 - Updated CLI help text and documentation

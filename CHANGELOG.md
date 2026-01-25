@@ -2,6 +2,13 @@
 
 All notable changes to proj are documented here.
 
+## [1.6.1] - 2026-01-25
+
+### Fixed
+- **FTS5 not created during init**: Full-text search table was defined but not created during project initialization, causing `proj context` searches to fail
+- Added FTS5 creation to `proj migrate` command
+- Added upgrade path (schema 1.2 → 1.3) for existing projects to add FTS5
+
 ## [1.6.0] - 2026-01-25
 
 ### Added
