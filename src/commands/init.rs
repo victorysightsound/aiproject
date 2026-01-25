@@ -75,6 +75,39 @@ pub fn run() -> Result<()> {
         Some(description)
     };
 
+    // Check if this is a git repository
+    let is_git_repo = project_root.join(".git").exists();
+
+    // Ask about auto-commit if it's a git repo
+    let (auto_commit, auto_commit_mode) = if is_git_repo {
+        println!();
+        let enable_auto_commit = Confirm::new()
+            .with_prompt("Enable auto-commit on session end? (creates git commit with session summary)")
+            .default(false)
+            .interact()?;
+
+        if enable_auto_commit {
+            let mode_options = &["Prompt each time (recommended)", "Fully automatic"];
+            let mode_selection = Select::new()
+                .with_prompt("Auto-commit mode")
+                .items(mode_options)
+                .default(0)
+                .interact()?;
+
+            let mode = if mode_selection == 0 {
+                "prompt".to_string()
+            } else {
+                "auto".to_string()
+            };
+
+            (true, mode)
+        } else {
+            (false, "prompt".to_string())
+        }
+    } else {
+        (false, "prompt".to_string())
+    };
+
     // Create .tracking directory
     println!("\nCreating project structure...");
     ensure_dir(&tracking_path)?;
@@ -87,6 +120,8 @@ pub fn run() -> Result<()> {
         schema_version: SCHEMA_VERSION.to_string(),
         auto_backup: true,
         auto_session: true,
+        auto_commit,
+        auto_commit_mode,
     };
 
     let config_path = tracking_path.join("config.json");

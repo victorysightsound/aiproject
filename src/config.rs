@@ -11,6 +11,16 @@ pub struct ProjectConfig {
     pub schema_version: String,
     pub auto_backup: bool,
     pub auto_session: bool,
+    /// Whether to auto-commit on session end (opt-in, default false)
+    #[serde(default)]
+    pub auto_commit: bool,
+    /// How to handle auto-commit: "auto" (silent) or "prompt" (ask each time)
+    #[serde(default = "default_auto_commit_mode")]
+    pub auto_commit_mode: String,
+}
+
+fn default_auto_commit_mode() -> String {
+    "prompt".to_string()
 }
 
 impl Default for ProjectConfig {
@@ -22,7 +32,27 @@ impl Default for ProjectConfig {
             schema_version: crate::SCHEMA_VERSION.to_string(),
             auto_backup: true,
             auto_session: true,
+            auto_commit: false,
+            auto_commit_mode: "prompt".to_string(),
         }
+    }
+}
+
+impl ProjectConfig {
+    /// Load config from the project's .tracking/config.json
+    pub fn load() -> anyhow::Result<Self> {
+        let config_path = crate::paths::get_config_path()?;
+        let content = std::fs::read_to_string(&config_path)?;
+        let config: ProjectConfig = serde_json::from_str(&content)?;
+        Ok(config)
+    }
+
+    /// Save config to the project's .tracking/config.json
+    pub fn save(&self) -> anyhow::Result<()> {
+        let config_path = crate::paths::get_config_path()?;
+        let content = serde_json::to_string_pretty(self)?;
+        std::fs::write(&config_path, content)?;
+        Ok(())
     }
 }
 

@@ -1,11 +1,15 @@
 // Session commands - start, end, list
 
+use std::process::Command;
+
 use anyhow::{bail, Context, Result};
 use colored::Colorize;
+use dialoguer::Confirm;
 
 use crate::cli::{SessionCommands, SessionSubcommand};
+use crate::config::ProjectConfig;
 use crate::database::open_database;
-use crate::paths::get_tracking_db_path;
+use crate::paths::{get_project_root, get_tracking_db_path};
 use crate::session::{create_session, end_session, get_active_session, get_recent_sessions};
 
 pub fn run(cmd: SessionCommands) -> Result<()> {
@@ -56,7 +60,103 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str) -> Result<()> {
         summary
     );
 
+    // Handle auto-commit if enabled
+    if let Err(e) = handle_auto_commit(summary) {
+        // Don't fail the session end, just warn
+        println!("  {} Auto-commit skipped: {}", "⚠".yellow(), e);
+    }
+
     // TODO: Create backup if auto_backup enabled in config
+
+    Ok(())
+}
+
+/// Handle auto-commit on session end
+fn handle_auto_commit(summary: &str) -> Result<()> {
+    // Load config
+    let config = ProjectConfig::load()?;
+
+    // Check if auto-commit is enabled
+    if !config.auto_commit {
+        return Ok(());
+    }
+
+    // Check if we're in a git repo
+    let project_root = get_project_root()?;
+    if !project_root.join(".git").exists() {
+        return Ok(());
+    }
+
+    // Check if there are any changes to commit
+    let status_output = Command::new("git")
+        .args(["status", "--porcelain"])
+        .current_dir(&project_root)
+        .output()
+        .with_context(|| "Failed to run git status")?;
+
+    let has_changes = !status_output.stdout.is_empty();
+
+    if !has_changes {
+        println!("  {} No changes to commit", "ℹ".blue());
+        return Ok(());
+    }
+
+    // Determine if we should commit
+    let should_commit = match config.auto_commit_mode.as_str() {
+        "auto" => true,
+        "prompt" | _ => {
+            // Check if we're in a TTY (interactive terminal)
+            if atty::is(atty::Stream::Stdin) {
+                Confirm::new()
+                    .with_prompt("Commit changes with session summary?")
+                    .default(true)
+                    .interact()
+                    .unwrap_or(false)
+            } else {
+                // Non-interactive, skip
+                println!("  {} Skipping commit (non-interactive)", "ℹ".blue());
+                false
+            }
+        }
+    };
+
+    if !should_commit {
+        return Ok(());
+    }
+
+    // Stage all changes
+    let add_result = Command::new("git")
+        .args(["add", "-A"])
+        .current_dir(&project_root)
+        .output()
+        .with_context(|| "Failed to run git add")?;
+
+    if !add_result.status.success() {
+        bail!(
+            "git add failed: {}",
+            String::from_utf8_lossy(&add_result.stderr)
+        );
+    }
+
+    // Create commit with session summary
+    let commit_message = format!("[proj] {}", summary);
+    let commit_result = Command::new("git")
+        .args(["commit", "-m", &commit_message])
+        .current_dir(&project_root)
+        .output()
+        .with_context(|| "Failed to run git commit")?;
+
+    if !commit_result.status.success() {
+        let stderr = String::from_utf8_lossy(&commit_result.stderr);
+        // Check if it's just "nothing to commit"
+        if stderr.contains("nothing to commit") {
+            println!("  {} No changes to commit", "ℹ".blue());
+            return Ok(());
+        }
+        bail!("git commit failed: {}", stderr);
+    }
+
+    println!("  {} Committed: {}", "✓".green(), commit_message);
 
     Ok(())
 }

@@ -98,6 +98,8 @@ pub fn run() -> Result<()> {
         schema_version: SCHEMA_VERSION.to_string(),
         auto_backup: true,
         auto_session: true,
+        auto_commit: false,
+        auto_commit_mode: "prompt".to_string(),
     };
 
     let config_path = tracking_path.join("config.json");
