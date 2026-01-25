@@ -21,4 +21,6 @@ pub mod session;
 pub mod snapshot;
 pub mod status;
 pub mod task;
+pub mod update_check;
 pub mod upgrade;
+pub mod release;

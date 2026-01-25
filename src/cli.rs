@@ -97,6 +97,14 @@ pub enum Commands {
     },
     /// Archive completed project
     Archive,
+    /// Check for updates
+    Update,
+    /// Release a new version (maintainer only)
+    Release {
+        /// Check release status and update formulas
+        #[arg(long)]
+        check: bool,
+    },
 }
 
 #[derive(Parser)]

@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use rusqlite::Connection;
 
+use crate::commands::update_check;
 use crate::config::ProjectConfig;
 use crate::database::open_database;
 use crate::models::{Blocker, Decision, Question, Task};
@@ -80,6 +81,9 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
             mark_full_context_shown(&conn, session.session_id)?;
         }
     }
+
+    // Check for updates (cached, runs at most once per day)
+    update_check::check_and_notify();
 
     Ok(())
 }

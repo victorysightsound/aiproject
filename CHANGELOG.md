@@ -2,6 +2,35 @@
 
 All notable changes to proj will be documented in this file.
 
+## [1.1.0] - 2026-01-25
+
+### Added
+- `proj update` - Check for available updates with install instructions
+- `proj release` - Guided release workflow for maintainers
+- `proj release --check` - Verify release status and update Homebrew formula
+- Automatic update notifications on `proj status` (cached, checks once per day)
+- Post-release automation: auto-update Homebrew SHA256 hashes
+
+### Changed
+- Release workflow now includes reminders for all manual steps
+- Update notifications show platform-specific install commands
+
+## [1.0.0] - 2026-01-24
+
+### Added
+- Stale session auto-close (8+ hour threshold)
+- Auto-add session management rule to global AGENTS.md on `proj init`
+- Comprehensive documentation (README, getting-started, concepts, manual, cheatsheet)
+
+### Changed
+- Refactored extensions: removed book/sermon/course, added schema/releases
+- Fixed FTS search crash on NULL columns
+- Fixed registry parsing for backward compatibility with old `type` field
+
+### Fixed
+- Registry now accepts both `type` and `project_type` fields
+- Context search handles NULL values gracefully
+
 ## [0.9.0] - 2026-01-21
 
 ### Added
