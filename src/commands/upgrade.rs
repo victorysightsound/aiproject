@@ -133,7 +133,10 @@ fn upgrade_all_projects(info_mode: bool, auto_mode: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!("\nChecking {} registered project(s)...\n", registry.registered_projects.len());
+    println!(
+        "\nChecking {} registered project(s)...\n",
+        registry.registered_projects.len()
+    );
 
     let mut upgradeable = Vec::new();
     let mut up_to_date = Vec::new();
@@ -180,7 +183,13 @@ fn upgrade_all_projects(info_mode: bool, auto_mode: bool) -> Result<()> {
     if !upgradeable.is_empty() {
         println!("\nReady to upgrade ({}):", upgradeable.len());
         for (name, _, compat) in &upgradeable {
-            println!("  {} {}: v{} → v{}", "↑".cyan(), name, compat.current_version, compat.target_version);
+            println!(
+                "  {} {}: v{} → v{}",
+                "↑".cyan(),
+                name,
+                compat.current_version,
+                compat.target_version
+            );
             if info_mode {
                 println!("    Changes:");
                 for change in &compat.safe_changes {
@@ -234,7 +243,12 @@ fn upgrade_all_projects(info_mode: bool, auto_mode: bool) -> Result<()> {
 
         match apply_upgrades(&db_path, &config_path) {
             Ok(_) => {
-                println!("  {} {}: Upgraded to v{}", "✓".green(), name, SCHEMA_VERSION);
+                println!(
+                    "  {} {}: Upgraded to v{}",
+                    "✓".green(),
+                    name,
+                    SCHEMA_VERSION
+                );
                 success_count += 1;
             }
             Err(e) => {
@@ -244,7 +258,10 @@ fn upgrade_all_projects(info_mode: bool, auto_mode: bool) -> Result<()> {
         }
     }
 
-    println!("\nUpgrade complete: {} succeeded, {} failed", success_count, fail_count);
+    println!(
+        "\nUpgrade complete: {} succeeded, {} failed",
+        success_count, fail_count
+    );
     Ok(())
 }
 
@@ -266,7 +283,10 @@ fn upgrade_current_project(info_mode: bool) -> Result<()> {
     }
 
     // Show upgrade info
-    println!("Upgrade available: v{} → v{}", compat.current_version, compat.target_version);
+    println!(
+        "Upgrade available: v{} → v{}",
+        compat.current_version, compat.target_version
+    );
     println!();
     println!("Changes to apply:");
     for change in &compat.safe_changes {
@@ -276,7 +296,10 @@ fn upgrade_current_project(info_mode: bool) -> Result<()> {
                 "moderate" => "~".yellow(),
                 _ => "!".red(),
             };
-            println!("  {} {} ({})", risk_indicator, change.description, change.risk);
+            println!(
+                "  {} {} ({})",
+                risk_indicator, change.description, change.risk
+            );
         }
     }
 
@@ -399,8 +422,16 @@ fn get_pending_upgrades(current: &str, target: &str) -> Vec<&'static SchemaUpgra
     UPGRADE_REGISTRY
         .iter()
         .filter(|upgrade| {
-            let from_parts: Vec<u32> = upgrade.from_version.split('.').filter_map(|s| s.parse().ok()).collect();
-            let to_parts: Vec<u32> = upgrade.to_version.split('.').filter_map(|s| s.parse().ok()).collect();
+            let from_parts: Vec<u32> = upgrade
+                .from_version
+                .split('.')
+                .filter_map(|s| s.parse().ok())
+                .collect();
+            let to_parts: Vec<u32> = upgrade
+                .to_version
+                .split('.')
+                .filter_map(|s| s.parse().ok())
+                .collect();
 
             // Include if current <= from < to <= target
             compare_versions(&current_parts, &from_parts) <= std::cmp::Ordering::Equal
@@ -452,8 +483,8 @@ fn load_registry() -> Result<Registry> {
         return Ok(Registry::default());
     }
 
-    let content = std::fs::read_to_string(&registry_path)
-        .with_context(|| "Failed to read registry.json")?;
+    let content =
+        std::fs::read_to_string(&registry_path).with_context(|| "Failed to read registry.json")?;
     let registry: Registry =
         serde_json::from_str(&content).with_context(|| "Failed to parse registry.json")?;
     Ok(registry)

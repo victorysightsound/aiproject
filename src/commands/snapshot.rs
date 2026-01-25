@@ -82,7 +82,7 @@ pub fn run() -> Result<()> {
     let mut stmt = conn.prepare(
         "SELECT task_id, description, status, priority FROM tasks
          WHERE status NOT IN ('completed', 'cancelled')
-         ORDER BY priority DESC, created_at"
+         ORDER BY priority DESC, created_at",
     )?;
     let active_tasks: Vec<TaskSnapshot> = stmt
         .query_map([], |row| {
@@ -97,9 +97,8 @@ pub fn run() -> Result<()> {
         .collect();
 
     // Get active blockers
-    let mut stmt = conn.prepare(
-        "SELECT blocker_id, description FROM blockers WHERE status = 'active'"
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT blocker_id, description FROM blockers WHERE status = 'active'")?;
     let active_blockers: Vec<BlockerSnapshot> = stmt
         .query_map([], |row| {
             Ok(BlockerSnapshot {
@@ -111,9 +110,8 @@ pub fn run() -> Result<()> {
         .collect();
 
     // Get open questions
-    let mut stmt = conn.prepare(
-        "SELECT question_id, question, context FROM questions WHERE status = 'open'"
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT question_id, question, context FROM questions WHERE status = 'open'")?;
     let open_questions: Vec<QuestionSnapshot> = stmt
         .query_map([], |row| {
             Ok(QuestionSnapshot {
@@ -129,7 +127,7 @@ pub fn run() -> Result<()> {
     let mut stmt = conn.prepare(
         "SELECT topic, decision, rationale FROM decisions
          WHERE status = 'active'
-         ORDER BY created_at DESC LIMIT 10"
+         ORDER BY created_at DESC LIMIT 10",
     )?;
     let recent_decisions: Vec<DecisionSnapshot> = stmt
         .query_map([], |row| {

@@ -35,7 +35,11 @@ pub fn run() -> Result<()> {
         println!("  {} AGENTS.md", "✓".green());
     }
     if existing.markdown_count > 0 {
-        println!("  {} {} markdown files", "✓".green(), existing.markdown_count);
+        println!(
+            "  {} {} markdown files",
+            "✓".green(),
+            existing.markdown_count
+        );
     }
     if existing.git {
         println!("  {} Git repository", "✓".green());
@@ -158,12 +162,7 @@ fn detect_existing_content(path: &PathBuf) -> ExistingContent {
         .map(|entries| {
             entries
                 .filter_map(|e| e.ok())
-                .filter(|e| {
-                    e.path()
-                        .extension()
-                        .map(|ext| ext == "md")
-                        .unwrap_or(false)
-                })
+                .filter(|e| e.path().extension().map(|ext| ext == "md").unwrap_or(false))
                 .count()
         })
         .unwrap_or(0);
@@ -192,7 +191,14 @@ fn detect_project_type(path: &PathBuf) -> Option<String> {
 
 /// Prompt for project type
 fn prompt_project_type() -> Result<String> {
-    let types = &["rust", "python", "javascript", "web", "documentation", "other"];
+    let types = &[
+        "rust",
+        "python",
+        "javascript",
+        "web",
+        "documentation",
+        "other",
+    ];
     let selection = Select::new()
         .with_prompt("Select project type")
         .items(types)
@@ -218,7 +224,11 @@ fn register_project(path: &PathBuf, name: &str, project_type: &str) -> Result<()
 
     let path_str = path.to_string_lossy().to_string();
 
-    if registry.registered_projects.iter().any(|p| p.path == path_str) {
+    if registry
+        .registered_projects
+        .iter()
+        .any(|p| p.path == path_str)
+    {
         return Ok(());
     }
 

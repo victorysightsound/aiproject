@@ -65,7 +65,11 @@ pub fn run(auto: bool, days: u32) -> Result<()> {
         return Ok(());
     }
 
-    println!("Found {} stale item(s) older than {} days:\n", stale.total(), days);
+    println!(
+        "Found {} stale item(s) older than {} days:\n",
+        stale.total(),
+        days
+    );
 
     let mut archived_count = 0;
 
@@ -199,7 +203,10 @@ pub fn run(auto: bool, days: u32) -> Result<()> {
         }
     }
 
-    println!("\nCleanup complete. {} item(s) archived/resolved.", archived_count);
+    println!(
+        "\nCleanup complete. {} item(s) archived/resolved.",
+        archived_count
+    );
 
     Ok(())
 }
@@ -213,7 +220,7 @@ fn get_stale_items(conn: &Connection, days_threshold: i64) -> Result<StaleItems>
     let blockers = {
         let mut stmt = conn.prepare(
             "SELECT blocker_id, description, created_at FROM blockers
-             WHERE status = 'active' AND created_at < ?"
+             WHERE status = 'active' AND created_at < ?",
         )?;
         let rows = stmt.query_map([&cutoff_str], |row| {
             Ok(StaleBlocker {
@@ -229,7 +236,7 @@ fn get_stale_items(conn: &Connection, days_threshold: i64) -> Result<StaleItems>
     let questions = {
         let mut stmt = conn.prepare(
             "SELECT question_id, question, created_at FROM questions
-             WHERE status = 'open' AND created_at < ?"
+             WHERE status = 'open' AND created_at < ?",
         )?;
         let rows = stmt.query_map([&cutoff_str], |row| {
             Ok(StaleQuestion {
@@ -245,7 +252,7 @@ fn get_stale_items(conn: &Connection, days_threshold: i64) -> Result<StaleItems>
     let tasks = {
         let mut stmt = conn.prepare(
             "SELECT task_id, description, status, created_at FROM tasks
-             WHERE status IN ('pending', 'blocked') AND created_at < ?"
+             WHERE status IN ('pending', 'blocked') AND created_at < ?",
         )?;
         let rows = stmt.query_map([&cutoff_str], |row| {
             Ok(StaleTask {
@@ -262,7 +269,7 @@ fn get_stale_items(conn: &Connection, days_threshold: i64) -> Result<StaleItems>
     let context_notes = {
         let mut stmt = conn.prepare(
             "SELECT note_id, category, title, created_at FROM context_notes
-             WHERE status = 'active' AND created_at < ?"
+             WHERE status = 'active' AND created_at < ?",
         )?;
         let rows = stmt.query_map([&cutoff_str], |row| {
             Ok(StaleNote {

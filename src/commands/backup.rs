@@ -38,7 +38,11 @@ pub fn run() -> Result<()> {
         for b in backups.iter().take(5) {
             let meta = b.metadata()?;
             let size_kb = meta.len() as f64 / 1024.0;
-            println!("  • {} ({:.1} KB)", b.file_name().to_string_lossy(), size_kb);
+            println!(
+                "  • {} ({:.1} KB)",
+                b.file_name().to_string_lossy(),
+                size_kb
+            );
         }
     }
 

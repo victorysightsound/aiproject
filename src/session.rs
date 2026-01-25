@@ -169,7 +169,9 @@ pub fn get_recent_sessions(conn: &Connection, limit: usize) -> Result<Vec<Sessio
         })
     })?;
 
-    sessions.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    sessions
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 /// Gets the last completed session

@@ -24,7 +24,8 @@ pub fn run() -> Result<()> {
     let session = get_or_create_session(&conn)?;
 
     // Check if this is a brand new session (no prior activity)
-    let is_new_session = !session.full_context_shown && get_session_activity_count(&conn, session.session_id)? == 0;
+    let is_new_session =
+        !session.full_context_shown && get_session_activity_count(&conn, session.session_id)? == 0;
 
     if is_new_session {
         println!("New session started. Run 'proj status' for full context.");
@@ -49,7 +50,10 @@ pub fn run() -> Result<()> {
     }
 
     // Calculate and display deltas
-    println!("Changes since last check (Session #{}):\n", session.session_id);
+    println!(
+        "Changes since last check (Session #{}):\n",
+        session.session_id
+    );
 
     let mut changes = Vec::new();
     for (key, current) in &current_counts {
@@ -89,7 +93,13 @@ pub fn run() -> Result<()> {
     }
 
     // Save new snapshot
-    save_snapshot(&conn, session.session_id, "delta", &current_hash, &current_counts)?;
+    save_snapshot(
+        &conn,
+        session.session_id,
+        "delta",
+        &current_hash,
+        &current_counts,
+    )?;
 
     Ok(())
 }
@@ -231,7 +241,11 @@ struct ActivityEntry {
 }
 
 /// Get recent activity for a session
-fn get_recent_activity(conn: &Connection, session_id: i64, limit: usize) -> Result<Vec<ActivityEntry>> {
+fn get_recent_activity(
+    conn: &Connection,
+    session_id: i64,
+    limit: usize,
+) -> Result<Vec<ActivityEntry>> {
     let mut stmt = conn.prepare(
         "SELECT timestamp, action_type, summary FROM activity_log
          WHERE session_id = ?

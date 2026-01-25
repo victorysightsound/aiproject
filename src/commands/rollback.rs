@@ -84,7 +84,9 @@ fn get_latest_release() -> Result<String> {
     }
 
     let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    let releases = json.as_array().ok_or_else(|| anyhow::anyhow!("Invalid response"))?;
+    let releases = json
+        .as_array()
+        .ok_or_else(|| anyhow::anyhow!("Invalid response"))?;
 
     if releases.is_empty() {
         bail!("No releases found");

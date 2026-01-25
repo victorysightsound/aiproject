@@ -34,9 +34,11 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Init => commands::init::run(),
         Commands::Migrate => commands::migrate::run(),
-        Commands::Status { quiet, verbose, full } => {
-            commands::status::run(quiet, verbose, full)
-        }
+        Commands::Status {
+            quiet,
+            verbose,
+            full,
+        } => commands::status::run(quiet, verbose, full),
         Commands::Resume { for_ai } => commands::resume::run(for_ai),
         Commands::Session(cmd) => commands::session::run(cmd),
         Commands::Log(cmd) => commands::log::run(cmd),

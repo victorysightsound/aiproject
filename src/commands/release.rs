@@ -69,7 +69,11 @@ pub fn run(check_only: bool) -> Result<()> {
     // Step 3: Update version in Cargo.toml
     println!("\n{}", "Step 3: Updating Cargo.toml".bold());
     update_cargo_version(&new_version)?;
-    println!("{} Updated Cargo.toml to version {}", "✓".green(), new_version);
+    println!(
+        "{} Updated Cargo.toml to version {}",
+        "✓".green(),
+        new_version
+    );
 
     // Step 4: Commit changes
     println!("\n{}", "Step 4: Committing changes".bold());
@@ -139,7 +143,12 @@ fn check_release_status(version: &str) -> Result<()> {
                     return Ok(());
                 }
 
-                println!("{} Release {} found with {} assets", "✓".green(), tag, assets.len());
+                println!(
+                    "{} Release {} found with {} assets",
+                    "✓".green(),
+                    tag,
+                    assets.len()
+                );
 
                 // List assets
                 for asset in assets {
@@ -182,8 +191,14 @@ fn update_homebrew_formula(version: &str) -> Result<()> {
     let platforms = [
         ("aarch64-apple-darwin", "proj-aarch64-apple-darwin.tar.gz"),
         ("x86_64-apple-darwin", "proj-x86_64-apple-darwin.tar.gz"),
-        ("aarch64-unknown-linux-gnu", "proj-aarch64-unknown-linux-gnu.tar.gz"),
-        ("x86_64-unknown-linux-gnu", "proj-x86_64-unknown-linux-gnu.tar.gz"),
+        (
+            "aarch64-unknown-linux-gnu",
+            "proj-aarch64-unknown-linux-gnu.tar.gz",
+        ),
+        (
+            "x86_64-unknown-linux-gnu",
+            "proj-x86_64-unknown-linux-gnu.tar.gz",
+        ),
     ];
 
     let mut hashes: std::collections::HashMap<String, String> = std::collections::HashMap::new();
@@ -209,7 +224,10 @@ fn update_homebrew_formula(version: &str) -> Result<()> {
     }
 
     if hashes.len() < 4 {
-        println!("{} Could not fetch all hashes. Formula not updated.", "⚠".yellow());
+        println!(
+            "{} Could not fetch all hashes. Formula not updated.",
+            "⚠".yellow()
+        );
         return Ok(());
     }
 
@@ -230,7 +248,14 @@ fn update_homebrew_formula(version: &str) -> Result<()> {
 
     // Commit the formula update
     run_command("git", &["add", formula_path])?;
-    run_command("git", &["commit", "-m", &format!("Update Homebrew formula for v{}", version)])?;
+    run_command(
+        "git",
+        &[
+            "commit",
+            "-m",
+            &format!("Update Homebrew formula for v{}", version),
+        ],
+    )?;
     run_command("git", &["push"])?;
     println!("{} Committed and pushed formula update", "✓".green());
 
@@ -239,7 +264,7 @@ fn update_homebrew_formula(version: &str) -> Result<()> {
 
 /// Compute SHA256 of a remote file
 fn compute_remote_sha256(url: &str) -> Result<String> {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
 
     let response = ureq::get(url)
         .call()
@@ -277,10 +302,7 @@ fn extract_version(content: &str) -> Result<String> {
 
 /// Bump version based on type (0=patch, 1=minor, 2=major)
 fn bump_version(current: &str, bump_type: usize) -> Result<String> {
-    let parts: Vec<u32> = current
-        .split('.')
-        .filter_map(|s| s.parse().ok())
-        .collect();
+    let parts: Vec<u32> = current.split('.').filter_map(|s| s.parse().ok()).collect();
 
     if parts.len() < 3 {
         bail!("Invalid version format: {}", current);
@@ -290,8 +312,8 @@ fn bump_version(current: &str, bump_type: usize) -> Result<String> {
 
     let new_version = match bump_type {
         0 => format!("{}.{}.{}", major, minor, patch + 1), // patch
-        1 => format!("{}.{}.0", major, minor + 1),          // minor
-        2 => format!("{}.0.0", major + 1),                  // major
+        1 => format!("{}.{}.0", major, minor + 1),         // minor
+        2 => format!("{}.0.0", major + 1),                 // major
         _ => bail!("Invalid bump type"),
     };
 
@@ -320,9 +342,7 @@ fn update_cargo_version(new_version: &str) -> Result<()> {
     std::fs::write("Cargo.toml", new_content)?;
 
     // Update Cargo.lock by running cargo check
-    let _ = Command::new("cargo")
-        .args(["check", "--quiet"])
-        .status();
+    let _ = Command::new("cargo").args(["check", "--quiet"]).status();
 
     Ok(())
 }

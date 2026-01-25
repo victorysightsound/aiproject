@@ -61,7 +61,7 @@ pub fn run(format: String) -> Result<()> {
     // Gather data
     let mut stmt = conn.prepare(
         "SELECT session_id, started_at, ended_at, summary, agent, status
-         FROM sessions ORDER BY started_at"
+         FROM sessions ORDER BY started_at",
     )?;
     let sessions: Vec<SessionExport> = stmt
         .query_map([], |row| {
@@ -79,7 +79,7 @@ pub fn run(format: String) -> Result<()> {
 
     let mut stmt = conn.prepare(
         "SELECT topic, decision, rationale, created_at
-         FROM decisions WHERE status = 'active' ORDER BY created_at"
+         FROM decisions WHERE status = 'active' ORDER BY created_at",
     )?;
     let decisions: Vec<DecisionExport> = stmt
         .query_map([], |row| {
@@ -95,7 +95,7 @@ pub fn run(format: String) -> Result<()> {
 
     let mut stmt = conn.prepare(
         "SELECT description, status, priority, created_at, completed_at
-         FROM tasks ORDER BY created_at"
+         FROM tasks ORDER BY created_at",
     )?;
     let tasks: Vec<TaskExport> = stmt
         .query_map([], |row| {

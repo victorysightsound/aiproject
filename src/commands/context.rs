@@ -109,7 +109,11 @@ fn search_ranked(conn: &Connection, topic: &str) -> Result<()> {
     }
 
     // Sort by score descending
-    results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     if results.is_empty() {
         println!();
@@ -196,14 +200,17 @@ fn calculate_score(title: &str, query: &str, created_at: &str) -> f64 {
 }
 
 /// Search decisions table
-fn search_decisions(conn: &Connection, topic: &str) -> Result<Vec<(i64, String, String, Option<String>, String)>> {
+fn search_decisions(
+    conn: &Connection,
+    topic: &str,
+) -> Result<Vec<(i64, String, String, Option<String>, String)>> {
     let pattern = format!("%{}%", topic);
     let mut stmt = conn.prepare(
         "SELECT decision_id, topic, decision, rationale, created_at
          FROM decisions
          WHERE status = 'active' AND (topic LIKE ?1 OR decision LIKE ?1 OR rationale LIKE ?1)
          ORDER BY created_at DESC
-         LIMIT 20"
+         LIMIT 20",
     )?;
 
     let results = stmt.query_map([&pattern], |row| {
@@ -220,14 +227,17 @@ fn search_decisions(conn: &Connection, topic: &str) -> Result<Vec<(i64, String, 
 }
 
 /// Search context_notes table
-fn search_notes(conn: &Connection, topic: &str) -> Result<Vec<(i64, String, String, String, String)>> {
+fn search_notes(
+    conn: &Connection,
+    topic: &str,
+) -> Result<Vec<(i64, String, String, String, String)>> {
     let pattern = format!("%{}%", topic);
     let mut stmt = conn.prepare(
         "SELECT note_id, category, title, content, created_at
          FROM context_notes
          WHERE status = 'active' AND (title LIKE ?1 OR content LIKE ?1 OR category LIKE ?1)
          ORDER BY created_at DESC
-         LIMIT 20"
+         LIMIT 20",
     )?;
 
     let results = stmt.query_map([&pattern], |row| {
@@ -250,7 +260,7 @@ fn search_fts(conn: &Connection, topic: &str) -> Result<Vec<(String, i64, String
         "SELECT table_name, record_id, content
          FROM tracking_fts
          WHERE tracking_fts MATCH ?1
-         LIMIT 20"
+         LIMIT 20",
     );
 
     match stmt {

@@ -24,9 +24,7 @@ pub fn run() -> Result<()> {
         match open_database(&tracking_db) {
             Ok(conn) => {
                 // Integrity check
-                match conn.query_row("PRAGMA integrity_check", [], |row| {
-                    row.get::<_, String>(0)
-                }) {
+                match conn.query_row("PRAGMA integrity_check", [], |row| row.get::<_, String>(0)) {
                     Ok(result) if result == "ok" => {
                         println!("  {} Integrity check passed", "✓".green());
                     }
@@ -71,8 +69,13 @@ pub fn run() -> Result<()> {
                     .query_row("SELECT COUNT(*) FROM decisions", [], |row| row.get(0))
                     .unwrap_or(0);
 
-                println!("  {} {} sessions, {} tasks, {} decisions",
-                    "✓".green(), session_count, task_count, decision_count);
+                println!(
+                    "  {} {} sessions, {} tasks, {} decisions",
+                    "✓".green(),
+                    session_count,
+                    task_count,
+                    decision_count
+                );
             }
             Err(e) => {
                 println!("  {} Error: {}", "✗".red(), e);

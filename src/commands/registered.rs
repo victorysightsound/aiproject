@@ -17,7 +17,10 @@ pub fn run() -> Result<()> {
         return Ok(());
     }
 
-    println!("\nRegistered Projects ({}):\n", registry.registered_projects.len());
+    println!(
+        "\nRegistered Projects ({}):\n",
+        registry.registered_projects.len()
+    );
 
     for p in &registry.registered_projects {
         let path = Path::new(&p.path);
@@ -54,8 +57,8 @@ fn load_registry() -> Result<Registry> {
         return Ok(Registry::default());
     }
 
-    let content = std::fs::read_to_string(&registry_path)
-        .with_context(|| "Failed to read registry.json")?;
+    let content =
+        std::fs::read_to_string(&registry_path).with_context(|| "Failed to read registry.json")?;
     let registry: Registry =
         serde_json::from_str(&content).with_context(|| "Failed to parse registry.json")?;
     Ok(registry)

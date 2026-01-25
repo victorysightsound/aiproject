@@ -111,11 +111,7 @@ pub fn run() -> Result<()> {
 
     // Register project in global registry
     if let Err(e) = register_project(&project_root, &project_name, &project_type) {
-        println!(
-            "  {} Could not register project: {}",
-            "⚠".yellow(),
-            e
-        );
+        println!("  {} Could not register project: {}", "⚠".yellow(), e);
     } else {
         println!("  {} Registered in global registry", "✓".green());
     }
@@ -199,7 +195,11 @@ fn register_project(path: &PathBuf, name: &str, project_type: &str) -> Result<()
     let path_str = path.to_string_lossy().to_string();
 
     // Check if already registered
-    if registry.registered_projects.iter().any(|p| p.path == path_str) {
+    if registry
+        .registered_projects
+        .iter()
+        .any(|p| p.path == path_str)
+    {
         return Ok(()); // Already registered
     }
 

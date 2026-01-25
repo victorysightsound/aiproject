@@ -18,12 +18,22 @@ pub fn run(cmd: LogCommands) -> Result<()> {
     let session = get_or_create_session(&conn)?;
 
     match cmd.command {
-        LogSubcommand::Decision { topic, decision, rationale } => {
-            cmd_log_decision(&conn, session.session_id, &topic, &decision, rationale.as_deref())
-        }
-        LogSubcommand::Note { category, title, content } => {
-            cmd_log_note(&conn, session.session_id, &category, &title, &content)
-        }
+        LogSubcommand::Decision {
+            topic,
+            decision,
+            rationale,
+        } => cmd_log_decision(
+            &conn,
+            session.session_id,
+            &topic,
+            &decision,
+            rationale.as_deref(),
+        ),
+        LogSubcommand::Note {
+            category,
+            title,
+            content,
+        } => cmd_log_note(&conn, session.session_id, &category, &title, &content),
         LogSubcommand::Blocker { description } => {
             cmd_log_blocker(&conn, session.session_id, &description)
         }
@@ -57,7 +67,12 @@ fn cmd_log_decision(
     let fts_content = format!("{} {} {}", topic, decision, rationale.unwrap_or(""));
     insert_fts_entry(conn, &fts_content, "decisions", decision_id)?;
 
-    println!("{} Logged decision #{}: {}", "✓".green(), decision_id, topic);
+    println!(
+        "{} Logged decision #{}: {}",
+        "✓".green(),
+        decision_id,
+        topic
+    );
     Ok(())
 }
 
@@ -97,7 +112,13 @@ fn cmd_log_note(
     let fts_content = format!("{} {} {}", category, title, content);
     insert_fts_entry(conn, &fts_content, "context_notes", note_id)?;
 
-    println!("{} Logged note #{} [{}]: {}", "✓".green(), note_id, category, title);
+    println!(
+        "{} Logged note #{} [{}]: {}",
+        "✓".green(),
+        note_id,
+        category,
+        title
+    );
     Ok(())
 }
 
@@ -118,7 +139,12 @@ fn cmd_log_blocker(conn: &Connection, session_id: i64, description: &str) -> Res
     // Update FTS index
     insert_fts_entry(conn, description, "blockers", blocker_id)?;
 
-    println!("{} Logged blocker #{}: {}", "✗".red(), blocker_id, truncate(description, 50));
+    println!(
+        "{} Logged blocker #{}: {}",
+        "✗".red(),
+        blocker_id,
+        truncate(description, 50)
+    );
     Ok(())
 }
 
@@ -145,7 +171,12 @@ fn cmd_log_question(
     let fts_content = format!("{} {}", question, context.unwrap_or(""));
     insert_fts_entry(conn, &fts_content, "questions", question_id)?;
 
-    println!("{} Logged question #{}: {}", "?".cyan(), question_id, truncate(question, 50));
+    println!(
+        "{} Logged question #{}: {}",
+        "?".cyan(),
+        question_id,
+        truncate(question, 50)
+    );
     Ok(())
 }
 
@@ -165,7 +196,12 @@ fn insert_activity_log(
 }
 
 /// Insert an entry into the FTS index
-fn insert_fts_entry(conn: &Connection, content: &str, table_name: &str, record_id: i64) -> Result<()> {
+fn insert_fts_entry(
+    conn: &Connection,
+    content: &str,
+    table_name: &str,
+    record_id: i64,
+) -> Result<()> {
     conn.execute(
         "INSERT INTO tracking_fts (content, table_name, record_id) VALUES (?1, ?2, ?3)",
         rusqlite::params![content, table_name, record_id],

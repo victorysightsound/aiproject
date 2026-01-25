@@ -32,18 +32,25 @@ pub fn run(auto: bool) -> Result<()> {
 
     if sessions.is_empty() {
         println!("No sessions eligible for compression.");
-        println!("  (Looking for completed sessions older than {} days)", min_age_days);
+        println!(
+            "  (Looking for completed sessions older than {} days)",
+            min_age_days
+        );
         return Ok(());
     }
 
-    println!("Found {} session(s) eligible for compression:\n", sessions.len());
+    println!(
+        "Found {} session(s) eligible for compression:\n",
+        sessions.len()
+    );
     for s in &sessions {
         let summary_preview = match &s.summary {
             Some(sum) if sum.len() > 50 => format!("{}...", &sum[..50]),
             Some(sum) => sum.clone(),
             None => "No summary".to_string(),
         };
-        let ended_str = s.ended_at
+        let ended_str = s
+            .ended_at
             .map(|dt| dt.format("%Y-%m-%d").to_string())
             .unwrap_or_else(|| "?".to_string());
         println!("  #{} ({}): {}", s.session_id, ended_str, summary_preview);
@@ -52,7 +59,10 @@ pub fn run(auto: bool) -> Result<()> {
     // Confirm unless auto mode
     if !auto {
         let confirm = Confirm::new()
-            .with_prompt(format!("Compress these {} sessions into a single summary?", sessions.len()))
+            .with_prompt(format!(
+                "Compress these {} sessions into a single summary?",
+                sessions.len()
+            ))
             .default(true)
             .interact()?;
 
@@ -69,7 +79,8 @@ pub fn run(auto: bool) -> Result<()> {
     for s in &sessions {
         let agent = s.agent.as_deref().unwrap_or("unknown");
         let started = s.started_at.format("%Y-%m-%d %H:%M").to_string();
-        let ended = s.ended_at
+        let ended = s
+            .ended_at
             .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
             .unwrap_or_else(|| "?".to_string());
         let summary = s.summary.as_deref().unwrap_or("No summary");
@@ -92,8 +103,12 @@ pub fn run(auto: bool) -> Result<()> {
 
     // Generate compressed summary
     let session_ids: Vec<i64> = sessions.iter().map(|s| s.session_id).collect();
-    let first_started = sessions.first().map(|s| s.started_at.format("%Y-%m-%d").to_string()).unwrap_or_default();
-    let last_ended = sessions.last()
+    let first_started = sessions
+        .first()
+        .map(|s| s.started_at.format("%Y-%m-%d").to_string())
+        .unwrap_or_default();
+    let last_ended = sessions
+        .last()
         .and_then(|s| s.ended_at)
         .map(|dt| dt.format("%Y-%m-%d").to_string())
         .unwrap_or_default();
@@ -145,7 +160,13 @@ pub fn run(auto: bool) -> Result<()> {
     println!("  {}", preview);
 
     // Save compressed summary
-    save_compressed_sessions(&conn, &session_ids, &compressed, original_tokens, compressed_tokens)?;
+    save_compressed_sessions(
+        &conn,
+        &session_ids,
+        &compressed,
+        original_tokens,
+        compressed_tokens,
+    )?;
     println!("\nSaved compression. Original sessions preserved but marked as compressed.");
 
     Ok(())
@@ -172,36 +193,35 @@ fn get_sessions_for_compression(
                FROM compressed_sessions, json_each(compressed_sessions.session_ids)
            )
          ORDER BY ended_at
-         LIMIT ?"
+         LIMIT ?",
     )?;
 
-    let sessions = stmt.query_map(
-        rusqlite::params![cutoff_str, threshold as i64],
-        |row| {
-            Ok(SessionInfo {
-                session_id: row.get(0)?,
-                started_at: parse_datetime(row.get::<_, String>(1)?),
-                ended_at: row.get::<_, Option<String>>(2)?.map(parse_datetime),
-                summary: row.get(3)?,
-                agent: row.get(4)?,
-            })
-        }
-    )?;
+    let sessions = stmt.query_map(rusqlite::params![cutoff_str, threshold as i64], |row| {
+        Ok(SessionInfo {
+            session_id: row.get(0)?,
+            started_at: parse_datetime(row.get::<_, String>(1)?),
+            ended_at: row.get::<_, Option<String>>(2)?.map(parse_datetime),
+            summary: row.get(3)?,
+            agent: row.get(4)?,
+        })
+    })?;
 
-    sessions.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    sessions
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 /// Get decisions for a specific session
 fn get_session_decisions(conn: &Connection, session_id: i64) -> Result<Vec<(String, String)>> {
-    let mut stmt = conn.prepare(
-        "SELECT topic, decision FROM decisions WHERE session_id = ?"
-    )?;
+    let mut stmt = conn.prepare("SELECT topic, decision FROM decisions WHERE session_id = ?")?;
 
     let decisions = stmt.query_map([session_id], |row| {
         Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
     })?;
 
-    decisions.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    decisions
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 /// Save compressed sessions to the database
@@ -215,7 +235,11 @@ fn save_compressed_sessions(
     let sessions_json = serde_json::to_string(session_ids)?;
 
     // Get date range from sessions
-    let placeholders: String = session_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+    let placeholders: String = session_ids
+        .iter()
+        .map(|_| "?")
+        .collect::<Vec<_>>()
+        .join(",");
     let query = format!(
         "SELECT MIN(started_at) as start, MAX(ended_at) as end
          FROM sessions WHERE session_id IN ({})",
@@ -229,9 +253,7 @@ fn save_compressed_sessions(
         .collect();
 
     let (date_start, date_end): (Option<String>, Option<String>) =
-        stmt.query_row(params.as_slice(), |row| {
-            Ok((row.get(0)?, row.get(1)?))
-        })?;
+        stmt.query_row(params.as_slice(), |row| Ok((row.get(0)?, row.get(1)?)))?;
 
     conn.execute(
         "INSERT INTO compressed_sessions

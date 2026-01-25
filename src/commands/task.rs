@@ -16,13 +16,20 @@ pub fn run(cmd: TaskCommands) -> Result<()> {
         .with_context(|| format!("Failed to open tracking database at {:?}", db_path))?;
 
     match cmd.command {
-        TaskSubcommand::Add { description, priority } => {
+        TaskSubcommand::Add {
+            description,
+            priority,
+        } => {
             let session = get_or_create_session(&conn)?;
             cmd_task_add(&conn, session.session_id, &description, &priority)
         }
-        TaskSubcommand::Update { id, status, notes, priority, blocked_by } => {
-            cmd_task_update(&conn, id, status, notes, priority, blocked_by)
-        }
+        TaskSubcommand::Update {
+            id,
+            status,
+            notes,
+            priority,
+            blocked_by,
+        } => cmd_task_update(&conn, id, status, notes, priority, blocked_by),
         TaskSubcommand::List => list(),
     }
 }
@@ -37,7 +44,12 @@ pub fn list() -> Result<()> {
 }
 
 /// Add a new task
-fn cmd_task_add(conn: &Connection, session_id: i64, description: &str, priority: &str) -> Result<()> {
+fn cmd_task_add(
+    conn: &Connection,
+    session_id: i64,
+    description: &str,
+    priority: &str,
+) -> Result<()> {
     // Validate priority
     let valid_priorities = ["low", "normal", "high", "urgent"];
     if !valid_priorities.contains(&priority) {
@@ -75,7 +87,13 @@ fn cmd_task_add(conn: &Connection, session_id: i64, description: &str, priority:
         _ => format!("[{}]", priority),
     };
 
-    println!("{} Added task #{} {}: {}", "✓".green(), task_id, priority_display, description);
+    println!(
+        "{} Added task #{} {}: {}",
+        "✓".green(),
+        task_id,
+        priority_display,
+        description
+    );
     Ok(())
 }
 
@@ -89,11 +107,11 @@ fn cmd_task_update(
     blocked_by: Option<String>,
 ) -> Result<()> {
     // Check task exists
-    let exists: bool = conn.query_row(
-        "SELECT 1 FROM tasks WHERE task_id = ?1",
-        [task_id],
-        |_| Ok(true),
-    ).unwrap_or(false);
+    let exists: bool = conn
+        .query_row("SELECT 1 FROM tasks WHERE task_id = ?1", [task_id], |_| {
+            Ok(true)
+        })
+        .unwrap_or(false);
 
     if !exists {
         bail!("Task #{} not found", task_id);
@@ -104,7 +122,13 @@ fn cmd_task_update(
 
     // Handle status update
     if let Some(ref s) = status {
-        let valid_statuses = ["pending", "in_progress", "completed", "blocked", "cancelled"];
+        let valid_statuses = [
+            "pending",
+            "in_progress",
+            "completed",
+            "blocked",
+            "cancelled",
+        ];
         if !valid_statuses.contains(&s.as_str()) {
             bail!(
                 "Invalid status '{}'. Valid statuses: {}",
@@ -152,15 +176,16 @@ fn cmd_task_update(
     }
 
     if updates.is_empty() {
-        println!("{} No updates specified for task #{}", "!".yellow(), task_id);
+        println!(
+            "{} No updates specified for task #{}",
+            "!".yellow(),
+            task_id
+        );
         return Ok(());
     }
 
     // Build and execute update query
-    let query = format!(
-        "UPDATE tasks SET {} WHERE task_id = ?",
-        updates.join(", ")
-    );
+    let query = format!("UPDATE tasks SET {} WHERE task_id = ?", updates.join(", "));
 
     // Create statement and bind params dynamically
     let mut stmt = conn.prepare(&query)?;
@@ -189,7 +214,12 @@ fn cmd_task_update(
         changes.push(format!("blocked by: {}", b));
     }
 
-    println!("{} Updated task #{}: {}", "✓".green(), task_id, changes.join(", "));
+    println!(
+        "{} Updated task #{}: {}",
+        "✓".green(),
+        task_id,
+        changes.join(", ")
+    );
     Ok(())
 }
 
@@ -247,10 +277,7 @@ fn cmd_task_list(conn: &Connection) -> Result<()> {
 
         println!(
             "{} #{:<4} {} {}",
-            status_icon,
-            task.task_id,
-            priority_display,
-            task.description
+            status_icon, task.task_id, priority_display, task.description
         );
 
         if let Some(blocked_by) = &task.blocked_by {

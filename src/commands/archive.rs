@@ -7,7 +7,10 @@ use dialoguer::Confirm;
 
 use crate::config::{ProjectConfig, Registry};
 use crate::database::open_database;
-use crate::paths::{ensure_dir, get_backups_dir, get_config_path, get_project_root, get_registry_path, get_tracking_db_path};
+use crate::paths::{
+    ensure_dir, get_backups_dir, get_config_path, get_project_root, get_registry_path,
+    get_tracking_db_path,
+};
 
 pub fn run() -> Result<()> {
     // Load config
@@ -30,7 +33,10 @@ pub fn run() -> Result<()> {
 
     // Create final backup
     if let Ok(backup_path) = backup_tracking_db(&config.name, "archive") {
-        println!("Final backup created: {}", backup_path.file_name().unwrap().to_string_lossy());
+        println!(
+            "Final backup created: {}",
+            backup_path.file_name().unwrap().to_string_lossy()
+        );
     }
 
     // End any active session
@@ -47,9 +53,8 @@ pub fn run() -> Result<()> {
     let content = std::fs::read_to_string(&config_path)?;
     let mut config_json: serde_json::Value = serde_json::from_str(&content)?;
     config_json["archived"] = serde_json::Value::Bool(true);
-    config_json["archived_at"] = serde_json::Value::String(
-        Utc::now().format("%Y-%m-%dT%H:%M:%S").to_string()
-    );
+    config_json["archived_at"] =
+        serde_json::Value::String(Utc::now().format("%Y-%m-%dT%H:%M:%S").to_string());
     std::fs::write(&config_path, serde_json::to_string_pretty(&config_json)?)?;
 
     // Remove from registry
@@ -90,7 +95,9 @@ fn unregister_project(project_path: &str) -> Result<()> {
     let content = std::fs::read_to_string(&registry_path)?;
     let mut registry: Registry = serde_json::from_str(&content)?;
 
-    registry.registered_projects.retain(|p| p.path != project_path);
+    registry
+        .registered_projects
+        .retain(|p| p.path != project_path);
 
     let content = serde_json::to_string_pretty(&registry)?;
     std::fs::write(&registry_path, content)?;

@@ -10,7 +10,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::paths::get_global_dir;
 
-const GITHUB_API_URL: &str = "https://api.github.com/repos/victorysightsound/aiproject/releases/latest";
+const GITHUB_API_URL: &str =
+    "https://api.github.com/repos/victorysightsound/aiproject/releases/latest";
 const CHECK_INTERVAL_HOURS: u64 = 24;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -197,11 +198,7 @@ pub fn run() -> Result<()> {
         Some((latest, url)) => {
             if is_newer(current_version, &latest) {
                 println!();
-                println!(
-                    "{} New version available: {}",
-                    "⬆".green(),
-                    latest.green()
-                );
+                println!("{} New version available: {}", "⬆".green(), latest.green());
                 println!();
                 println!("Install options:");
                 println!("  • Homebrew:  {}", "brew upgrade proj".cyan());

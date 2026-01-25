@@ -6,9 +6,7 @@ use colored::Colorize;
 use crate::cli::{SessionCommands, SessionSubcommand};
 use crate::database::open_database;
 use crate::paths::get_tracking_db_path;
-use crate::session::{
-    create_session, end_session, get_active_session, get_recent_sessions,
-};
+use crate::session::{create_session, end_session, get_active_session, get_recent_sessions};
 
 pub fn run(cmd: SessionCommands) -> Result<()> {
     let db_path = get_tracking_db_path()?;
@@ -36,11 +34,7 @@ fn cmd_start(conn: &rusqlite::Connection) -> Result<()> {
 
     // Create a new session
     let session = create_session(conn)?;
-    println!(
-        "{} Session #{} started",
-        "✓".green(),
-        session.session_id
-    );
+    println!("{} Session #{} started", "✓".green(), session.session_id);
     Ok(())
 }
 
@@ -98,9 +92,7 @@ fn cmd_list(conn: &rusqlite::Connection) -> Result<()> {
 
         println!(
             "#{:<4} {} {}",
-            session.session_id,
-            date_str,
-            status_indicator
+            session.session_id, date_str, status_indicator
         );
 
         if let Some(summary) = &session.summary {

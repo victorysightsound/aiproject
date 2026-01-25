@@ -17,7 +17,11 @@ pub fn run() -> Result<()> {
     let mut registry = load_or_create_registry()?;
 
     // Check if already registered
-    if registry.registered_projects.iter().any(|p| p.path == project_path) {
+    if registry
+        .registered_projects
+        .iter()
+        .any(|p| p.path == project_path)
+    {
         println!("Already registered: {}", config.name);
         return Ok(());
     }

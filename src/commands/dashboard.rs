@@ -66,7 +66,11 @@ pub fn run() -> Result<()> {
             exists,
             active_tasks: 0,
             last_session: None,
-            status: if exists { ProjectStatus::New } else { ProjectStatus::Missing },
+            status: if exists {
+                ProjectStatus::New
+            } else {
+                ProjectStatus::Missing
+            },
         };
 
         if exists && db_path.exists() {
@@ -162,8 +166,8 @@ fn load_registry() -> Result<Registry> {
         return Ok(Registry::default());
     }
 
-    let content = std::fs::read_to_string(&registry_path)
-        .with_context(|| "Failed to read registry.json")?;
+    let content =
+        std::fs::read_to_string(&registry_path).with_context(|| "Failed to read registry.json")?;
     let registry: Registry =
         serde_json::from_str(&content).with_context(|| "Failed to parse registry.json")?;
     Ok(registry)

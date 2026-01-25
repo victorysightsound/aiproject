@@ -9,7 +9,10 @@ use crate::config::ProjectConfig;
 use crate::database::open_database;
 use crate::models::{Blocker, Decision, Question, Task};
 use crate::paths::{get_config_path, get_tracking_db_path};
-use crate::session::{get_active_session, get_or_create_session_with_info, get_last_completed_session, mark_full_context_shown};
+use crate::session::{
+    get_active_session, get_last_completed_session, get_or_create_session_with_info,
+    mark_full_context_shown,
+};
 
 /// Status tier levels
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -93,13 +96,17 @@ fn load_config() -> Result<ProjectConfig> {
     let config_path = get_config_path()?;
     let content = std::fs::read_to_string(&config_path)
         .with_context(|| format!("Failed to read config at {:?}", config_path))?;
-    let config: ProjectConfig = serde_json::from_str(&content)
-        .with_context(|| "Failed to parse config.json")?;
+    let config: ProjectConfig =
+        serde_json::from_str(&content).with_context(|| "Failed to parse config.json")?;
     Ok(config)
 }
 
 /// Tier 0: Micro context (~10 tokens)
-fn output_tier0(conn: &Connection, config: &ProjectConfig, session: &crate::models::Session) -> Result<()> {
+fn output_tier0(
+    conn: &Connection,
+    config: &ProjectConfig,
+    session: &crate::models::Session,
+) -> Result<()> {
     let mut parts = vec![format!("{} [#{}]", config.name, session.session_id)];
 
     // Add current task if any
@@ -118,7 +125,11 @@ fn output_tier0(conn: &Connection, config: &ProjectConfig, session: &crate::mode
 }
 
 /// Tier 1: Minimal context (~50 tokens)
-fn output_tier1(conn: &Connection, config: &ProjectConfig, session: &crate::models::Session) -> Result<()> {
+fn output_tier1(
+    conn: &Connection,
+    config: &ProjectConfig,
+    session: &crate::models::Session,
+) -> Result<()> {
     // Header
     println!("{}", "=".repeat(60));
     println!("PROJECT: {}", config.name.bold());
@@ -158,8 +169,15 @@ fn output_tier1(conn: &Connection, config: &ProjectConfig, session: &crate::mode
                 "blocked" => "✗",
                 _ => "○",
             };
-            let priority_marker = if t.priority == "high" || t.priority == "urgent" { " [!]" } else { "" };
-            println!("  {} [{}] {}{}", status_icon, t.task_id, t.description, priority_marker);
+            let priority_marker = if t.priority == "high" || t.priority == "urgent" {
+                " [!]"
+            } else {
+                ""
+            };
+            println!(
+                "  {} [{}] {}{}",
+                status_icon, t.task_id, t.description, priority_marker
+            );
         }
     }
 
@@ -167,7 +185,11 @@ fn output_tier1(conn: &Connection, config: &ProjectConfig, session: &crate::mode
 }
 
 /// Tier 2: Working context (~200 tokens)
-fn output_tier2(conn: &Connection, config: &ProjectConfig, session: &crate::models::Session) -> Result<()> {
+fn output_tier2(
+    conn: &Connection,
+    config: &ProjectConfig,
+    session: &crate::models::Session,
+) -> Result<()> {
     // Start with Tier 1 content
     output_tier1(conn, config, session)?;
 
@@ -193,7 +215,10 @@ fn output_tier2(conn: &Connection, config: &ProjectConfig, session: &crate::mode
                 "pending" => "○".white(),
                 _ => "○".white(),
             };
-            println!("  {} [{}] {} ({})", status_icon, t.task_id, t.description, t.priority);
+            println!(
+                "  {} [{}] {} ({})",
+                status_icon, t.task_id, t.description, t.priority
+            );
         }
         println!();
     }
@@ -221,7 +246,11 @@ fn output_tier2(conn: &Connection, config: &ProjectConfig, session: &crate::mode
 }
 
 /// Tier 3: Full context (~500+ tokens)
-fn output_tier3(conn: &Connection, config: &ProjectConfig, session: &crate::models::Session) -> Result<()> {
+fn output_tier3(
+    conn: &Connection,
+    config: &ProjectConfig,
+    session: &crate::models::Session,
+) -> Result<()> {
     println!("{}", "=".repeat(60));
     println!("{}", "FULL PROJECT CONTEXT".bold());
     println!("{}", "=".repeat(60));
@@ -239,7 +268,10 @@ fn output_tier3(conn: &Connection, config: &ProjectConfig, session: &crate::mode
     // Current session
     println!("{}", "-".repeat(40));
     println!("CURRENT SESSION #{}", session.session_id);
-    println!("Started: {}", session.started_at.format("%Y-%m-%d %H:%M:%S"));
+    println!(
+        "Started: {}",
+        session.started_at.format("%Y-%m-%d %H:%M:%S")
+    );
     println!();
 
     // Last session summary
@@ -263,7 +295,12 @@ fn output_tier3(conn: &Connection, config: &ProjectConfig, session: &crate::mode
         println!("  (none)");
     } else {
         for b in &blockers {
-            println!("  {} {} (created {})", "✗".red(), b.description, b.created_at.format("%Y-%m-%d"));
+            println!(
+                "  {} {} (created {})",
+                "✗".red(),
+                b.description,
+                b.created_at.format("%Y-%m-%d")
+            );
         }
     }
     println!();
@@ -282,9 +319,17 @@ fn output_tier3(conn: &Connection, config: &ProjectConfig, session: &crate::mode
                 "pending" => "○".white(),
                 _ => "○".white(),
             };
-            println!("  {} [{}] {} [{}] {}",
-                status_icon, t.task_id, t.description, t.priority,
-                if t.blocked_by.is_some() { "(blocked)" } else { "" }
+            println!(
+                "  {} [{}] {} [{}] {}",
+                status_icon,
+                t.task_id,
+                t.description,
+                t.priority,
+                if t.blocked_by.is_some() {
+                    "(blocked)"
+                } else {
+                    ""
+                }
             );
             if let Some(notes) = &t.notes {
                 println!("       Notes: {}", notes);
@@ -301,7 +346,11 @@ fn output_tier3(conn: &Connection, config: &ProjectConfig, session: &crate::mode
         println!("  (none)");
     } else {
         for d in &decisions {
-            println!("  • {} ({})", d.topic.bold(), d.created_at.format("%Y-%m-%d"));
+            println!(
+                "  • {} ({})",
+                d.topic.bold(),
+                d.created_at.format("%Y-%m-%d")
+            );
             println!("    Decision: {}", d.decision);
             if let Some(rationale) = &d.rationale {
                 println!("    Rationale: {}", rationale);
@@ -351,10 +400,14 @@ fn output_tier3(conn: &Connection, config: &ProjectConfig, session: &crate::mode
     let sessions = crate::session::get_recent_sessions(conn, 5)?;
     for s in &sessions {
         let status_indicator = if s.status == "active" { "(active)" } else { "" };
-        println!("  #{} {} - {} {}",
+        println!(
+            "  #{} {} - {} {}",
             s.session_id,
             s.started_at.format("%Y-%m-%d %H:%M"),
-            s.summary.as_ref().map(|s| truncate(s, 40)).unwrap_or_else(|| "(no summary)".to_string()),
+            s.summary
+                .as_ref()
+                .map(|s| truncate(s, 40))
+                .unwrap_or_else(|| "(no summary)".to_string()),
             status_indicator
         );
     }
@@ -484,7 +537,9 @@ fn get_active_blockers(conn: &Connection) -> Result<Vec<Blocker>> {
         })
     })?;
 
-    blockers.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    blockers
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 fn get_recent_decisions(conn: &Connection, limit: usize) -> Result<Vec<Decision>> {
@@ -510,7 +565,9 @@ fn get_recent_decisions(conn: &Connection, limit: usize) -> Result<Vec<Decision>
         })
     })?;
 
-    decisions.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    decisions
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 fn get_open_questions(conn: &Connection) -> Result<Vec<Question>> {
@@ -518,7 +575,7 @@ fn get_open_questions(conn: &Connection) -> Result<Vec<Question>> {
         "SELECT question_id, session_id, created_at, answered_at, question, context, answer, status
          FROM questions
          WHERE status = 'open'
-         ORDER BY created_at DESC"
+         ORDER BY created_at DESC",
     )?;
 
     let questions = stmt.query_map([], |row| {
@@ -534,7 +591,9 @@ fn get_open_questions(conn: &Connection) -> Result<Vec<Question>> {
         })
     })?;
 
-    questions.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    questions
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 fn get_active_context_notes(conn: &Connection) -> Result<Vec<crate::models::ContextNote>> {
@@ -542,7 +601,7 @@ fn get_active_context_notes(conn: &Connection) -> Result<Vec<crate::models::Cont
         "SELECT note_id, session_id, created_at, updated_at, category, title, content, status
          FROM context_notes
          WHERE status = 'active'
-         ORDER BY category, created_at"
+         ORDER BY category, created_at",
     )?;
 
     let notes = stmt.query_map([], |row| {

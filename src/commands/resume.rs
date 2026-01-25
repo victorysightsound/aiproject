@@ -30,8 +30,8 @@ fn load_config() -> Result<ProjectConfig> {
     let config_path = get_config_path()?;
     let content = std::fs::read_to_string(&config_path)
         .with_context(|| format!("Failed to read config at {:?}", config_path))?;
-    let config: ProjectConfig = serde_json::from_str(&content)
-        .with_context(|| "Failed to parse config.json")?;
+    let config: ProjectConfig =
+        serde_json::from_str(&content).with_context(|| "Failed to parse config.json")?;
     Ok(config)
 }
 
@@ -106,13 +106,17 @@ fn output_json(conn: &Connection, config: &ProjectConfig) -> Result<()> {
         current_session: Some(SessionInfo {
             session_id: session.session_id,
             started_at: session.started_at.format("%Y-%m-%d %H:%M:%S").to_string(),
-            ended_at: session.ended_at.map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
+            ended_at: session
+                .ended_at
+                .map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
             summary: session.summary.clone(),
         }),
         last_session: last_session.map(|s| SessionInfo {
             session_id: s.session_id,
             started_at: s.started_at.format("%Y-%m-%d %H:%M:%S").to_string(),
-            ended_at: s.ended_at.map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
+            ended_at: s
+                .ended_at
+                .map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
             summary: s.summary.clone(),
         }),
         active_blockers: get_active_blockers(conn)?
@@ -173,14 +177,23 @@ fn output_human(conn: &Connection, config: &ProjectConfig) -> Result<()> {
 
     // Current session
     println!("{}", "Current Session".underline());
-    println!("Session #{} started {}", session.session_id, session.started_at.format("%Y-%m-%d %H:%M"));
+    println!(
+        "Session #{} started {}",
+        session.session_id,
+        session.started_at.format("%Y-%m-%d %H:%M")
+    );
     println!();
 
     // Last session summary
     if let Some(last) = get_last_completed_session(conn)? {
         println!("{}", "Last Session".underline());
-        println!("#{} ended {}", last.session_id,
-            last.ended_at.map(|e| e.format("%Y-%m-%d %H:%M").to_string()).unwrap_or_default());
+        println!(
+            "#{} ended {}",
+            last.session_id,
+            last.ended_at
+                .map(|e| e.format("%Y-%m-%d %H:%M").to_string())
+                .unwrap_or_default()
+        );
         if let Some(summary) = &last.summary {
             println!("Summary: {}", summary);
         }
@@ -212,7 +225,10 @@ fn output_human(conn: &Connection, config: &ProjectConfig) -> Result<()> {
                 "high" => " [high]".yellow(),
                 _ => "".white(),
             };
-            println!("  {} [{}] {}{}", status_icon, t.task_id, t.description, priority_marker);
+            println!(
+                "  {} [{}] {}{}",
+                status_icon, t.task_id, t.description, priority_marker
+            );
         }
         println!();
     }
@@ -249,7 +265,10 @@ fn output_human(conn: &Connection, config: &ProjectConfig) -> Result<()> {
         println!("  Resolve blocker: {}", blockers[0].description);
     } else if let Some(task) = tasks.iter().find(|t| t.status == "in_progress") {
         println!("  Continue: {}", task.description);
-    } else if let Some(task) = tasks.iter().find(|t| t.priority == "urgent" || t.priority == "high") {
+    } else if let Some(task) = tasks
+        .iter()
+        .find(|t| t.priority == "urgent" || t.priority == "high")
+    {
         println!("  Start high-priority task: {}", task.description);
     } else if !tasks.is_empty() {
         println!("  Start next task: {}", tasks[0].description);
@@ -311,7 +330,9 @@ fn get_active_blockers(conn: &Connection) -> Result<Vec<Blocker>> {
         })
     })?;
 
-    blockers.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    blockers
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 fn get_recent_decisions(conn: &Connection, limit: usize) -> Result<Vec<Decision>> {
@@ -337,7 +358,9 @@ fn get_recent_decisions(conn: &Connection, limit: usize) -> Result<Vec<Decision>
         })
     })?;
 
-    decisions.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    decisions
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 fn get_open_questions(conn: &Connection) -> Result<Vec<Question>> {
@@ -345,7 +368,7 @@ fn get_open_questions(conn: &Connection) -> Result<Vec<Question>> {
         "SELECT question_id, session_id, created_at, answered_at, question, context, answer, status
          FROM questions
          WHERE status = 'open'
-         ORDER BY created_at DESC"
+         ORDER BY created_at DESC",
     )?;
 
     let questions = stmt.query_map([], |row| {
@@ -361,7 +384,9 @@ fn get_open_questions(conn: &Connection) -> Result<Vec<Question>> {
         })
     })?;
 
-    questions.collect::<Result<Vec<_>, _>>().map_err(|e| e.into())
+    questions
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.into())
 }
 
 /// Parse datetime string from SQLite
