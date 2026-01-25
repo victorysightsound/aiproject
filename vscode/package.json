@@ -1,0 +1,113 @@
+{
+  "name": "proj",
+  "displayName": "proj - AI Project Tracker",
+  "description": "Project tracking and context management for AI-assisted development",
+  "version": "1.4.0",
+  "publisher": "victorysightsound",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/victorysightsound/aiproject"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "project-management",
+    "context",
+    "copilot",
+    "chat-participant"
+  ],
+  "activationEvents": [
+    "workspaceContains:.tracking/tracking.db"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "proj.assistant",
+        "fullName": "proj",
+        "name": "proj",
+        "description": "Project tracking assistant - query status, tasks, decisions, and log context",
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "status",
+            "description": "Show current project status"
+          },
+          {
+            "name": "tasks",
+            "description": "List pending tasks"
+          },
+          {
+            "name": "decisions",
+            "description": "Show recent decisions"
+          },
+          {
+            "name": "log",
+            "description": "Log a decision, note, or blocker"
+          },
+          {
+            "name": "end",
+            "description": "End the current session with a summary"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "proj.status",
+        "title": "proj: Show Status"
+      },
+      {
+        "command": "proj.tasks",
+        "title": "proj: List Tasks"
+      },
+      {
+        "command": "proj.endSession",
+        "title": "proj: End Session"
+      },
+      {
+        "command": "proj.refresh",
+        "title": "proj: Refresh"
+      }
+    ],
+    "configuration": {
+      "title": "proj",
+      "properties": {
+        "proj.cliPath": {
+          "type": "string",
+          "default": "proj",
+          "description": "Path to the proj CLI executable"
+        },
+        "proj.showStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show proj status in the status bar"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.95.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0",
+    "@vscode/vsce": "^2.22.0"
+  }
+}
