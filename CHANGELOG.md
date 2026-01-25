@@ -2,6 +2,27 @@
 
 All notable changes to proj are documented here.
 
+## [1.5.0] - 2026-01-25
+
+### Added
+- **VS Code Extension v1.5.0**: Major update to the VS Code extension
+  - 9 Language Model Tools for automatic logging via GitHub Copilot
+  - Session notification on workspace open with action buttons
+  - Status bar quick menu (View Status, Tasks, End Session, Refresh)
+  - Auto-generate session summaries using Copilot
+  - End Session button in @proj /status output
+- **Comprehensive VS Code documentation**: Complete novice-friendly guide
+  - Quick Start Guide with step-by-step instructions
+  - Detailed feature explanations with examples
+  - Understanding Permissions section for Copilot tool approvals
+  - CLI vs VS Code comparison
+  - Troubleshooting guide
+
+### Fixed
+- VS Code extension field name mismatches (current_session vs session)
+- Auto-generate summary flow now uses Language Model Tools directly
+- Session notification delay (1.5s) for better visibility
+
 ## [1.4.0] - 2026-01-25
 
 ### Added
