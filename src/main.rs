@@ -20,7 +20,7 @@ use colored::control;
 
 /// Version constants
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const SCHEMA_VERSION: &str = "1.2";
+pub const SCHEMA_VERSION: &str = "1.3";
 pub const MIN_SCHEMA_VERSION: &str = "1.0";
 
 fn main() -> Result<()> {

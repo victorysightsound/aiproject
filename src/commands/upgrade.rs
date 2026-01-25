@@ -94,6 +94,21 @@ const UPGRADE_REGISTRY: &[SchemaUpgrade] = &[
             },
         ],
     },
+    SchemaUpgrade {
+        from_version: "1.2",
+        to_version: "1.3",
+        description: "Add FTS5 full-text search for context queries",
+        changes: &[
+            SchemaChange {
+                change_type: "add_table",
+                name: "tracking_fts",
+                risk: "safe",
+                description: "FTS5 virtual table for full-text search across decisions, notes, tasks",
+                sql: "CREATE VIRTUAL TABLE IF NOT EXISTS tracking_fts USING fts5(content, table_name, record_id, content='', tokenize='porter')",
+                verify: "SELECT 1 FROM sqlite_master WHERE type='table' AND name='tracking_fts'",
+            },
+        ],
+    },
 ];
 
 /// Upgrade compatibility result

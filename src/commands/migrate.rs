@@ -10,7 +10,7 @@ use dialoguer::{Confirm, Input, Select};
 use crate::config::{ProjectConfig, Registry, RegistryEntry};
 use crate::database::open_database;
 use crate::paths::{ensure_dir, get_registry_path};
-use crate::schema::TRACKING_SCHEMA;
+use crate::schema::{TRACKING_SCHEMA, FTS_SCHEMA};
 use crate::SCHEMA_VERSION;
 
 pub fn run() -> Result<()> {
@@ -113,6 +113,8 @@ pub fn run() -> Result<()> {
 
     conn.execute_batch(TRACKING_SCHEMA)
         .with_context(|| "Failed to initialize tracking database schema")?;
+    conn.execute_batch(FTS_SCHEMA)
+        .with_context(|| "Failed to initialize FTS5 search")?;
 
     conn.execute(
         "INSERT INTO project_meta (key, value) VALUES ('schema_version', ?1)",
