@@ -95,6 +95,25 @@ SELECT * FROM tracking_fts WHERE tracking_fts MATCH 'keyword';
 | `proj backup` | Manual backup |
 | `proj export --format md` | Export as markdown |
 | `proj upgrade` | Upgrade schema |
+| `proj update` | Check for proj updates |
+
+---
+
+## Auto-Commit (Optional)
+
+If enabled during `proj init`:
+
+```bash
+proj session end "summary"   # Also creates git commit
+```
+
+Config in `.tracking/config.json`:
+```json
+{
+  "auto_commit": true,
+  "auto_commit_mode": "prompt"  // or "auto"
+}
+```
 
 ---
 
@@ -117,6 +136,10 @@ cd my-project
 proj init          # Interactive setup (run in terminal)
 proj status        # Verify it worked
 ```
+
+Init also:
+- Adds session rules to global AGENTS.md
+- Optionally enables auto-commit for git repos
 
 ### Daily Work
 ```bash

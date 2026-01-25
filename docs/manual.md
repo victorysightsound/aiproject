@@ -34,8 +34,14 @@ proj init
 - Project type (rust, python, javascript, web, documentation, other)
 - Project name
 - Description (optional)
+- Auto-commit on session end? (if git repo detected)
+- Auto-commit mode: prompt or auto
 
 Creates `.tracking/` folder with `config.json` and `tracking.db`.
+
+**Also:**
+- Registers project in global registry
+- Adds session rules to global AGENTS.md (for AI assistants)
 
 **Note:** Run this in a terminal, not through an AI assistant.
 
@@ -170,6 +176,13 @@ The summary is like a commit message - short description of what happened.
 proj session end "Added user authentication"
 proj session end "Fixed bug in payment processing"
 proj session end "Refactored database layer, improved tests"
+```
+
+**Auto-commit:** If enabled in config, also creates a git commit with the session summary:
+```
+✓ Session #5 ended. Summary: Added user authentication
+Commit changes with session summary? [Y/n] y
+  ✓ Committed: [proj] Added user authentication
 ```
 
 ---
@@ -499,6 +512,46 @@ Marks project as archived. Interactive confirmation.
 
 ---
 
+## Updates & Releases
+
+### proj update
+
+Check for updates to proj.
+
+```bash
+proj update
+```
+
+Compares installed version against latest GitHub release. Shows update instructions if a newer version is available.
+
+---
+
+### proj release
+
+Release management (for maintainers).
+
+```bash
+proj release              # Interactive release wizard
+proj release --check      # Verify/update Homebrew formula
+```
+
+Used for managing proj releases. The `--check` flag updates the Homebrew formula with correct SHA256 hashes after a release.
+
+---
+
+### proj rollback
+
+Undo a release (for maintainers).
+
+```bash
+proj rollback             # Rollback latest release
+proj rollback 1.2.0       # Rollback specific version
+```
+
+Deletes GitHub release and tags (local and remote). Interactive confirmation required.
+
+---
+
 ## Environment Variables
 
 | Variable | Description |
@@ -516,3 +569,33 @@ Marks project as archived. Interactive confirmation.
 | `.tracking/tracking.db` | Project database |
 | `~/.proj/registry.json` | Global project registry |
 | `~/.proj/backups/` | Backup storage |
+
+---
+
+## Configuration File
+
+The `.tracking/config.json` file contains project settings:
+
+```json
+{
+  "name": "my-project",
+  "project_type": "rust",
+  "description": "My awesome project",
+  "schema_version": "1.2",
+  "auto_backup": true,
+  "auto_session": true,
+  "auto_commit": false,
+  "auto_commit_mode": "prompt"
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `name` | string | - | Project name |
+| `project_type` | string | - | rust, python, javascript, web, documentation, other |
+| `description` | string | null | Optional description |
+| `schema_version` | string | "1.2" | Database schema version |
+| `auto_backup` | bool | true | Auto-backup on session end |
+| `auto_session` | bool | true | Auto-start sessions on status |
+| `auto_commit` | bool | false | Git commit on session end |
+| `auto_commit_mode` | string | "prompt" | "prompt" (ask) or "auto" (silent) |

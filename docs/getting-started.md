@@ -32,7 +32,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see: `proj 1.0.0`
+You should see the current version (e.g., `proj 1.3.0`).
 
 ## Your First Project
 
@@ -52,6 +52,12 @@ This starts an interactive setup. It will ask you:
 1. What type of project is this? (rust, python, javascript, etc.)
 2. What's the project name?
 3. A short description (optional)
+4. If it's a git repo: Enable auto-commit on session end? (optional)
+
+**What happens during init:**
+- Creates `.tracking/` folder with config and database
+- Registers project in global registry
+- Adds session rules to your global AGENTS.md (so AI assistants automatically run `proj status`)
 
 **Note:** `proj init` requires a terminal. Run it directly, not through an AI assistant.
 
@@ -128,6 +134,23 @@ proj session end "Added user authentication, fixed login bug"
 ```
 
 The summary is just a quick note - like a commit message.
+
+### Auto-Commit (Optional)
+
+If you enabled auto-commit during `proj init`, ending a session can also create a git commit:
+
+```
+$ proj session end "Fixed authentication bug"
+✓ Session #5 ended. Summary: Fixed authentication bug
+Commit changes with session summary? [Y/n] y
+  ✓ Committed: [proj] Fixed authentication bug
+```
+
+Two modes are available:
+- **Prompt** (default): Asks you each time
+- **Auto**: Commits silently without asking
+
+You can change this in `.tracking/config.json`.
 
 ### What If You Forget?
 

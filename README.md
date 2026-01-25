@@ -12,24 +12,24 @@ When you work with AI assistants on code, a lot happens: decisions get made, tas
 - What's blocking you
 - Where you left off
 
-Next session, run `proj status` and pick up exactly where you stopped.
+Next session, your AI assistant runs `proj status` automatically and picks up exactly where you stopped.
 
 ## Quick Start
 
 ```bash
-# Install
+# Install (see Installation section for options)
 cargo install --path .
 
 # In any project directory
 proj init              # First time setup (interactive)
-
-# Every session after that
-proj status            # See where you left off, start session
-# ... do your work ...
-proj session end "What we accomplished"
 ```
 
-That's it. `proj status` to start, summary to end. Everything else happens automatically.
+That's it. After init, proj automatically:
+- Adds session rules to your global AGENTS.md (for Claude, Gemini, etc.)
+- AI assistants will run `proj status` at the start of each conversation
+- Optionally commits your changes when you end a session
+
+Everything else happens automatically.
 
 ## The Simple Version
 
@@ -62,6 +62,12 @@ The biggest finding: without tracking, AI agents literally cannot recover what t
 
 ## For AI Assistants
 
+When you run `proj init`, it automatically adds session management rules to your global AGENTS.md file. This tells AI assistants (Claude, Gemini, Codex) to:
+
+1. Run `proj status` at the start of every conversation
+2. Log decisions, blockers, and tasks as you work
+3. End sessions with summaries
+
 AI assistants can log things as you work:
 
 ```bash
@@ -80,6 +86,13 @@ Database location: `.tracking/tracking.db`
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew tap victorysightsound/tap
+brew install aiproject
+```
+
 ### From Source
 
 ```bash
@@ -89,11 +102,9 @@ cargo build --release
 sudo cp target/release/proj /usr/local/bin/
 ```
 
-### Homebrew (coming soon)
+### Download Binary
 
-```bash
-brew install victorysightsound/tap/aiproject
-```
+Pre-built binaries for macOS, Linux, and Windows are available on the [Releases page](https://github.com/victorysightsound/aiproject/releases).
 
 ## License
 
