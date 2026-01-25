@@ -2,6 +2,11 @@
 
 All notable changes to proj are documented here.
 
+## [1.5.1] - 2026-01-25
+
+### Added
+- **VS Code Extension icon**: Custom icon with clipboard and progress indicators
+
 ## [1.5.0] - 2026-01-25
 
 ### Added
