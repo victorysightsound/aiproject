@@ -1,15 +1,19 @@
-// Release command - guide through the release process with reminders
+// Release command - fully automated release process
 
 use std::process::Command;
 
 use anyhow::{bail, Context, Result};
+use chrono::Local;
 use colored::Colorize;
-use dialoguer::{Confirm, Input, Select};
+use dialoguer::{Confirm, Editor, Select};
 
 /// Release types for version bumping
 const VERSION_TYPES: &[&str] = &["patch (x.x.X)", "minor (x.X.0)", "major (X.0.0)"];
 
-pub fn run(check_only: bool) -> Result<()> {
+/// Changelog entry categories
+const CHANGELOG_CATEGORIES: &[&str] = &["Added", "Changed", "Fixed", "Removed", "Done"];
+
+pub fn run(version: Option<String>, check_only: bool) -> Result<()> {
     // Get current version from Cargo.toml
     let cargo_toml = std::fs::read_to_string("Cargo.toml")
         .with_context(|| "Could not read Cargo.toml - are you in the proj directory?")?;
@@ -23,22 +27,138 @@ pub fn run(check_only: bool) -> Result<()> {
         return Ok(());
     }
 
+    // Check for uncommitted changes
+    println!("\n{}", "Checking git status...".bold());
+    let status_output = Command::new("git")
+        .args(["status", "--porcelain"])
+        .output()
+        .context("Failed to run git status")?;
+
+    let uncommitted = String::from_utf8_lossy(&status_output.stdout);
+    if !uncommitted.is_empty() {
+        // Show what's uncommitted
+        println!("{}", "Uncommitted changes detected:".yellow());
+        for line in uncommitted.lines().take(10) {
+            println!("  {}", line);
+        }
+        if uncommitted.lines().count() > 10 {
+            println!("  ... and more");
+        }
+        println!();
+
+        if !Confirm::new()
+            .with_prompt("Continue anyway? (Changes will be committed with the release)")
+            .default(true)
+            .interact()?
+        {
+            println!("Please commit your changes first, then run 'proj release' again.");
+            return Ok(());
+        }
+    }
+
     // Interactive release process
     println!("\n{}", "=== Release Wizard ===".bold());
 
-    // Step 1: Choose version bump
-    println!("\n{}", "Step 1: Version Bump".bold());
-    let selection = Select::new()
-        .with_prompt("What type of release is this?")
-        .items(VERSION_TYPES)
-        .default(0)
-        .interact()?;
+    // Step 1: Determine version
+    let new_version = if let Some(v) = version {
+        // Version provided as argument
+        println!("\n{}", "Step 1: Version".bold());
+        println!("Using specified version: {}", v.green());
+        v
+    } else {
+        // Interactive version selection
+        println!("\n{}", "Step 1: Version Bump".bold());
+        let selection = Select::new()
+            .with_prompt("What type of release is this?")
+            .items(VERSION_TYPES)
+            .default(0)
+            .interact()?;
 
-    let new_version = bump_version(&current_version, selection)?;
-    println!("New version will be: {}", new_version.green());
+        let v = bump_version(&current_version, selection)?;
+        println!("New version will be: {}", v.green());
+
+        if !Confirm::new()
+            .with_prompt("Continue with this version?")
+            .default(true)
+            .interact()?
+        {
+            println!("Aborted.");
+            return Ok(());
+        }
+        v
+    };
+
+    // Step 2: Collect changelog entries
+    println!("\n{}", "Step 2: Changelog Entries".bold());
+    println!("Add entries for each category. Select 'Done' when finished.\n");
+
+    let mut added: Vec<String> = Vec::new();
+    let mut changed: Vec<String> = Vec::new();
+    let mut fixed: Vec<String> = Vec::new();
+    let mut removed: Vec<String> = Vec::new();
+
+    loop {
+        let selection = Select::new()
+            .with_prompt("Add entry to category")
+            .items(CHANGELOG_CATEGORIES)
+            .default(0)
+            .interact()?;
+
+        if selection == 4 {
+            // Done
+            break;
+        }
+
+        let category_name = CHANGELOG_CATEGORIES[selection];
+
+        // Open editor for entry
+        println!(
+            "Enter {} entry (opens editor, save and close when done):",
+            category_name
+        );
+
+        let entry = Editor::new()
+            .extension(".md")
+            .edit("")?
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+
+        if entry.is_empty() {
+            println!("{}", "Empty entry, skipping.".yellow());
+            continue;
+        }
+
+        // Add to appropriate category
+        match selection {
+            0 => added.push(entry),
+            1 => changed.push(entry),
+            2 => fixed.push(entry),
+            3 => removed.push(entry),
+            _ => {}
+        }
+
+        println!("{} Added to {}", "✓".green(), category_name);
+    }
+
+    // Check if any entries were added
+    if added.is_empty() && changed.is_empty() && fixed.is_empty() && removed.is_empty() {
+        println!(
+            "{}",
+            "No changelog entries added. At least one entry is required.".red()
+        );
+        return Ok(());
+    }
+
+    // Preview the changelog entry
+    let changelog_entry = format_changelog_entry(&new_version, &added, &changed, &fixed, &removed);
+    println!("\n{}", "Changelog preview:".bold());
+    println!("{}", "─".repeat(60));
+    println!("{}", changelog_entry);
+    println!("{}", "─".repeat(60));
 
     if !Confirm::new()
-        .with_prompt("Continue with this version?")
+        .with_prompt("Add this to CHANGELOG.md?")
         .default(true)
         .interact()?
     {
@@ -46,28 +166,13 @@ pub fn run(check_only: bool) -> Result<()> {
         return Ok(());
     }
 
-    // Step 2: Update CHANGELOG
-    println!("\n{}", "Step 2: Changelog".bold());
-    println!(
-        "{}",
-        "Please update CHANGELOG.md with release notes before continuing.".yellow()
-    );
-    println!("Typical entries:");
-    println!("  • New features added");
-    println!("  • Bugs fixed");
-    println!("  • Breaking changes (if any)");
+    // Step 3: Update CHANGELOG.md
+    println!("\n{}", "Step 3: Updating CHANGELOG.md".bold());
+    update_changelog(&new_version, &changelog_entry)?;
+    println!("{} Updated CHANGELOG.md", "✓".green());
 
-    if !Confirm::new()
-        .with_prompt("Have you updated CHANGELOG.md?")
-        .default(false)
-        .interact()?
-    {
-        println!("Please update CHANGELOG.md and run 'proj release' again.");
-        return Ok(());
-    }
-
-    // Step 3: Update version in Cargo.toml
-    println!("\n{}", "Step 3: Updating Cargo.toml".bold());
+    // Step 4: Update version in Cargo.toml
+    println!("\n{}", "Step 4: Updating Cargo.toml".bold());
     update_cargo_version(&new_version)?;
     println!(
         "{} Updated Cargo.toml to version {}",
@@ -75,22 +180,29 @@ pub fn run(check_only: bool) -> Result<()> {
         new_version
     );
 
-    // Step 4: Commit changes
-    println!("\n{}", "Step 4: Committing changes".bold());
+    // Step 5: Commit changes
+    println!("\n{}", "Step 5: Committing changes".bold());
     let commit_msg = format!("Release v{}", new_version);
 
+    // Add all relevant files
     run_command("git", &["add", "Cargo.toml", "Cargo.lock", "CHANGELOG.md"])?;
+
+    // Also add any other uncommitted changes if user approved
+    if !uncommitted.is_empty() {
+        run_command("git", &["add", "-A"])?;
+    }
+
     run_command("git", &["commit", "-m", &commit_msg])?;
     println!("{} Committed: {}", "✓".green(), commit_msg);
 
-    // Step 5: Create tag
-    println!("\n{}", "Step 5: Creating tag".bold());
+    // Step 6: Create tag
+    println!("\n{}", "Step 6: Creating tag".bold());
     let tag = format!("v{}", new_version);
     run_command("git", &["tag", &tag])?;
     println!("{} Created tag: {}", "✓".green(), tag);
 
-    // Step 6: Push
-    println!("\n{}", "Step 6: Pushing to GitHub".bold());
+    // Step 7: Push
+    println!("\n{}", "Step 7: Pushing to GitHub".bold());
     if Confirm::new()
         .with_prompt("Push commits and tag to GitHub? (This triggers the release build)")
         .default(true)
@@ -100,22 +212,113 @@ pub fn run(check_only: bool) -> Result<()> {
         run_command("git", &["push", "--tags"])?;
         println!("{} Pushed to GitHub", "✓".green());
 
-        println!("\n{}", "=== Release Build Started ===".bold().green());
+        println!("\n{}", "=== Release Complete ===".bold().green());
         println!("GitHub Actions is now building release binaries.");
         println!("Monitor progress: https://github.com/victorysightsound/aiproject/actions");
-
-        // Show post-release reminders
-        println!("\n{}", "=== Post-Release Checklist ===".bold().yellow());
-        println!("After the GitHub Action completes (~5-10 min), run:");
-        println!("  {}", "proj release --check".cyan());
-        println!("\nThis will:");
-        println!("  • Verify the release was created successfully");
-        println!("  • Update Homebrew formula with new SHA256 hashes");
-        println!("  • Show any remaining manual steps");
+        println!("\nThe workflow will automatically:");
+        println!("  • Build binaries for all platforms");
+        println!("  • Create the GitHub release");
+        println!("  • Update the Homebrew formula");
     } else {
         println!("\nTo complete the release later:");
         println!("  git push && git push --tags");
     }
+
+    Ok(())
+}
+
+/// Format changelog entry from collected items
+fn format_changelog_entry(
+    version: &str,
+    added: &[String],
+    changed: &[String],
+    fixed: &[String],
+    removed: &[String],
+) -> String {
+    let date = Local::now().format("%Y-%m-%d");
+    let mut entry = format!("## [{}] - {}\n", version, date);
+
+    if !added.is_empty() {
+        entry.push_str("\n### Added\n");
+        for item in added {
+            for line in item.lines() {
+                if line.starts_with('-') || line.starts_with('*') {
+                    entry.push_str(&format!("{}\n", line));
+                } else {
+                    entry.push_str(&format!("- {}\n", line));
+                }
+            }
+        }
+    }
+
+    if !changed.is_empty() {
+        entry.push_str("\n### Changed\n");
+        for item in changed {
+            for line in item.lines() {
+                if line.starts_with('-') || line.starts_with('*') {
+                    entry.push_str(&format!("{}\n", line));
+                } else {
+                    entry.push_str(&format!("- {}\n", line));
+                }
+            }
+        }
+    }
+
+    if !fixed.is_empty() {
+        entry.push_str("\n### Fixed\n");
+        for item in fixed {
+            for line in item.lines() {
+                if line.starts_with('-') || line.starts_with('*') {
+                    entry.push_str(&format!("{}\n", line));
+                } else {
+                    entry.push_str(&format!("- {}\n", line));
+                }
+            }
+        }
+    }
+
+    if !removed.is_empty() {
+        entry.push_str("\n### Removed\n");
+        for item in removed {
+            for line in item.lines() {
+                if line.starts_with('-') || line.starts_with('*') {
+                    entry.push_str(&format!("{}\n", line));
+                } else {
+                    entry.push_str(&format!("- {}\n", line));
+                }
+            }
+        }
+    }
+
+    entry
+}
+
+/// Update CHANGELOG.md with new entry
+fn update_changelog(_version: &str, entry: &str) -> Result<()> {
+    let changelog_path = "CHANGELOG.md";
+
+    let content = std::fs::read_to_string(changelog_path).unwrap_or_else(|_| {
+        "# Changelog\n\nAll notable changes to proj are documented here.\n".to_string()
+    });
+
+    // Find the position after the header to insert the new entry
+    // Look for the first "## [" which indicates existing version entries
+    let insert_pos = if let Some(pos) = content.find("\n## [") {
+        pos + 1 // Insert before the existing version entry
+    } else if let Some(pos) = content.find("\n## ") {
+        pos + 1
+    } else {
+        // No existing entries, add after header
+        content.len()
+    };
+
+    let mut new_content = String::new();
+    new_content.push_str(&content[..insert_pos]);
+    new_content.push_str(entry);
+    new_content.push('\n');
+    new_content.push_str(&content[insert_pos..]);
+
+    std::fs::write(changelog_path, new_content)?;
 
     Ok(())
 }

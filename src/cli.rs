@@ -101,6 +101,8 @@ pub enum Commands {
     Update,
     /// Release a new version (maintainer only)
     Release {
+        /// Version to release (e.g., 1.4.0) - skips version selection prompt
+        version: Option<String>,
         /// Check release status and update formulas
         #[arg(long)]
         check: bool,

@@ -59,7 +59,7 @@ fn main() -> Result<()> {
         Commands::Extend { extension_type } => commands::extend::run(extension_type),
         Commands::Archive => commands::archive::run(),
         Commands::Update => commands::update_check::run(),
-        Commands::Release { check } => commands::release::run(check),
+        Commands::Release { version, check } => commands::release::run(version, check),
         Commands::Rollback { version } => commands::rollback::run(version),
     }
 }
