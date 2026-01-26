@@ -89,7 +89,6 @@ fn search_ranked(conn: &Connection, topic: &str) -> Result<()> {
             title: topic_found.clone(),
             content: decision,
             extra: rationale,
-            created_at,
             score,
         });
     }
@@ -103,7 +102,6 @@ fn search_ranked(conn: &Connection, topic: &str) -> Result<()> {
             title,
             content: content.clone(),
             extra: None,
-            created_at,
             score,
         });
     }
@@ -152,7 +150,6 @@ struct SearchResult {
     title: String,
     content: String,
     extra: Option<String>,
-    created_at: String,
     score: f64,
 }
 

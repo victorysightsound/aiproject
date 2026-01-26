@@ -18,8 +18,8 @@ pub fn open_database(path: &Path) -> Result<Connection> {
 }
 
 /// Creates a backup of the database
-pub fn backup_database(_source: &Path, _dest: &Path) -> Result<()> {
-    // Full implementation in Phase 9
+pub fn backup_database(source: &Path, dest: &Path) -> Result<()> {
+    std::fs::copy(source, dest)?;
     Ok(())
 }
 

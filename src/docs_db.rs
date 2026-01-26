@@ -180,15 +180,20 @@ pub fn get_docs_info(conn: &Connection) -> Result<DocsDbInfo> {
 /// Section data structure
 #[derive(Debug, Clone)]
 pub struct Section {
+    #[allow(dead_code)]
     pub id: i64,
     pub section_id: String,
     pub title: String,
+    #[allow(dead_code)]
     pub parent_id: Option<String>,
     pub level: i32,
+    #[allow(dead_code)]
     pub sort_order: i32,
     pub content: String,
+    #[allow(dead_code)]
     pub word_count: i32,
     pub generated: bool,
+    #[allow(dead_code)]
     pub source_file: Option<String>,
 }
 
@@ -229,6 +234,7 @@ pub fn insert_section(
 }
 
 /// Update an existing section's content
+#[allow(dead_code)]
 pub fn update_section(
     conn: &Connection,
     section_id: &str,
@@ -342,11 +348,14 @@ pub fn get_all_sections(conn: &Connection) -> Result<Vec<Section>> {
 /// Terminology entry
 #[derive(Debug, Clone)]
 pub struct TermEntry {
+    #[allow(dead_code)]
     pub id: i64,
     pub canonical: String,
+    #[allow(dead_code)]
     pub variants: Vec<String>,
     pub definition: Option<String>,
     pub category: Option<String>,
+    #[allow(dead_code)]
     pub first_used_in: Option<String>,
 }
 
@@ -453,6 +462,7 @@ pub fn search_sections(conn: &Connection, query: &str) -> Result<Vec<Section>> {
 }
 
 /// Track an analyzed file for change detection
+#[allow(dead_code)]
 pub fn track_analyzed_file(conn: &Connection, file_path: &str, content_hash: &str) -> Result<()> {
     let now = Utc::now().format("%Y-%m-%dT%H:%M:%S%.6f").to_string();
 
@@ -465,6 +475,7 @@ pub fn track_analyzed_file(conn: &Connection, file_path: &str, content_hash: &st
 }
 
 /// Get hash of previously analyzed file
+#[allow(dead_code)]
 pub fn get_analyzed_file_hash(conn: &Connection, file_path: &str) -> Result<Option<String>> {
     let result: Result<String, _> = conn.query_row(
         "SELECT content_hash FROM analyzed_files WHERE file_path = ?1",
@@ -480,6 +491,7 @@ pub fn get_analyzed_file_hash(conn: &Connection, file_path: &str) -> Result<Opti
 }
 
 /// Compute SHA256 hash of file contents
+#[allow(dead_code)]
 pub fn hash_file(path: &Path) -> Result<String> {
     use sha2::{Sha256, Digest};
 

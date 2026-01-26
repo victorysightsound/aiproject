@@ -1,6 +1,6 @@
 // Session management - get_or_create_session and related functions
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use chrono::{DateTime, Duration, Utc};
 use rusqlite::Connection;
 

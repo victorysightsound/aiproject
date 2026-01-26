@@ -208,15 +208,6 @@ impl DocType {
         }
     }
 
-    pub fn description(&self) -> &'static str {
-        match self {
-            DocType::Architecture => "System/application design",
-            DocType::Framework => "Library/framework documentation",
-            DocType::Guide => "User guide or manual",
-            DocType::Api => "API reference",
-            DocType::Spec => "Specification document",
-        }
-    }
 }
 
 impl std::fmt::Display for DocType {

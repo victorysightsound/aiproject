@@ -4,7 +4,7 @@ use anyhow::{bail, Result};
 use colored::Colorize;
 
 use crate::cli::{DocsCommands, DocsSubcommand, DocsTermSubcommand};
-use crate::docs_db::{self, DocsDbInfo};
+use crate::docs_db;
 use crate::paths::get_project_root;
 use crate::schema_docs::DocType;
 
@@ -40,14 +40,13 @@ fn cmd_init(
     let project_root = get_project_root()?;
 
     // Parse doc type
-    let doc_type = match doc_type_str {
-        "architecture" => DocType::Architecture,
-        "framework" => DocType::Framework,
-        "guide" => DocType::Guide,
-        "api" => DocType::Api,
-        "spec" => DocType::Spec,
-        _ => {
-            bail!("Unknown doc type '{}'. Use: architecture, framework, guide, api, spec", doc_type_str);
+    let doc_type = match DocType::from_str(doc_type_str) {
+        Some(doc_type) => doc_type,
+        None => {
+            bail!(
+                "Unknown doc type '{}'. Use: architecture, framework, guide, api, spec",
+                doc_type_str
+            );
         }
     };
 
@@ -911,10 +910,8 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
 
     // Build sections based on answers
     let mut sections = Vec::new();
-    let mut sort_order = 0;
 
     // 1. Overview
-    sort_order += 1;
     let overview_content = format!(
         "{}\n\n**Type:** {}\n\n**Architecture:** {}\n",
         description,
@@ -929,7 +926,6 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
 
     // 2. Architecture (if applicable)
     if !patterns.is_empty() || doc_type == DocType::Architecture {
-        sort_order += 1;
         let arch_content = format!(
             "This section describes the architectural design of {}.\n\n## Patterns\n\n{}\n",
             project_name,
@@ -943,7 +939,6 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
     }
 
     // 3. Components/Modules
-    sort_order += 1;
     let components_content = if project_type == "CLI Tool" {
         "## Command Structure\n\nDescribe the main commands and subcommands.\n\n## Core Modules\n\nList the main modules and their responsibilities.\n".to_string()
     } else if project_type == "Library" {
@@ -955,7 +950,6 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
 
     // 4. Data Model (if database feature selected)
     if features.contains(&"Database/Storage") {
-        sort_order += 1;
         sections.push((
             "4",
             "Data Model",
@@ -966,7 +960,6 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
 
     // 5. API (if network feature selected)
     if features.contains(&"API/Network") {
-        sort_order += 1;
         sections.push((
             "5",
             "API Reference",
@@ -977,7 +970,6 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
 
     // 6. Configuration (if config feature selected)
     if features.contains(&"Configuration") {
-        sort_order += 1;
         sections.push((
             "6",
             "Configuration",
@@ -987,7 +979,6 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
     }
 
     // 7. Development
-    sort_order += 1;
     let dev_content = if features.contains(&"Testing") {
         "## Building\n\nDescribe how to build the project.\n\n## Testing\n\nDescribe how to run tests.\n\n## Contributing\n\nGuidelines for contributors.\n".to_string()
     } else {
@@ -996,7 +987,7 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
     sections.push(("7", "Development", 1, dev_content));
 
     // Insert all sections
-    sort_order = 0;
+    let mut sort_order = 0;
     for (section_id, title, level, content) in &sections {
         sort_order += 1;
         docs_db::insert_section(
@@ -1062,6 +1053,9 @@ fn cmd_status() -> Result<()> {
     println!("  Type: {}", info.doc_type);
     if let Some(created) = &info.created_at {
         println!("  Created: {}", created);
+    }
+    if let Some(version) = &info.version {
+        println!("  Version: {}", version);
     }
     if let Some(imported) = &info.imported_from {
         println!("  Imported from: {}", imported);
@@ -1180,7 +1174,7 @@ fn cmd_refresh(force: bool) -> Result<()> {
     }
 
     // Get current section counts
-    let (generated_count, manual_count) = docs_db::get_section_counts(&conn)?;
+    let (_generated_count, manual_count) = docs_db::get_section_counts(&conn)?;
 
     if manual_count > 0 && !force {
         println!(

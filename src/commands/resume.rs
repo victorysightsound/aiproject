@@ -9,7 +9,7 @@ use crate::config::ProjectConfig;
 use crate::database::open_database;
 use crate::models::{Blocker, Decision, Question, Task};
 use crate::paths::{get_config_path, get_tracking_db_path};
-use crate::session::{get_active_session, get_last_completed_session, get_or_create_session};
+use crate::session::{get_last_completed_session, get_or_create_session};
 
 pub fn run(for_ai: bool) -> Result<()> {
     let db_path = get_tracking_db_path()?;

@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result};
 use chrono::Utc;
 use colored::Colorize;
 use dialoguer::{Confirm, Input, Select};
@@ -11,7 +11,7 @@ use crate::config::{ProjectConfig, Registry, RegistryEntry};
 use crate::database::open_database;
 use crate::docs_db;
 use crate::paths::{ensure_dir, get_registry_path};
-use crate::schema::{TRACKING_SCHEMA, FTS_SCHEMA};
+use crate::schema::init_tracking_schema;
 use crate::schema_docs::DocType;
 use crate::source_analyzer;
 use crate::SCHEMA_VERSION;
@@ -130,9 +130,7 @@ pub fn run() -> Result<()> {
         auto_commit_mode,
     };
 
-    let config_path = tracking_path.join("config.json");
-    let config_json = serde_json::to_string_pretty(&config)?;
-    std::fs::write(&config_path, config_json)?;
+    config.save()?;
     println!("  {} config.json", "✓".green());
 
     // Create tracking.db
@@ -140,16 +138,8 @@ pub fn run() -> Result<()> {
     let conn = open_database(&db_path)?;
 
     // Initialize schema
-    conn.execute_batch(TRACKING_SCHEMA)
+    init_tracking_schema(&conn)
         .with_context(|| "Failed to initialize tracking database schema")?;
-    conn.execute_batch(FTS_SCHEMA)
-        .with_context(|| "Failed to initialize FTS5 search")?;
-
-    // Store schema version
-    conn.execute(
-        "INSERT INTO project_meta (key, value) VALUES ('schema_version', ?1)",
-        [SCHEMA_VERSION],
-    )?;
     println!("  {} tracking.db", "✓".green());
 
     // Register project in global registry

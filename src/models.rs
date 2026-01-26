@@ -86,6 +86,7 @@ pub struct Question {
 
 /// Milestone record
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)]
 pub struct Milestone {
     pub milestone_id: i64,
     pub created_at: DateTime<Utc>,

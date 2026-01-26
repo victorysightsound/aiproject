@@ -4,17 +4,13 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use colored::Colorize;
-use rusqlite::Connection;
-
 use crate::config::{ProjectConfig, Registry};
-use crate::database::open_database;
-use crate::paths::{get_config_path, get_project_root, get_registry_path, get_tracking_db_path};
+use crate::database::{get_schema_version, open_database, set_schema_version};
+use crate::paths::{get_config_path, get_registry_path, get_tracking_db_path};
 use crate::SCHEMA_VERSION;
 
 /// Schema change definition
 struct SchemaChange {
-    change_type: &'static str,
-    name: &'static str,
     risk: &'static str,
     description: &'static str,
     sql: &'static str,
@@ -25,7 +21,6 @@ struct SchemaChange {
 struct SchemaUpgrade {
     from_version: &'static str,
     to_version: &'static str,
-    description: &'static str,
     changes: &'static [SchemaChange],
 }
 
@@ -34,11 +29,8 @@ const UPGRADE_REGISTRY: &[SchemaUpgrade] = &[
     SchemaUpgrade {
         from_version: "1.0",
         to_version: "1.1",
-        description: "Add efficiency tracking tables",
         changes: &[
             SchemaChange {
-                change_type: "add_table",
-                name: "context_snapshots",
                 risk: "safe",
                 description: "Track context snapshots for delta updates",
                 sql: "CREATE TABLE IF NOT EXISTS context_snapshots (
@@ -53,8 +45,6 @@ const UPGRADE_REGISTRY: &[SchemaUpgrade] = &[
                 verify: "SELECT 1 FROM sqlite_master WHERE type='table' AND name='context_snapshots'",
             },
             SchemaChange {
-                change_type: "add_table",
-                name: "compressed_sessions",
                 risk: "safe",
                 description: "Store compressed session summaries",
                 sql: "CREATE TABLE IF NOT EXISTS compressed_sessions (
@@ -70,8 +60,6 @@ const UPGRADE_REGISTRY: &[SchemaUpgrade] = &[
                 verify: "SELECT 1 FROM sqlite_master WHERE type='table' AND name='compressed_sessions'",
             },
             SchemaChange {
-                change_type: "add_index",
-                name: "idx_context_snapshots_session",
                 risk: "safe",
                 description: "Index for context snapshot lookups",
                 sql: "CREATE INDEX IF NOT EXISTS idx_context_snapshots_session ON context_snapshots(session_id)",
@@ -82,11 +70,8 @@ const UPGRADE_REGISTRY: &[SchemaUpgrade] = &[
     SchemaUpgrade {
         from_version: "1.1",
         to_version: "1.2",
-        description: "Add session-aware first-run tracking",
         changes: &[
             SchemaChange {
-                change_type: "add_column",
-                name: "full_context_shown",
                 risk: "safe",
                 description: "Track whether full context was shown this session",
                 sql: "ALTER TABLE sessions ADD COLUMN full_context_shown INTEGER DEFAULT 0",
@@ -97,11 +82,8 @@ const UPGRADE_REGISTRY: &[SchemaUpgrade] = &[
     SchemaUpgrade {
         from_version: "1.2",
         to_version: "1.3",
-        description: "Add FTS5 full-text search for context queries",
         changes: &[
             SchemaChange {
-                change_type: "add_table",
-                name: "tracking_fts",
                 risk: "safe",
                 description: "FTS5 virtual table for full-text search across decisions, notes, tasks",
                 sql: "CREATE VIRTUAL TABLE IF NOT EXISTS tracking_fts USING fts5(content, table_name, record_id, content='', tokenize='porter')",
@@ -124,8 +106,6 @@ struct UpgradeCompatibility {
 
 /// Change info for display
 struct ChangeInfo {
-    upgrade_desc: String,
-    name: String,
     description: String,
     risk: String,
     status: String,
@@ -334,7 +314,8 @@ fn upgrade_current_project(info_mode: bool) -> Result<()> {
 /// Check if an upgrade is safe
 fn check_upgrade_compatibility(db_path: &Path) -> Result<UpgradeCompatibility> {
     let conn = open_database(db_path)?;
-    let current_version = get_schema_version(&conn)?;
+    let current_version =
+        get_schema_version(&conn)?.unwrap_or_else(|| "1.0".to_string());
     let target_version = SCHEMA_VERSION.to_string();
 
     let mut result = UpgradeCompatibility {
@@ -369,8 +350,6 @@ fn check_upgrade_compatibility(db_path: &Path) -> Result<UpgradeCompatibility> {
     for upgrade in &result.pending_upgrades {
         for change in upgrade.changes {
             let mut change_info = ChangeInfo {
-                upgrade_desc: format!("v{} → v{}", upgrade.from_version, upgrade.to_version),
-                name: change.name.to_string(),
                 description: change.description.to_string(),
                 risk: change.risk.to_string(),
                 status: "pending".to_string(),
@@ -394,7 +373,8 @@ fn check_upgrade_compatibility(db_path: &Path) -> Result<UpgradeCompatibility> {
 /// Apply pending upgrades to the database
 fn apply_upgrades(db_path: &Path, config_path: &Path) -> Result<()> {
     let conn = open_database(db_path)?;
-    let current_version = get_schema_version(&conn)?;
+    let current_version =
+        get_schema_version(&conn)?.unwrap_or_else(|| "1.0".to_string());
 
     let pending = get_pending_upgrades(&current_version, SCHEMA_VERSION);
 
@@ -411,10 +391,7 @@ fn apply_upgrades(db_path: &Path, config_path: &Path) -> Result<()> {
     }
 
     // Update schema version in database
-    conn.execute(
-        "INSERT OR REPLACE INTO project_meta (key, value) VALUES ('schema_version', ?1)",
-        [SCHEMA_VERSION],
-    )?;
+    set_schema_version(&conn, SCHEMA_VERSION)?;
 
     // Update config file
     if config_path.exists() {
@@ -464,20 +441,6 @@ fn compare_versions(a: &[u32], b: &[u32]) -> std::cmp::Ordering {
         }
     }
     a.len().cmp(&b.len())
-}
-
-/// Get schema version from database
-fn get_schema_version(conn: &Connection) -> Result<String> {
-    let version: Result<String, _> = conn.query_row(
-        "SELECT value FROM project_meta WHERE key = 'schema_version'",
-        [],
-        |row| row.get(0),
-    );
-
-    match version {
-        Ok(v) => Ok(v),
-        Err(_) => Ok("1.0".to_string()), // Default to 1.0 if not found
-    }
 }
 
 /// Load project configuration

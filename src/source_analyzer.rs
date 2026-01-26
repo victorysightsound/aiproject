@@ -13,7 +13,9 @@ pub struct SourceItem {
     pub visibility: Visibility,
     pub doc_comment: Option<String>,
     pub file_path: PathBuf,
+    #[allow(dead_code)]
     pub line_number: usize,
+    #[allow(dead_code)]
     pub children: Vec<SourceItem>,
 }
 
@@ -29,21 +31,6 @@ pub enum ItemKind {
     Type,
 }
 
-impl ItemKind {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            ItemKind::Module => "Module",
-            ItemKind::Struct => "Struct",
-            ItemKind::Enum => "Enum",
-            ItemKind::Trait => "Trait",
-            ItemKind::Impl => "Impl",
-            ItemKind::Function => "Function",
-            ItemKind::Constant => "Constant",
-            ItemKind::Type => "Type",
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Visibility {
     Public,
@@ -57,6 +44,7 @@ pub struct ProjectStructure {
     pub name: String,
     pub language: Language,
     pub modules: Vec<SourceItem>,
+    #[allow(dead_code)]
     pub entry_points: Vec<PathBuf>,
     pub file_count: usize,
     pub total_lines: usize,

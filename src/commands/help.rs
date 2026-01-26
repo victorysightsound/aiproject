@@ -3,6 +3,7 @@
 use anyhow::Result;
 use colored::Colorize;
 
+#[allow(dead_code)]
 pub fn run() -> Result<()> {
     println!(
         "

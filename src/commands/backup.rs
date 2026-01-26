@@ -4,9 +4,9 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use chrono::Utc;
-use colored::Colorize;
 
 use crate::config::ProjectConfig;
+use crate::database::backup_database;
 use crate::paths::{ensure_dir, get_backups_dir, get_config_path, get_tracking_db_path};
 
 pub fn run() -> Result<()> {
@@ -20,8 +20,6 @@ pub fn run() -> Result<()> {
 
     // List recent backups
     let backups_dir = get_backups_dir()?;
-    let pattern = format!("{}_tracking_*.db", config.name);
-
     let mut backups: Vec<_> = std::fs::read_dir(&backups_dir)?
         .filter_map(|e| e.ok())
         .filter(|e| {
@@ -60,7 +58,7 @@ fn backup_tracking_db(project_name: &str, reason: &str) -> Result<PathBuf> {
     let backup_name = format!("{}_tracking_{}_{}.db", project_name, timestamp, reason);
     let backup_path = backups_dir.join(&backup_name);
 
-    std::fs::copy(&db_path, &backup_path)
+    backup_database(&db_path, &backup_path)
         .with_context(|| format!("Failed to create backup at {:?}", backup_path))?;
 
     Ok(backup_path)

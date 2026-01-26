@@ -10,8 +10,7 @@ use crate::database::open_database;
 use crate::models::{Blocker, Decision, Question, Task};
 use crate::paths::{get_config_path, get_tracking_db_path};
 use crate::session::{
-    get_active_session, get_last_completed_session, get_or_create_session_with_info,
-    mark_full_context_shown,
+    get_last_completed_session, get_or_create_session_with_info, mark_full_context_shown,
 };
 
 /// Status tier levels
