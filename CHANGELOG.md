@@ -2,6 +2,15 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.2] - 2026-01-27
+
+### Added
+- **Non-interactive init for LLM CLIs**: `proj init` now supports command-line flags
+  - Enables initialization through Claude Code, Codex, and other LLM CLI tools
+  - `proj init --name "project" --type rust` runs without prompts
+  - Full control: `--description`, `--docs-generate`, `--auto-commit`, etc.
+  - Auto-detects when not in a terminal and uses non-interactive mode
+
 ## [1.7.1] - 2026-01-27
 
 ### Added

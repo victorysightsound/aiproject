@@ -30,7 +30,7 @@ Initialize a new project with proj tracking.
 proj init
 ```
 
-**Interactive wizard** - asks for:
+**Interactive mode** (default in terminal) - wizard asks for:
 1. **Project info** - type (rust, python, javascript, web, documentation, other), name, description
 2. **Documentation database** - choose how to set up project docs:
    - **Skip** - Set up documentation later with `proj docs init`
@@ -42,7 +42,32 @@ proj init
 
 Creates `.tracking/` folder with `config.json` and `tracking.db`.
 
-**Note:** Run this in a terminal, not through an AI assistant.
+**Non-interactive mode** (for LLM CLIs like Claude Code, Codex):
+
+```bash
+# Minimal - uses defaults and auto-detection
+proj init --name "my-project" --type rust
+
+# Full options
+proj init --name "my-project" --type python --description "My app" \
+  --docs-generate --docs-type architecture --auto-commit --commit-mode prompt
+```
+
+| Flag | Description |
+|------|-------------|
+| `--name <name>` | Project name (defaults to directory name) |
+| `--type <type>` | rust, python, javascript, web, documentation, other |
+| `--description <desc>` | Optional project description |
+| `--skip-docs` | Skip documentation setup |
+| `--docs-generate` | Generate docs from source analysis |
+| `--docs-import` | Import docs from markdown files |
+| `--docs-new` | Create skeleton documentation |
+| `--docs-type <type>` | architecture, framework, guide, api, spec |
+| `--auto-commit` | Enable git auto-commit on session end |
+| `--commit-mode <mode>` | prompt (ask each time) or auto (silent) |
+| `--no-agents` | Skip AGENTS.md setup |
+
+When `--name` and `--type` are provided, init runs non-interactively. This allows LLM CLIs to gather the information through their own interface and then run `proj init` with the appropriate flags.
 
 ---
 

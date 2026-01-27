@@ -43,7 +43,31 @@ fn main() -> Result<()> {
     }
 
     match cli.command {
-        Commands::Init => commands::init::run(),
+        Commands::Init {
+            name,
+            project_type,
+            description,
+            skip_docs,
+            docs_generate,
+            docs_import,
+            docs_new,
+            docs_type,
+            auto_commit,
+            commit_mode,
+            no_agents,
+        } => commands::init::run(
+            name,
+            project_type,
+            description,
+            skip_docs,
+            docs_generate,
+            docs_import,
+            docs_new,
+            docs_type,
+            auto_commit,
+            commit_mode,
+            no_agents,
+        ),
         Commands::Migrate => commands::migrate::run(),
         Commands::Status {
             quiet,

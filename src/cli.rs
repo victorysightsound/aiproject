@@ -19,7 +19,41 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Initialize new project
-    Init,
+    Init {
+        /// Project name (defaults to directory name)
+        #[arg(long)]
+        name: Option<String>,
+        /// Project type: rust, python, javascript, web, documentation, other
+        #[arg(long = "type")]
+        project_type: Option<String>,
+        /// Project description
+        #[arg(long)]
+        description: Option<String>,
+        /// Skip documentation setup
+        #[arg(long)]
+        skip_docs: bool,
+        /// Generate docs from source analysis
+        #[arg(long)]
+        docs_generate: bool,
+        /// Import docs from markdown files
+        #[arg(long)]
+        docs_import: bool,
+        /// Create skeleton documentation
+        #[arg(long)]
+        docs_new: bool,
+        /// Documentation type: architecture, framework, guide, api, spec
+        #[arg(long, default_value = "architecture")]
+        docs_type: String,
+        /// Enable auto-commit on session end (git repos only)
+        #[arg(long)]
+        auto_commit: bool,
+        /// Auto-commit mode: prompt or auto
+        #[arg(long, default_value = "prompt")]
+        commit_mode: String,
+        /// Skip AGENTS.md setup
+        #[arg(long)]
+        no_agents: bool,
+    },
     /// Migrate existing project to proj format
     Migrate,
     /// Show current project status
