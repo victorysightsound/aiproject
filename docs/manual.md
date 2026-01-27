@@ -55,6 +55,7 @@ proj init --name "my-project" --type python --description "My app" \
 
 | Flag | Description |
 |------|-------------|
+| `--path <dir>` | Directory to initialize (creates if doesn't exist) |
 | `--name <name>` | Project name (defaults to directory name) |
 | `--type <type>` | rust, python, javascript, web, documentation, other |
 | `--description <desc>` | Optional project description |

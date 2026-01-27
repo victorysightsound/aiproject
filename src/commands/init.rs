@@ -44,6 +44,7 @@ fn parse_doc_type(s: &str) -> DocType {
 
 #[allow(clippy::too_many_arguments)]
 pub fn run(
+    path: Option<String>,
     name: Option<String>,
     project_type: Option<String>,
     description: Option<String>,
@@ -56,7 +57,25 @@ pub fn run(
     commit_mode: String,
     no_agents: bool,
 ) -> Result<()> {
-    let project_root = std::env::current_dir()?;
+    // Determine project root - use --path if provided, otherwise current directory
+    let project_root = if let Some(ref p) = path {
+        let path_buf = PathBuf::from(p);
+        // Convert to absolute path if relative
+        if path_buf.is_absolute() {
+            path_buf
+        } else {
+            std::env::current_dir()?.join(path_buf)
+        }
+    } else {
+        std::env::current_dir()?
+    };
+
+    // Create directory if it doesn't exist
+    if !project_root.exists() {
+        println!("Creating directory: {}", project_root.display());
+        std::fs::create_dir_all(&project_root)?;
+    }
+
     let tracking_path = project_root.join(".tracking");
 
     if tracking_path.exists() {
@@ -65,8 +84,8 @@ pub fn run(
     }
 
     // Determine if we're in non-interactive mode
-    // Non-interactive if: name and type are provided, OR we're not in a terminal
-    let non_interactive = (name.is_some() && project_type.is_some()) || !is_interactive();
+    // Non-interactive if: name and type are provided, OR path is provided, OR we're not in a terminal
+    let non_interactive = (name.is_some() && project_type.is_some()) || path.is_some() || !is_interactive();
 
     if non_interactive {
         run_non_interactive(

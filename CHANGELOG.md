@@ -2,6 +2,13 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.3] - 2026-01-27
+
+### Added
+- **`--path` flag for init**: Initialize a project in a different directory
+  - `proj init --path ~/projects/new-project` creates directory if needed
+  - Useful when not already in the target project folder
+
 ## [1.7.2] - 2026-01-27
 
 ### Added

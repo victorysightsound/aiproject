@@ -44,6 +44,7 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Init {
+            path,
             name,
             project_type,
             description,
@@ -56,6 +57,7 @@ fn main() -> Result<()> {
             commit_mode,
             no_agents,
         } => commands::init::run(
+            path,
             name,
             project_type,
             description,

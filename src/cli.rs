@@ -20,6 +20,9 @@ pub struct Cli {
 pub enum Commands {
     /// Initialize new project
     Init {
+        /// Directory to initialize (defaults to current directory, creates if doesn't exist)
+        #[arg(long)]
+        path: Option<String>,
         /// Project name (defaults to directory name)
         #[arg(long)]
         name: Option<String>,
