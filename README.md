@@ -19,7 +19,8 @@ Next session, your AI assistant runs `proj status` automatically and picks up ex
 
 ```bash
 # Install (pick one)
-cargo install aiproject        # From crates.io
+npx create-aiproj              # npm - downloads binary, no Rust needed
+cargo install aiproject        # crates.io - compiles from source
 brew install aiproject         # Homebrew (macOS/Linux)
 
 # In any project directory
@@ -121,13 +122,21 @@ Database location: `.tracking/tracking.db`
 
 ## Installation
 
-### From crates.io (Recommended)
+### npm (Easiest - No Rust Required)
+
+```bash
+npx create-aiproj
+```
+
+Downloads a pre-built binary for your platform. Just needs Node.js.
+
+### From crates.io
 
 ```bash
 cargo install aiproject
 ```
 
-This installs the `proj` command globally. Requires Rust toolchain.
+Compiles from source. Requires Rust toolchain.
 
 ### Homebrew (macOS/Linux)
 

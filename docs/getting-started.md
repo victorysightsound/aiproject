@@ -12,7 +12,17 @@ This guide walks you through setting up proj for the first time.
 
 Pick whichever method works best for you:
 
-### Option 1: From crates.io (Recommended)
+### Option 1: npm (Easiest)
+
+If you have Node.js installed:
+
+```bash
+npx create-aiproj
+```
+
+This downloads a pre-built binary for your platform. No Rust required.
+
+### Option 2: From crates.io
 
 If you have Rust installed:
 
@@ -20,16 +30,16 @@ If you have Rust installed:
 cargo install aiproject
 ```
 
-This installs the `proj` command globally.
+This compiles from source and installs the `proj` command globally.
 
-### Option 2: Homebrew (macOS/Linux)
+### Option 3: Homebrew (macOS/Linux)
 
 ```bash
 brew tap victorysightsound/tap
 brew install aiproject
 ```
 
-### Option 3: Download Binary
+### Option 4: Download Binary
 
 Pre-built binaries are available on the [Releases page](https://github.com/victorysightsound/aiproject/releases).
 
@@ -46,7 +56,7 @@ tar -xzf proj-*.tar.gz
 sudo mv proj /usr/local/bin/
 ```
 
-### Option 4: Build from Source
+### Option 5: Build from Source
 
 ```bash
 git clone https://github.com/victorysightsound/aiproject
