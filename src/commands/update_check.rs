@@ -1,17 +1,19 @@
 // Update check - check for new versions and notify users
 
 use std::fs;
+use std::io::Read;
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use colored::Colorize;
 use serde::{Deserialize, Serialize};
 
-use crate::paths::get_global_dir;
+use crate::paths::{ensure_dir, get_global_dir, get_pending_update_dir};
 
 const GITHUB_API_URL: &str =
     "https://api.github.com/repos/victorysightsound/aiproject/releases/latest";
+const GITHUB_REPO: &str = "victorysightsound/aiproject";
 const CHECK_INTERVAL_HOURS: u64 = 24;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -116,6 +118,113 @@ fn is_newer(current: &str, latest: &str) -> bool {
     }
 }
 
+/// Get the platform target string for binary downloads
+fn get_platform_target() -> Option<&'static str> {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    return Some("aarch64-apple-darwin");
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+    return Some("x86_64-apple-darwin");
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    return Some("x86_64-unknown-linux-gnu");
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    return Some("aarch64-unknown-linux-gnu");
+    #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
+    return Some("x86_64-pc-windows-msvc");
+    #[cfg(not(any(
+        all(target_os = "macos", target_arch = "aarch64"),
+        all(target_os = "macos", target_arch = "x86_64"),
+        all(target_os = "linux", target_arch = "x86_64"),
+        all(target_os = "linux", target_arch = "aarch64"),
+        all(target_os = "windows", target_arch = "x86_64"),
+    )))]
+    return None;
+}
+
+/// Download update binary to staging directory
+fn download_update(version: &str) -> Result<()> {
+    let target = get_platform_target().ok_or_else(|| anyhow!("Unsupported platform"))?;
+
+    #[cfg(target_os = "windows")]
+    let ext = "zip";
+    #[cfg(not(target_os = "windows"))]
+    let ext = "tar.gz";
+
+    let url = format!(
+        "https://github.com/{}/releases/download/v{}/proj-{}.{}",
+        GITHUB_REPO, version, target, ext
+    );
+
+    // Download with short timeout
+    let response = ureq::AgentBuilder::new()
+        .timeout(Duration::from_secs(60))
+        .build()
+        .get(&url)
+        .set("User-Agent", "proj-cli")
+        .call()
+        .map_err(|e| anyhow!("Download failed: {}", e))?;
+
+    let mut bytes = Vec::new();
+    response
+        .into_reader()
+        .read_to_end(&mut bytes)
+        .map_err(|e| anyhow!("Failed to read response: {}", e))?;
+
+    // Extract to staging
+    let staging = get_pending_update_dir()?;
+
+    // Clean up any existing staging directory
+    if staging.exists() {
+        let _ = fs::remove_dir_all(&staging);
+    }
+    ensure_dir(&staging)?;
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        use flate2::read::GzDecoder;
+        use tar::Archive;
+
+        let decoder = GzDecoder::new(&bytes[..]);
+        let mut archive = Archive::new(decoder);
+        archive
+            .unpack(&staging)
+            .map_err(|e| anyhow!("Failed to extract archive: {}", e))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        // Windows zip handling would go here
+        // For now, return an error indicating manual update needed
+        return Err(anyhow!(
+            "Auto-update on Windows not yet supported, please update manually"
+        ));
+    }
+
+    // Write version file
+    fs::write(staging.join("version"), version)?;
+
+    Ok(())
+}
+
+/// Spawn background thread to download update
+pub fn download_update_background(version: String) {
+    std::thread::spawn(move || {
+        if let Err(_e) = download_update(&version) {
+            // Silent fail - will retry on next check
+            // Could log to file for debugging if needed
+        }
+    });
+}
+
+/// Check if an update is already staged
+fn is_update_staged(version: &str) -> bool {
+    if let Ok(staging) = get_pending_update_dir() {
+        if let Ok(staged_version) = fs::read_to_string(staging.join("version")) {
+            return staged_version.trim() == version;
+        }
+    }
+    false
+}
+
 /// Check for updates and print notification if available
 /// Returns true if an update is available
 pub fn check_and_notify() -> bool {
@@ -165,6 +274,11 @@ pub fn check_and_notify() -> bool {
 
     // Check if update is available
     if is_newer(current_version, &latest_version) {
+        // Start background download if not already staged and platform supported
+        if !is_update_staged(&latest_version) && get_platform_target().is_some() {
+            download_update_background(latest_version.clone());
+        }
+
         println!();
         println!(
             "{} Update available: {} → {}",

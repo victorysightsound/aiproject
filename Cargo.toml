@@ -1,6 +1,6 @@
 [package]
 name = "aiproject"
-version = "1.7.0"
+version = "1.7.1"
 edition = "2021"
 authors = ["John Deaton <john@victorysightsound.com>"]
 description = "Project tracking and context management for AI-assisted development"
@@ -37,6 +37,8 @@ glob = "0.3"
 sha2 = "0.10"
 atty = "0.2"
 ureq = { version = "2", features = ["json"] }
+flate2 = "1"
+tar = "0.4"
 
 [dev-dependencies]
 tempfile = "3"

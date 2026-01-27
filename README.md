@@ -1,12 +1,12 @@
 # proj
 
-Your memory for AI coding sessions.
+Your memory for AI-assisted work.
 
 ## What It Does
 
-When you work with AI assistants on code, a lot happens: decisions get made, tasks pile up, bugs get fixed. Then the session ends, and you forget half of it.
+When you work with AI assistants, a lot happens: decisions get made, tasks pile up, things get done. Then the session ends, and you forget half of it.
 
-**proj** remembers for you. It tracks:
+**proj** remembers for you. It works for any type of project folder - software development, writing projects, research, documentation, planning, or anything else you're working on with AI assistance. It tracks:
 - What you decided and why
 - What tasks are pending
 - What's blocking you
@@ -14,6 +14,8 @@ When you work with AI assistants on code, a lot happens: decisions get made, tas
 - Project documentation (architecture, API, concepts)
 
 Next session, your AI assistant runs `proj status` automatically and picks up exactly where you stopped.
+
+**Auto-updates:** proj keeps itself current automatically. When a new version is available, it downloads in the background and applies on your next command. No manual updating needed.
 
 ## Quick Start
 
@@ -31,10 +33,11 @@ proj shell install
 ```
 
 The init wizard walks you through:
-1. **Tracking database** - For sessions, decisions, tasks, blockers
-2. **Documentation database** - Optional project docs with search
-3. **Auto-commit** - Optionally commit changes when sessions end
-4. **AGENTS.md rules** - So AI assistants use proj automatically
+1. **Project type** - Software (Rust, Python, etc.), documentation, writing, or other
+2. **Tracking database** - For sessions, decisions, tasks, blockers
+3. **Documentation database** - Optional project docs with search
+4. **Auto-commit** - Optionally commit changes when sessions end (git repos)
+5. **AGENTS.md rules** - So AI assistants use proj automatically
 
 After init, AI assistants will run `proj status` at the start of each conversation and pick up where you left off.
 

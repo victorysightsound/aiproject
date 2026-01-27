@@ -2,6 +2,16 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.1] - 2026-01-27
+
+### Added
+- **Auto-update feature**: proj now automatically updates itself in the background
+  - When an update is available, downloads new binary to staging area
+  - On next run, atomically replaces binary and re-executes with same args
+  - Brief notification: "Updated proj 1.7.0 → 1.7.1"
+  - Supported platforms: macOS (Intel & Apple Silicon), Linux (x64 & ARM64)
+  - Silent fallback if update fails (manual update still works)
+
 ## [1.7.0] - 2026-01-27
 
 ### Added

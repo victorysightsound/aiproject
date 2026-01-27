@@ -651,6 +651,16 @@ proj update
 
 Compares installed version against latest GitHub release. Shows update instructions if a newer version is available.
 
+**Auto-update:** proj automatically updates itself in the background. When an update is detected:
+1. Downloads the new binary to a staging area (`~/.proj/pending_update/`)
+2. On your next command, atomically replaces the binary
+3. Re-executes your command with the new version
+4. Shows a brief notification: "Updated proj 1.7.0 → 1.7.1"
+
+This happens seamlessly - you don't need to do anything. If auto-update fails for any reason (permissions, network, etc.), manual update instructions are shown instead.
+
+**Supported platforms:** macOS (Intel & Apple Silicon), Linux (x64 & ARM64). Windows users should update manually.
+
 ---
 
 ### proj release
@@ -780,6 +790,8 @@ Interactive confirmation required for destructive operations.
 | `<project>_docs.db` | Documentation database (optional) |
 | `~/.proj/registry.json` | Global project registry |
 | `~/.proj/backups/` | Schema backups (1 per project, created before upgrades) |
+| `~/.proj/pending_update/` | Staged update binary (auto-cleaned after update) |
+| `~/.proj/version_cache.json` | Cached version check (refreshes every 24h) |
 
 ---
 

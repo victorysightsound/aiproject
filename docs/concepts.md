@@ -4,7 +4,7 @@ This guide explains what proj tracks and why it matters.
 
 ## The Problem proj Solves
 
-When you work with AI assistants on code, conversations look like this:
+When you work with AI assistants on any project - code, documentation, research, writing, planning - conversations look like this:
 
 > "Let's use SQLite for the database"
 > "Okay, and we decided JWT for auth, right?"

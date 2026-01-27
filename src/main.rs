@@ -1,5 +1,6 @@
 // proj - Project tracking and context management for AI-assisted development
 
+mod auto_update;
 mod cli;
 mod commands;
 mod config;
@@ -24,6 +25,13 @@ pub const SCHEMA_VERSION: &str = "1.3";
 pub const MIN_SCHEMA_VERSION: &str = "1.0";
 
 fn main() -> Result<()> {
+    // Check for pending updates FIRST (before parsing args)
+    // If update is applied, this will re-exec and not return
+    if let Ok(true) = auto_update::check_and_apply_pending() {
+        // Should not reach here (process exits after re-exec)
+        return Ok(());
+    }
+
     let cli = Cli::parse();
 
     // Configure color output:

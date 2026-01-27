@@ -47,6 +47,11 @@ pub fn get_backups_dir() -> Result<PathBuf> {
     Ok(get_global_dir()?.join("backups"))
 }
 
+/// Gets the pending update directory for auto-update staging
+pub fn get_pending_update_dir() -> Result<PathBuf> {
+    Ok(get_global_dir()?.join("pending_update"))
+}
+
 /// Ensures a directory exists, creating it if necessary
 pub fn ensure_dir(path: &PathBuf) -> Result<()> {
     if !path.exists() {

@@ -6,7 +6,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const zlib = require('zlib');
 
-const VERSION = '1.7.0';
+const VERSION = '1.7.1';
 const REPO = 'victorysightsound/aiproject';
 
 function getPlatformTarget() {

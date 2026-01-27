@@ -99,7 +99,7 @@ proj init
 
 This starts an interactive setup wizard. It walks you through:
 
-1. **Project info** - Name, type (rust, python, javascript, etc.), description
+1. **Project info** - Name, type (rust, python, javascript, documentation, other), description
 2. **Tracking database** - Creates `.tracking/` folder with session tracking
 3. **Documentation database** - Optional project docs with full-text search:
    - **Skip** - Set up documentation later
@@ -271,6 +271,15 @@ proj docs term add "API" --definition "Application Programming Interface"
 - Read [Concepts](concepts.md) to understand sessions, decisions, and tasks
 - Check the [Command Reference](manual.md) for all available commands
 - Print the [Cheat Sheet](cheatsheet.md) for quick reference
+
+## Staying Updated
+
+proj updates itself automatically. When a new version is available:
+1. It downloads the update in the background
+2. On your next command, it applies the update
+3. You see a brief message: "Updated proj 1.7.0 → 1.7.1"
+
+That's it - no action needed on your part. If auto-update fails for any reason (permissions, network issues), running `proj update` will show manual update instructions.
 
 ## Troubleshooting
 

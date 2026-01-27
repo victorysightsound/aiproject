@@ -145,7 +145,7 @@ SELECT canonical, definition FROM terminology;
 | `proj export --format md` | Export as markdown |
 | `proj upgrade` | Upgrade schema (auto-backs up first) |
 | `proj migrate` | Fix schema issues (FTS5, etc.) |
-| `proj update` | Check for proj updates |
+| `proj update` | Check for proj updates (auto-updates enabled) |
 
 ---
 
