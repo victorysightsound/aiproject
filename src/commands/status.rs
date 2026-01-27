@@ -72,6 +72,9 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
     // Load project config
     let config = load_config()?;
 
+    // Check for schema upgrade (only shows on first context of session)
+    update_check::check_schema_upgrade(&config.schema_version, session.full_context_shown);
+
     // Output based on tier
     match effective_tier {
         StatusTier::Micro => output_tier0(&conn, &config, &session)?,

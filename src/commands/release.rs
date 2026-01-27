@@ -180,12 +180,39 @@ pub fn run(version: Option<String>, check_only: bool) -> Result<()> {
         new_version
     );
 
+    // Step 4b: Update version in VS Code extension
+    println!("\n{}", "Step 4b: Updating VS Code extension".bold());
+    if std::path::Path::new("vscode/package.json").exists() {
+        update_vscode_version(&new_version)?;
+        println!(
+            "{} Updated vscode/package.json to version {}",
+            "✓".green(),
+            new_version
+        );
+    } else {
+        println!("{} vscode/package.json not found, skipping", "⚠".yellow());
+    }
+
+    // Step 4c: Update version in npm package
+    println!("\n{}", "Step 4c: Updating npm package".bold());
+    if std::path::Path::new("packaging/npm/package.json").exists() {
+        update_npm_package_version(&new_version)?;
+        update_npm_install_version(&new_version)?;
+        println!(
+            "{} Updated npm package to version {}",
+            "✓".green(),
+            new_version
+        );
+    } else {
+        println!("{} npm package not found, skipping", "⚠".yellow());
+    }
+
     // Step 5: Commit changes
     println!("\n{}", "Step 5: Committing changes".bold());
     let commit_msg = format!("Release v{}", new_version);
 
     // Add all relevant files
-    run_command("git", &["add", "Cargo.toml", "Cargo.lock", "CHANGELOG.md"])?;
+    run_command("git", &["add", "Cargo.toml", "Cargo.lock", "CHANGELOG.md", "vscode/package.json", "packaging/npm/package.json", "packaging/npm/scripts/install.js"])?;
 
     // Also add any other uncommitted changes if user approved
     if !uncommitted.is_empty() {
@@ -546,6 +573,72 @@ fn update_cargo_version(new_version: &str) -> Result<()> {
 
     // Update Cargo.lock by running cargo check
     let _ = Command::new("cargo").args(["check", "--quiet"]).status();
+
+    Ok(())
+}
+
+/// Update version in VS Code extension package.json
+fn update_vscode_version(new_version: &str) -> Result<()> {
+    let path = "vscode/package.json";
+    let content = std::fs::read_to_string(path)?;
+
+    // Parse as JSON, update version, write back
+    let mut json: serde_json::Value = serde_json::from_str(&content)
+        .with_context(|| format!("Failed to parse {}", path))?;
+
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert(
+            "version".to_string(),
+            serde_json::Value::String(new_version.to_string()),
+        );
+    }
+
+    let new_content = serde_json::to_string_pretty(&json)?;
+    std::fs::write(path, new_content + "\n")?;
+
+    Ok(())
+}
+
+/// Update version in npm package.json
+fn update_npm_package_version(new_version: &str) -> Result<()> {
+    let path = "packaging/npm/package.json";
+    let content = std::fs::read_to_string(path)?;
+
+    let mut json: serde_json::Value = serde_json::from_str(&content)
+        .with_context(|| format!("Failed to parse {}", path))?;
+
+    if let Some(obj) = json.as_object_mut() {
+        obj.insert(
+            "version".to_string(),
+            serde_json::Value::String(new_version.to_string()),
+        );
+    }
+
+    let new_content = serde_json::to_string_pretty(&json)?;
+    std::fs::write(path, new_content + "\n")?;
+
+    Ok(())
+}
+
+/// Update VERSION constant in npm install.js
+fn update_npm_install_version(new_version: &str) -> Result<()> {
+    let path = "packaging/npm/scripts/install.js";
+    let content = std::fs::read_to_string(path)?;
+
+    // Replace VERSION = 'x.y.z' with new version
+    let new_content = content
+        .lines()
+        .map(|line| {
+            if line.starts_with("const VERSION = '") {
+                format!("const VERSION = '{}';", new_version)
+            } else {
+                line.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    std::fs::write(path, new_content + "\n")?;
 
     Ok(())
 }

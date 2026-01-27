@@ -31,6 +31,8 @@ pub enum Commands {
         #[arg(long)]
         full: bool,
     },
+    /// Enter project - silent if session exists, shows context if new session
+    Enter,
     /// Detailed context for resuming work
     Resume {
         #[arg(long)]
@@ -107,13 +109,49 @@ pub enum Commands {
         #[arg(long)]
         check: bool,
     },
-    /// Rollback a release (delete tag and GitHub release)
+    /// Rollback a release or restore schema from backup
     Rollback {
-        /// Version to rollback (defaults to latest)
+        /// Version to rollback (defaults to latest release)
         version: Option<String>,
+        /// Restore project schema from backup instead of release rollback
+        #[arg(long)]
+        schema: bool,
+        /// List available schema backups
+        #[arg(long)]
+        list: bool,
+    },
+    /// Shell integration for automatic session tracking
+    Shell(ShellCommands),
+    /// Uninstall proj from projects
+    Uninstall {
+        /// Remove shell hook only, keep project data
+        #[arg(long)]
+        shell: bool,
+        /// Remove .tracking/ from current project only
+        #[arg(long)]
+        project: bool,
+        /// Remove shell hook + .tracking/ from ALL registered projects
+        #[arg(long)]
+        all: bool,
     },
     /// Project documentation database
     Docs(DocsCommands),
+}
+
+#[derive(Parser)]
+pub struct ShellCommands {
+    #[command(subcommand)]
+    pub command: ShellSubcommand,
+}
+
+#[derive(Subcommand)]
+pub enum ShellSubcommand {
+    /// Install shell hook for automatic session tracking
+    Install,
+    /// Remove shell hook
+    Uninstall,
+    /// Show shell integration status
+    Status,
 }
 
 #[derive(Parser)]

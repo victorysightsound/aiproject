@@ -264,9 +264,63 @@ jobs:
           git commit -m "Update Homebrew formula for v${{ steps.version.outputs.VERSION }}" || echo "No changes to commit"
           git push origin main
 
+  publish-npm:
+    name: Publish to npm
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: ${{ vars.NPM_PUBLISH_ENABLED == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish to npm
+        run: |
+          cd packaging/npm
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-vscode:
+    name: Publish VS Code Extension
+    needs: [release]
+    runs-on: ubuntu-latest
+    if: ${{ vars.VSCODE_PUBLISH_ENABLED == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies and build
+        run: |
+          cd vscode
+          npm install
+          npm run compile
+
+      - name: Publish to VS Code Marketplace
+        run: |
+          cd vscode
+          npm install -g @vscode/vsce
+          vsce publish -p ${{ secrets.VSCE_PAT }}
+
   notify-on-failure:
     name: Notify on Failure
-    needs: [validate-changelog, build-linux, build-macos, build-windows, release, update-homebrew]
+    needs: [validate-changelog, build-linux, build-macos, build-windows, release, update-homebrew, publish-npm, publish-vscode]
     if: failure()
     runs-on: ubuntu-latest
     permissions:
@@ -322,7 +376,8 @@ jobs:
 
   notify-success:
     name: Release Complete Notification
-    needs: [update-homebrew]
+    needs: [update-homebrew, publish-npm, publish-vscode]
+    if: always() && needs.update-homebrew.result == 'success'
     runs-on: ubuntu-latest
 
     steps:
@@ -331,7 +386,19 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/v}
           echo "## ✅ Release v${VERSION} Complete!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All binaries built and Homebrew formula updated automatically." >> $GITHUB_STEP_SUMMARY
+          echo "### Published:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ GitHub Release (binaries for all platforms)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Homebrew formula updated" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ vars.NPM_PUBLISH_ENABLED }}" == "true" ]; then
+            echo "- ✅ npm package (create-aiproj)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ npm package (disabled)" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ vars.VSCODE_PUBLISH_ENABLED }}" == "true" ]; then
+            echo "- ✅ VS Code Extension (marketplace)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- ⏭️ VS Code Extension (disabled)" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Install/Upgrade:" >> $GITHUB_STEP_SUMMARY
           echo "- \`brew upgrade proj\`" >> $GITHUB_STEP_SUMMARY

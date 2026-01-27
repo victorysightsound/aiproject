@@ -102,7 +102,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see a version number like `1.6.3`.
+You should see a version number like `1.7.0`.
 
 ### 2. Initialize proj in your project
 
@@ -157,7 +157,7 @@ cd vscode
 npm install
 npm run compile
 npm run package
-code --install-extension proj-1.6.3.vsix
+code --install-extension proj-1.7.0.vsix
 ```
 
 ---
@@ -639,7 +639,7 @@ Creates a `.vsix` file you can install or distribute.
 
 ```bash
 npm run package
-code --install-extension proj-1.6.3.vsix --force
+code --install-extension proj-1.7.0.vsix --force
 ```
 
 Then restart VS Code.
@@ -647,6 +647,11 @@ Then restart VS Code.
 ---
 
 ## Version History
+
+### 1.7.0
+
+- Version sync with CLI release
+- Extension now published automatically to VS Code Marketplace via GitHub Actions
 
 ### 1.6.3
 

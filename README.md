@@ -24,6 +24,9 @@ brew install aiproject         # Homebrew (macOS/Linux)
 
 # In any project directory
 proj init
+
+# Optional: enable automatic session tracking
+proj shell install
 ```
 
 The init wizard walks you through:
@@ -33,6 +36,8 @@ The init wizard walks you through:
 4. **AGENTS.md rules** - So AI assistants use proj automatically
 
 After init, AI assistants will run `proj status` at the start of each conversation and pick up where you left off.
+
+**Shell hook (optional):** `proj shell install` adds a hook so sessions start automatically when you cd into any tracked project. Run once and forget about it.
 
 ## The Simple Version
 

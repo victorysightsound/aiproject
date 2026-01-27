@@ -262,7 +262,7 @@ fn upgrade_all_projects(info_mode: bool, auto_mode: bool) -> Result<()> {
 
 /// Upgrade the current project
 fn upgrade_current_project(info_mode: bool) -> Result<()> {
-    let _config = load_config()?;
+    let config = load_config()?;
     let db_path = get_tracking_db_path()?;
     let config_path = get_config_path()?;
 
@@ -303,10 +303,32 @@ fn upgrade_current_project(info_mode: bool) -> Result<()> {
         return Ok(());
     }
 
+    // Create backup before upgrading
+    println!();
+    print!("Creating backup... ");
+    match crate::commands::rollback::create_backup(&config.name) {
+        Ok(backup_path) => {
+            println!(
+                "{} ({})",
+                "✓".green(),
+                backup_path.file_name().unwrap().to_string_lossy()
+            );
+        }
+        Err(e) => {
+            println!("{} ({})", "⚠".yellow(), e);
+            println!("Continuing without backup...");
+        }
+    }
+
     // Apply upgrades
     println!();
     apply_upgrades(&db_path, &config_path)?;
     println!("{} Upgraded to v{}", "✓".green(), SCHEMA_VERSION);
+    println!();
+    println!(
+        "{}",
+        "Tip: Run 'proj rollback --list' to see available backups".dimmed()
+    );
 
     Ok(())
 }

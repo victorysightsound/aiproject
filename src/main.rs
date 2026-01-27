@@ -42,6 +42,7 @@ fn main() -> Result<()> {
             verbose,
             full,
         } => commands::status::run(quiet, verbose, full),
+        Commands::Enter => commands::enter::run(),
         Commands::Resume { for_ai } => commands::resume::run(for_ai),
         Commands::Session(cmd) => commands::session::run(cmd),
         Commands::Log(cmd) => commands::log::run(cmd),
@@ -63,7 +64,20 @@ fn main() -> Result<()> {
         Commands::Archive => commands::archive::run(),
         Commands::Update => commands::update_check::run(),
         Commands::Release { version, check } => commands::release::run(version, check),
-        Commands::Rollback { version } => commands::rollback::run(version),
+        Commands::Rollback { version, schema, list } => {
+            commands::rollback::run(version, schema, list)
+        }
+        Commands::Shell(cmd) => {
+            use cli::ShellSubcommand;
+            match cmd.command {
+                ShellSubcommand::Install => commands::shell::install(),
+                ShellSubcommand::Uninstall => commands::shell::uninstall(),
+                ShellSubcommand::Status => commands::shell::status(),
+            }
+        }
+        Commands::Uninstall { shell, project, all } => {
+            commands::uninstall::run(shell, project, all)
+        }
         Commands::Docs(cmd) => commands::docs::run(cmd),
     }
 }

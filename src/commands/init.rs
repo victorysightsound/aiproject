@@ -297,6 +297,16 @@ pub fn run() -> Result<()> {
     println!("  • Run 'proj docs show' to view documentation");
     println!("  • Run 'proj log decision \"topic\" \"decision\" \"why\"' to log decisions");
 
+    // Suggest shell integration if not installed
+    if !crate::commands::shell::is_installed() {
+        println!();
+        println!(
+            "{} Tip: Run 'proj shell install' to enable automatic session tracking",
+            "💡".yellow()
+        );
+        println!("  Sessions will start automatically when you cd into this project.");
+    }
+
     Ok(())
 }
 

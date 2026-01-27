@@ -669,14 +669,96 @@ Used for managing proj releases. The `--check` flag updates the Homebrew formula
 
 ### proj rollback
 
-Undo a release (for maintainers).
+Undo a release or restore from schema backup.
 
 ```bash
 proj rollback             # Rollback latest release
 proj rollback 1.2.0       # Rollback specific version
+proj rollback --schema    # Restore schema from backup
+proj rollback --list      # List available schema backups
 ```
 
-Deletes GitHub release and tags (local and remote). Interactive confirmation required.
+**Release rollback:** Deletes GitHub release and tags (local and remote). Interactive confirmation required.
+
+**Schema rollback:** Restores .tracking/ from a backup created before a schema upgrade. Backups are stored in `~/.proj/backups/` and only 1 backup is kept per project.
+
+---
+
+## Shell Integration
+
+### proj shell install
+
+Install shell hook for automatic session tracking.
+
+```bash
+proj shell install
+```
+
+Adds a hook to your shell (zsh and/or bash) that runs `proj enter` when you cd into any directory with a `.tracking/` folder. This makes session tracking completely automatic.
+
+**What it does:**
+- For zsh: Adds to `~/.zshrc`
+- For bash: Adds to `~/.bashrc`
+- Uses `chpwd` hook (zsh) or `PROMPT_COMMAND` (bash)
+
+---
+
+### proj shell uninstall
+
+Remove the shell hook.
+
+```bash
+proj shell uninstall
+```
+
+---
+
+### proj shell status
+
+Check if shell hook is installed.
+
+```bash
+proj shell status
+```
+
+---
+
+### proj enter
+
+Silent session start (used by shell hook).
+
+```bash
+proj enter
+```
+
+**Behavior:**
+- If there's an active, non-stale session: exits silently (no output)
+- If there's no session or session is stale (8+ hours): shows full context like `proj status`
+
+This command is designed for shell hooks - it keeps your terminal clean when you're just changing directories, but shows context when you actually need it.
+
+---
+
+### proj uninstall
+
+Cleanly remove proj from your system.
+
+```bash
+proj uninstall            # Interactive - asks what to remove
+proj uninstall --shell    # Remove shell hook only
+proj uninstall --project  # Remove .tracking from current project
+proj uninstall --all      # Remove everything
+```
+
+**Options:**
+
+| Flag | What it removes |
+|------|-----------------|
+| `--shell` | Shell hook from ~/.zshrc and ~/.bashrc |
+| `--project` | .tracking/ folder from current project |
+| `--all` | Shell hook + current project + global config (~/.proj) |
+
+Interactive confirmation required for destructive operations.
 
 ---
 
@@ -697,7 +779,7 @@ Deletes GitHub release and tags (local and remote). Interactive confirmation req
 | `.tracking/tracking.db` | Session/decision tracking database |
 | `<project>_docs.db` | Documentation database (optional) |
 | `~/.proj/registry.json` | Global project registry |
-| `~/.proj/backups/` | Backup storage |
+| `~/.proj/backups/` | Schema backups (1 per project, created before upgrades) |
 
 ---
 

@@ -2,6 +2,27 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.0] - 2026-01-27
+
+### Added
+- **Autonomous shell integration**: `proj shell install` adds a shell hook that runs `proj enter` when you cd into any tracked project
+  - `proj shell install` - Add hook to ~/.zshrc and/or ~/.bashrc
+  - `proj shell uninstall` - Remove the hook
+  - `proj shell status` - Check if hook is installed
+- **Silent session start**: `proj enter` for shell hooks - silent if session exists, shows context only when starting new session
+- **Uninstall command**: `proj uninstall` with options to cleanly remove proj
+  - `--shell` - Remove shell hook only
+  - `--project` - Remove .tracking from current project
+  - `--all` - Remove everything (shell hook, current project tracking, global config)
+- **Schema backup before upgrades**: Automatic backup to ~/.proj/backups/ before schema migrations
+  - `proj rollback --schema` - Interactive restore from backup
+  - `proj rollback --list` - List available schema backups
+  - Only keeps 1 backup per project (no accumulation)
+- **Schema upgrade prompts**: Status command now shows when a schema upgrade is available
+- **Automated npm publishing**: Release workflow publishes to npm when NPM_PUBLISH_ENABLED=true
+- **Automated VS Code Marketplace publishing**: Release workflow publishes extension when VSCODE_PUBLISH_ENABLED=true
+- **Version sync across packages**: `proj release` now syncs versions in Cargo.toml, npm package, and VS Code extension
+
 ## [1.6.3] - 2026-01-25
 
 ### Changed

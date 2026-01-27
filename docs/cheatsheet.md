@@ -11,6 +11,20 @@ proj session end "summary"     # End of day - summarize what you did
 
 That's 90% of what you need.
 
+**Make it automatic:** Run `proj shell install` once, and sessions start automatically when you cd into any tracked project.
+
+---
+
+## Shell Integration (Optional)
+
+| Command | What It Does |
+|---------|--------------|
+| `proj shell install` | Add hook - auto-start sessions |
+| `proj shell uninstall` | Remove the hook |
+| `proj shell status` | Check if installed |
+
+After install, just cd into your project and sessions start silently.
+
 ---
 
 ## Session Commands
@@ -129,9 +143,30 @@ SELECT canonical, definition FROM terminology;
 | `proj check` | Verify database integrity |
 | `proj backup` | Manual backup |
 | `proj export --format md` | Export as markdown |
-| `proj upgrade` | Upgrade schema |
+| `proj upgrade` | Upgrade schema (auto-backs up first) |
 | `proj migrate` | Fix schema issues (FTS5, etc.) |
 | `proj update` | Check for proj updates |
+
+---
+
+## Schema Backup & Restore
+
+| Command | What It Does |
+|---------|--------------|
+| `proj rollback --list` | List available backups |
+| `proj rollback --schema` | Restore from backup |
+
+Backups are created automatically before schema upgrades.
+
+---
+
+## Uninstall
+
+| Command | What It Does |
+|---------|--------------|
+| `proj uninstall --shell` | Remove shell hook |
+| `proj uninstall --project` | Remove tracking from current project |
+| `proj uninstall --all` | Remove everything |
 
 ---
 
@@ -218,3 +253,4 @@ proj docs init --import docs/         # Import markdown files
 | `.tracking/tracking.db` | Sessions, decisions, tasks |
 | `<project>_docs.db` | Documentation (optional) |
 | `~/.proj/registry.json` | Global project list |
+| `~/.proj/backups/` | Schema backups (1 per project) |

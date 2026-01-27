@@ -61,7 +61,17 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see the current version (e.g., `proj 1.6.2`).
+You should see the current version (e.g., `proj 1.7.0`).
+
+### Optional: Enable Automatic Session Tracking
+
+After installation, you can make session tracking completely automatic:
+
+```bash
+proj shell install
+```
+
+This adds a shell hook that runs `proj enter` whenever you cd into a tracked project. Sessions start silently when one exists, or show full context when starting fresh. Run this once and forget about it.
 
 ## Your First Project
 

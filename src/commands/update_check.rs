@@ -188,6 +188,29 @@ pub fn check_and_notify() -> bool {
     false
 }
 
+/// Check if project schema needs upgrading and notify user (once per session)
+/// This compares the project's schema_version with the current SCHEMA_VERSION
+pub fn check_schema_upgrade(project_schema: &str, session_full_context_shown: bool) {
+    // Only show on first context of session (avoid spamming)
+    if session_full_context_shown {
+        return;
+    }
+
+    let current_schema = crate::SCHEMA_VERSION;
+
+    // Compare versions
+    if is_newer(project_schema, current_schema) {
+        println!(
+            "{} Schema upgrade available: v{} → v{}",
+            "⬆".cyan(),
+            project_schema.yellow(),
+            current_schema.green()
+        );
+        println!("  Run: {}", "proj upgrade".cyan());
+        println!();
+    }
+}
+
 /// Force a version check (for manual `proj update` command)
 pub fn run() -> Result<()> {
     let current_version = env!("CARGO_PKG_VERSION");
