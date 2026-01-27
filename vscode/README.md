@@ -141,9 +141,12 @@ The chat features require GitHub Copilot. Install it from the VS Code marketplac
 
 ### Option A: From VS Code Marketplace (Easiest)
 
+**Direct link:** [proj - AI Project Tracker on Marketplace](https://marketplace.visualstudio.com/items?itemName=victorysightsound.proj)
+
+**Or install from VS Code:**
 1. Open VS Code
 2. Go to Extensions (Cmd+Shift+X on Mac, Ctrl+Shift+X on Windows)
-3. Search for "proj - AI Project Tracker"
+3. Search for "proj - AI Project Tracker" or `victorysightsound.proj`
 4. Click Install
 5. Restart VS Code
 

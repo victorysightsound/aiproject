@@ -160,14 +160,35 @@ sudo cp target/release/proj /usr/local/bin/
 
 ## VS Code Extension
 
-A VS Code extension is available that integrates with GitHub Copilot:
+A VS Code extension integrates proj with GitHub Copilot for a visual, interactive experience.
 
-- Automatic logging via Language Model Tools
-- Status bar with quick menu
-- Session notification on workspace open
-- Auto-generate session summaries
+**Install from VS Code Marketplace:**
+1. Open VS Code → Extensions (Cmd+Shift+X)
+2. Search "proj - AI Project Tracker"
+3. Click Install
 
-See the [VS Code extension README](vscode/README.md) for details.
+**Or search:** `victorysightsound.proj`
+
+**Features:**
+- **@proj chat participant** - Ask Copilot about your project: `@proj /status`, `@proj /tasks`
+- **Automatic logging** - Copilot can log decisions, tasks, and blockers during conversation
+- **Session notification** - See where you left off when opening a project
+- **Status bar menu** - One-click access to view status, tasks, or end session
+- **Auto-generate summaries** - Let Copilot write your session summary
+
+**Requirements:**
+- GitHub Copilot subscription
+- proj CLI installed (see Installation above)
+- Project initialized with `proj init`
+
+**Quick example:**
+```
+You: "I decided to use Redis for caching"
+Copilot: "Would you like me to log this decision?"
+→ Click Allow → Decision saved to project history
+```
+
+See the [full VS Code documentation](vscode/README.md) for setup guide, all features, and troubleshooting.
 
 ## License
 
