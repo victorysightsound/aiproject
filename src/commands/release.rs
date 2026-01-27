@@ -59,6 +59,25 @@ pub fn run(version: Option<String>, check_only: bool) -> Result<()> {
     // Interactive release process
     println!("\n{}", "=== Release Wizard ===".bold());
 
+    // Reminder about npm token (7-day expiry with bypass 2FA)
+    println!();
+    println!("{}", "📦 npm Token Reminder".yellow().bold());
+    println!("The npm token expires every 7 days. If publishing fails:");
+    println!("  1. Go to npmjs.com → Access Tokens → Generate New Token");
+    println!("  2. Create Granular token with 'Bypass 2FA' checked");
+    println!("  3. Permissions: Read and write for 'create-aiproj' package");
+    println!("  4. Run: gh secret set NPM_TOKEN");
+    println!();
+
+    if !Confirm::new()
+        .with_prompt("Is your npm token current (created within 7 days)?")
+        .default(true)
+        .interact()?
+    {
+        println!("Please update the npm token first, then run 'proj release' again.");
+        return Ok(());
+    }
+
     // Step 1: Determine version
     let new_version = if let Some(v) = version {
         // Version provided as argument
