@@ -2,6 +2,13 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.9] - 2026-01-28
+
+### Changed
+- **LLM CLI init wizard now includes documentation setup**: The AGENTS.md instructions for `proj init` now tell LLMs to ask about documentation database setup (skip/generate/import/new + doc type)
+  - Matches what the interactive wizard already asks
+  - Enables complete project setup through LLM CLI tools
+
 ## [1.7.8] - 2026-01-28
 
 ### Added
