@@ -56,7 +56,7 @@ The proj command-line tool stores all your project data. Choose one of these ins
 If you have Node.js installed:
 
 ```bash
-npx create-aiproj
+npm install -g create-aiproj
 ```
 
 This downloads a pre-built binary for your platform. No Rust required. Works on macOS, Linux, and Windows.
@@ -112,7 +112,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see a version number like `1.7.14`.
+You should see a version number like `1.7.15`.
 
 ### 2. Initialize proj in your project
 
@@ -170,7 +170,7 @@ cd vscode
 npm install
 npm run compile
 npm run package
-code --install-extension proj-1.7.14.vsix
+code --install-extension proj-1.7.15.vsix
 ```
 
 ---
@@ -652,7 +652,7 @@ Creates a `.vsix` file you can install or distribute.
 
 ```bash
 npm run package
-code --install-extension proj-1.7.14.vsix --force
+code --install-extension proj-1.7.15.vsix --force
 ```
 
 Then restart VS Code.

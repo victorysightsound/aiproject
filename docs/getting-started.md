@@ -17,7 +17,7 @@ Pick whichever method works best for you:
 If you have Node.js installed:
 
 ```bash
-npx create-aiproj
+npm install -g create-aiproj
 ```
 
 This downloads a pre-built binary for your platform. No Rust required.

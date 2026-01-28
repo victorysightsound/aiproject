@@ -2,6 +2,11 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.15] - 2026-01-28
+
+### Fixed
+- **Documentation: changed `npx` to `npm install -g`**: `npx create-aiproj` runs temporarily and puts binary in cache where VS Code can't find it. Changed all docs to recommend `npm install -g create-aiproj` for permanent installation.
+
 ## [1.7.14] - 2026-01-28
 
 ### Fixed
