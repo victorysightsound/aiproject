@@ -8,6 +8,11 @@ All notable changes to proj are documented here.
 - **Shell hook prompt in init wizard**: Interactive mode now asks if you want to enable automatic session tracking
 - **`--shell-hook` flag**: Non-interactive init can install shell hook with this flag
 - Shell hook installation is global (once installed, subsequent `proj init` calls won't ask again)
+- **AGENTS.md auto-update during upgrade**: `proj upgrade` now updates outdated AI logging rules
+  - Projects initialized before v1.7.4 had basic session rules without trigger-based logging
+  - Upgrade detects outdated rules (missing "### Logging During Sessions" section)
+  - Automatically updates global AGENTS.md with current instructions
+  - Works even when database schema is already current
 
 ## [1.7.5] - 2026-01-27
 

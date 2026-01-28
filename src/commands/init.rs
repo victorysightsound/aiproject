@@ -935,7 +935,8 @@ fn register_project(path: &PathBuf, name: &str, project_type: &str) -> Result<()
 }
 
 /// Session management rule to add to global AGENTS.md
-const SESSION_RULE: &str = r#"
+/// This is public so upgrade.rs can access it for updating outdated rules
+pub const SESSION_RULE: &str = r#"
 ## Session Management (proj)
 
 **At the start of every conversation**, if the current directory has a `.tracking/` folder:
@@ -1035,4 +1036,96 @@ fn ensure_agents_session_rule() -> Result<()> {
     std::fs::write(&agents_path, new_content)?;
 
     Ok(())
+}
+
+/// Update AGENTS.md session rules if they're outdated
+/// Called during `proj upgrade` to ensure AI logging instructions are current
+/// Returns true if any files were updated
+pub fn update_agents_rules_if_outdated() -> Result<Vec<String>> {
+    let mut updated_files = Vec::new();
+
+    // Check global AGENTS.md locations
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+
+    let possible_paths = [
+        home.join("projects/global/AGENTS.md"),
+        home.join("AGENTS.md"),
+    ];
+
+    for agents_path in possible_paths.iter() {
+        if agents_path.exists() {
+            if update_single_agents_file(agents_path)? {
+                updated_files.push(agents_path.display().to_string());
+            }
+        }
+    }
+
+    // Also check for project-local CLAUDE.md that might have been created by symlinks
+    // These are typically symlinked to the global file, but some might be standalone copies
+    if let Ok(cwd) = std::env::current_dir() {
+        let local_claude = cwd.join("CLAUDE.md");
+        if local_claude.exists() && !is_symlink(&local_claude) {
+            if update_single_agents_file(&local_claude)? {
+                updated_files.push(local_claude.display().to_string());
+            }
+        }
+    }
+
+    Ok(updated_files)
+}
+
+/// Check if a path is a symbolic link
+fn is_symlink(path: &std::path::Path) -> bool {
+    path.symlink_metadata()
+        .map(|m| m.file_type().is_symlink())
+        .unwrap_or(false)
+}
+
+/// Update a single AGENTS.md file if its session rules are outdated
+/// Returns true if the file was updated
+fn update_single_agents_file(path: &std::path::Path) -> Result<bool> {
+    let content = std::fs::read_to_string(path)?;
+
+    // Check if the file has session management rules at all
+    if !content.contains("## Session Management (proj)") {
+        return Ok(false); // No rules to update
+    }
+
+    // Check if it has the newer trigger-based logging rules (added in v1.7.4)
+    // Key marker: "### Logging During Sessions" section
+    if content.contains("### Logging During Sessions") {
+        return Ok(false); // Already has updated rules
+    }
+
+    // Rules are outdated - need to replace the entire section
+    // Find the section boundaries
+    let section_start = match content.find("## Session Management (proj)") {
+        Some(pos) => pos,
+        None => return Ok(false),
+    };
+
+    // Find where the section ends (next ## heading or end of file)
+    let after_header = section_start + "## Session Management (proj)".len();
+    let section_end = content[after_header..]
+        .find("\n## ")
+        .map(|pos| after_header + pos)
+        .unwrap_or(content.len());
+
+    // Build new content
+    let before_section = &content[..section_start];
+    let after_section = &content[section_end..];
+
+    let new_content = format!(
+        "{}{}{}",
+        before_section.trim_end(),
+        SESSION_RULE,
+        if after_section.trim().is_empty() {
+            String::new()
+        } else {
+            format!("\n{}", after_section.trim_start())
+        }
+    );
+
+    std::fs::write(path, new_content)?;
+    Ok(true)
 }

@@ -2,6 +2,7 @@
 
 use std::path::Path;
 
+use crate::commands::init::update_agents_rules_if_outdated;
 use crate::config::{ProjectConfig, Registry};
 use crate::database::{get_schema_version, open_database, set_schema_version};
 use crate::paths::{get_config_path, get_registry_path, get_tracking_db_path};
@@ -253,6 +254,26 @@ fn upgrade_all_projects(info_mode: bool, auto_mode: bool) -> Result<()> {
         }
     }
 
+    // Update AGENTS.md rules after all project upgrades
+    if success_count > 0 {
+        match update_agents_rules_if_outdated() {
+            Ok(updated_files) if !updated_files.is_empty() => {
+                println!("\nUpdated AI logging rules in:");
+                for file in updated_files {
+                    println!("  {} {}", "✓".green(), file);
+                }
+            }
+            Ok(_) => {} // No files needed updating
+            Err(e) => {
+                println!(
+                    "\n  {} Could not update AGENTS.md rules: {}",
+                    "⚠".yellow(),
+                    e
+                );
+            }
+        }
+    }
+
     println!(
         "\nUpgrade complete: {} succeeded, {} failed",
         success_count, fail_count
@@ -271,6 +292,21 @@ fn upgrade_current_project(info_mode: bool) -> Result<()> {
     if !compat.can_upgrade {
         if compat.current_version == compat.target_version {
             println!("Database is up to date (v{}).", compat.current_version);
+
+            // Even if database is current, check if AGENTS.md rules need updating
+            match update_agents_rules_if_outdated() {
+                Ok(updated_files) if !updated_files.is_empty() => {
+                    println!();
+                    println!("Updated AI logging rules in:");
+                    for file in updated_files {
+                        println!("  {} {}", "✓".green(), file);
+                    }
+                }
+                Ok(_) => {} // No files needed updating
+                Err(e) => {
+                    println!("  {} Could not update AGENTS.md rules: {}", "⚠".yellow(), e);
+                }
+            }
         } else {
             println!("Cannot upgrade: {}", compat.errors.join("; "));
         }
@@ -324,6 +360,22 @@ fn upgrade_current_project(info_mode: bool) -> Result<()> {
     println!();
     apply_upgrades(&db_path, &config_path)?;
     println!("{} Upgraded to v{}", "✓".green(), SCHEMA_VERSION);
+
+    // Update AGENTS.md rules if outdated
+    match update_agents_rules_if_outdated() {
+        Ok(updated_files) if !updated_files.is_empty() => {
+            println!();
+            println!("Updated AI logging rules in:");
+            for file in updated_files {
+                println!("  {} {}", "✓".green(), file);
+            }
+        }
+        Ok(_) => {} // No files needed updating
+        Err(e) => {
+            println!("  {} Could not update AGENTS.md rules: {}", "⚠".yellow(), e);
+        }
+    }
+
     println!();
     println!(
         "{}",
