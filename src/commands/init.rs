@@ -56,6 +56,7 @@ pub fn run(
     auto_commit: bool,
     commit_mode: String,
     no_agents: bool,
+    shell_hook: bool,
 ) -> Result<()> {
     // Determine project root - use --path if provided, otherwise current directory
     let project_root = if let Some(ref p) = path {
@@ -103,6 +104,7 @@ pub fn run(
             auto_commit,
             commit_mode,
             no_agents,
+            shell_hook,
         )
     } else {
         run_interactive(project_root, tracking_path)
@@ -124,6 +126,7 @@ fn run_non_interactive(
     auto_commit: bool,
     commit_mode: String,
     no_agents: bool,
+    shell_hook: bool,
 ) -> Result<()> {
     // Validate required fields
     let project_name = name.unwrap_or_else(|| {
@@ -222,6 +225,16 @@ fn run_non_interactive(
         // If none specified, skip docs silently in non-interactive mode
     }
 
+    // Install shell hook if requested and not already installed
+    if shell_hook && !crate::commands::shell::is_installed() {
+        println!("\nInstalling shell integration...");
+        if let Err(e) = install_shell_hook_silent() {
+            println!("  {} Could not install shell hook: {}", "⚠".yellow(), e);
+        } else {
+            println!("  {} Shell hook installed", "✓".green());
+        }
+    }
+
     println!(
         "\n{} Project '{}' initialized successfully!",
         "✓".green(),
@@ -230,6 +243,79 @@ fn run_non_interactive(
     println!("\nNext steps:");
     println!("  • Run 'proj status' to see project state");
     println!("  • Run 'proj log decision \"topic\" \"decision\" \"why\"' to log decisions");
+
+    Ok(())
+}
+
+/// Install shell hook without interactive prompts (for non-interactive mode)
+fn install_shell_hook_silent() -> Result<()> {
+    let home = dirs::home_dir().context("Could not determine home directory")?;
+    let zshrc = home.join(".zshrc");
+    let bashrc = home.join(".bashrc");
+
+    // Zsh hook code
+    let zsh_hook = r#"# >>> proj shell integration >>>
+# Automatically runs proj enter when cd'ing into a project with tracking
+_proj_auto_enter() {
+    if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
+        proj enter
+    fi
+}
+# Add to chpwd hooks if not already present
+if [[ -z "${chpwd_functions[(r)_proj_auto_enter]}" ]]; then
+    chpwd_functions+=(_proj_auto_enter)
+fi
+# <<< proj shell integration <<<"#;
+
+    // Bash hook code
+    let bash_hook = r#"# >>> proj shell integration >>>
+# Automatically runs proj enter when cd'ing into a project with tracking
+_proj_last_dir=""
+_proj_auto_enter() {
+    if [[ "$PWD" != "$_proj_last_dir" ]]; then
+        _proj_last_dir="$PWD"
+        if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
+            proj enter
+        fi
+    fi
+}
+# Add to PROMPT_COMMAND if not already present
+if [[ "$PROMPT_COMMAND" != *"_proj_auto_enter"* ]]; then
+    PROMPT_COMMAND="_proj_auto_enter${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+fi
+# <<< proj shell integration <<<"#;
+
+    let hook_marker = "# >>> proj shell integration >>>";
+
+    // Install for zsh if exists and not already installed
+    if zshrc.exists() {
+        let content = std::fs::read_to_string(&zshrc).unwrap_or_default();
+        if !content.contains(hook_marker) {
+            let mut new_content = content;
+            if !new_content.ends_with('\n') {
+                new_content.push('\n');
+            }
+            new_content.push('\n');
+            new_content.push_str(zsh_hook);
+            new_content.push('\n');
+            std::fs::write(&zshrc, new_content)?;
+        }
+    }
+
+    // Install for bash if exists and not already installed
+    if bashrc.exists() {
+        let content = std::fs::read_to_string(&bashrc).unwrap_or_default();
+        if !content.contains(hook_marker) {
+            let mut new_content = content;
+            if !new_content.ends_with('\n') {
+                new_content.push('\n');
+            }
+            new_content.push('\n');
+            new_content.push_str(bash_hook);
+            new_content.push('\n');
+            std::fs::write(&bashrc, new_content)?;
+        }
+    }
 
     Ok(())
 }
@@ -434,6 +520,32 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
         _ => {}
     }
 
+    // Offer to install shell hook if not already installed
+    if !crate::commands::shell::is_installed() {
+        println!();
+        println!("{}", "Shell Integration".bold());
+        println!("{}", "─".repeat(40));
+        println!("Sessions can start automatically when you cd into tracked projects.");
+
+        if Confirm::new()
+            .with_prompt("Enable automatic session tracking? (installs shell hook)")
+            .default(true)
+            .interact()?
+        {
+            if let Err(e) = install_shell_hook_silent() {
+                println!("  {} Could not install shell hook: {}", "⚠".yellow(), e);
+            } else {
+                println!("  {} Shell hook installed", "✓".green());
+                println!("  Open a new terminal or run 'source ~/.zshrc' to activate.");
+            }
+        } else {
+            println!(
+                "  {} Skipped. Run 'proj shell install' later if you change your mind.",
+                "ℹ".blue()
+            );
+        }
+    }
+
     println!(
         "\n{} Project '{}' initialized successfully!",
         "✓".green(),
@@ -443,16 +555,6 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
     println!("  • Run 'proj status' to see project state");
     println!("  • Run 'proj docs show' to view documentation");
     println!("  • Run 'proj log decision \"topic\" \"decision\" \"why\"' to log decisions");
-
-    // Suggest shell integration if not installed
-    if !crate::commands::shell::is_installed() {
-        println!();
-        println!(
-            "{} Tip: Run 'proj shell install' to enable automatic session tracking",
-            "💡".yellow()
-        );
-        println!("  Sessions will start automatically when you cd into this project.");
-    }
 
     // If user chose a different directory, offer to show cd command
     if path_changed {

@@ -56,6 +56,9 @@ pub enum Commands {
         /// Skip AGENTS.md setup
         #[arg(long)]
         no_agents: bool,
+        /// Install shell hook for automatic session tracking (non-interactive)
+        #[arg(long)]
+        shell_hook: bool,
     },
     /// Migrate existing project to proj format
     Migrate,

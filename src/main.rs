@@ -56,6 +56,7 @@ fn main() -> Result<()> {
             auto_commit,
             commit_mode,
             no_agents,
+            shell_hook,
         } => commands::init::run(
             path,
             name,
@@ -69,6 +70,7 @@ fn main() -> Result<()> {
             auto_commit,
             commit_mode,
             no_agents,
+            shell_hook,
         ),
         Commands::Migrate => commands::migrate::run(),
         Commands::Status {
