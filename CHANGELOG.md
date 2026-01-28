@@ -2,6 +2,26 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.4] - 2026-01-27
+
+### Added
+- **Session activity review**: `proj session end` now displays all logged activity before ending
+  - Shows decisions, tasks, blockers, notes, and questions from the session
+  - Helps verify nothing was missed before finalizing
+  - Displays tip if no activity was logged
+- **Enhanced AGENTS.md rules**: More explicit, trigger-based instructions for AI assistants
+  - Specifies when to log decisions (after technical choices)
+  - Specifies when to add tasks (todo, need to, should)
+  - Specifies when to log blockers (blocked, waiting on, can't because)
+- **Project directory prompt in init wizard**: Interactive mode now asks for project directory
+  - Current directory shown as default (just press Enter)
+  - Creates directory if it doesn't exist
+  - Shows cd command if different directory was chosen
+
+### Improved
+- Documentation updated to clearly explain how AI logging works
+- Added "How AI Logging Works" section to concepts.md
+
 ## [1.7.3] - 2026-01-27
 
 ### Added

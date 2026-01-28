@@ -197,6 +197,29 @@ End the current session with a summary.
 proj session end "What we accomplished"
 ```
 
+**Session Activity Review:**
+
+Before ending, proj displays all decisions, tasks, blockers, and notes logged during the session:
+
+```
+Session Activity:
+──────────────────────────────────────────────────
+
+◆ Decisions (2)
+  • database: Using SQLite
+  • auth: JWT tokens for authentication
+
+◆ Tasks Added (1)
+  ○ Write unit tests [!]
+
+◆ Blockers (1)
+  ✗ Waiting for API credentials
+
+──────────────────────────────────────────────────
+```
+
+If the activity is empty ("No decisions, tasks, or blockers logged"), consider whether important items should have been captured during the session.
+
 **Writing Good Summaries:**
 
 The summary should answer "what was accomplished?" so future sessions (or another AI) can understand where you left off. Aim for 1-3 substantive sentences that capture the actual work done.

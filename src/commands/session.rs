@@ -50,11 +50,14 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str) -> Result<()> {
         None => bail!("No active session to end"),
     };
 
+    // Display session activity before ending
+    display_session_activity(conn, session.session_id)?;
+
     // End the session
     end_session(conn, session.session_id, summary)?;
 
     println!(
-        "{} Session #{} ended. Summary: {}",
+        "\n{} Session #{} ended. Summary: {}",
         "✓".green(),
         session.session_id,
         summary
@@ -67,6 +70,128 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str) -> Result<()> {
     }
 
     // TODO: Create backup if auto_backup enabled in config
+
+    Ok(())
+}
+
+/// Display activity logged during a session
+fn display_session_activity(conn: &rusqlite::Connection, session_id: i64) -> Result<()> {
+    println!("{}", "Session Activity:".bold());
+    println!("{}", "─".repeat(50));
+
+    let mut has_activity = false;
+
+    // Get decisions
+    let mut stmt = conn.prepare(
+        "SELECT topic, decision FROM decisions WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let decisions: Vec<(String, String)> = stmt
+        .query_map([session_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if !decisions.is_empty() {
+        has_activity = true;
+        println!("\n{} Decisions ({})", "◆".cyan(), decisions.len());
+        for (topic, decision) in &decisions {
+            println!("  • {}: {}", topic.bold(), decision);
+        }
+    }
+
+    // Get tasks added
+    let mut stmt = conn.prepare(
+        "SELECT description, priority, status FROM tasks WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let tasks: Vec<(String, String, String)> = stmt
+        .query_map([session_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if !tasks.is_empty() {
+        has_activity = true;
+        println!("\n{} Tasks Added ({})", "◆".cyan(), tasks.len());
+        for (desc, priority, status) in &tasks {
+            let priority_indicator = match priority.as_str() {
+                "urgent" => "[!!!]".red(),
+                "high" => "[!]".yellow(),
+                _ => "".white(),
+            };
+            let status_indicator = match status.as_str() {
+                "completed" => "✓".green(),
+                "in_progress" => "◐".yellow(),
+                _ => "○".white(),
+            };
+            println!("  {} {} {}", status_indicator, desc, priority_indicator);
+        }
+    }
+
+    // Get blockers
+    let mut stmt = conn.prepare(
+        "SELECT description, status FROM blockers WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let blockers: Vec<(String, String)> = stmt
+        .query_map([session_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if !blockers.is_empty() {
+        has_activity = true;
+        println!("\n{} Blockers ({})", "◆".cyan(), blockers.len());
+        for (desc, status) in &blockers {
+            let indicator = if status == "resolved" {
+                "✓".green()
+            } else {
+                "✗".red()
+            };
+            println!("  {} {}", indicator, desc);
+        }
+    }
+
+    // Get notes
+    let mut stmt = conn.prepare(
+        "SELECT category, title FROM context_notes WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let notes: Vec<(String, String)> = stmt
+        .query_map([session_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if !notes.is_empty() {
+        has_activity = true;
+        println!("\n{} Notes ({})", "◆".cyan(), notes.len());
+        for (category, title) in &notes {
+            println!("  • [{}] {}", category, title);
+        }
+    }
+
+    // Get questions
+    let mut stmt = conn.prepare(
+        "SELECT question, status FROM questions WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let questions: Vec<(String, String)> = stmt
+        .query_map([session_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    if !questions.is_empty() {
+        has_activity = true;
+        println!("\n{} Questions ({})", "◆".cyan(), questions.len());
+        for (question, status) in &questions {
+            let indicator = if status == "answered" {
+                "✓".green()
+            } else {
+                "?".yellow()
+            };
+            println!("  {} {}", indicator, question);
+        }
+    }
+
+    if !has_activity {
+        println!("\n  {} No decisions, tasks, or blockers logged this session.", "ℹ".blue());
+        println!("  Tip: Use 'proj log decision', 'proj task add', 'proj log blocker' during sessions.");
+    }
+
+    println!("{}", "─".repeat(50));
 
     Ok(())
 }

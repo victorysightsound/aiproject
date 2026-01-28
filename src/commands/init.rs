@@ -231,8 +231,43 @@ fn run_non_interactive(
     Ok(())
 }
 
-fn run_interactive(project_root: PathBuf, tracking_path: PathBuf) -> Result<()> {
-    println!("Initializing project in: {}", project_root.display());
+fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Result<()> {
+    // Ask for project directory
+    let current_dir = std::env::current_dir()?;
+    let current_dir_str = current_dir.to_string_lossy().to_string();
+
+    let chosen_path: String = Input::new()
+        .with_prompt("Project directory")
+        .default(current_dir_str.clone())
+        .interact_text()?;
+
+    // Check if user chose a different directory
+    let chosen_path_buf = PathBuf::from(&chosen_path);
+    let chosen_path_abs = if chosen_path_buf.is_absolute() {
+        chosen_path_buf
+    } else {
+        current_dir.join(&chosen_path_buf)
+    };
+
+    let path_changed = chosen_path_abs != current_dir;
+
+    if path_changed {
+        // Create directory if it doesn't exist
+        if !chosen_path_abs.exists() {
+            println!("Creating directory: {}", chosen_path_abs.display());
+            std::fs::create_dir_all(&chosen_path_abs)?;
+        }
+        project_root = chosen_path_abs.clone();
+        tracking_path = project_root.join(".tracking");
+
+        // Check if already initialized
+        if tracking_path.exists() {
+            println!("Project already initialized at {}. Use 'proj status' to see current state.", project_root.display());
+            return Ok(());
+        }
+    }
+
+    println!("\nInitializing project in: {}", project_root.display());
 
     // Detect project type
     let detected_type = detect_project_type(&project_root);
@@ -412,6 +447,16 @@ fn run_interactive(project_root: PathBuf, tracking_path: PathBuf) -> Result<()> 
             "💡".yellow()
         );
         println!("  Sessions will start automatically when you cd into this project.");
+    }
+
+    // If user chose a different directory, offer to show cd command
+    if path_changed {
+        println!();
+        println!(
+            "{} To work on this project, run:",
+            "→".cyan()
+        );
+        println!("  cd {}", project_root.display());
     }
 
     Ok(())
@@ -790,7 +835,47 @@ const SESSION_RULE: &str = r#"
 
 If no `.tracking/` folder exists, skip this step.
 
-**When ending sessions**, write substantive summaries (1-3 sentences) that answer "what was accomplished?" Avoid generic summaries like "reviewed status" - future sessions need specific context to resume effectively.
+### Logging During Sessions (IMPORTANT)
+
+You MUST actively log decisions, tasks, and blockers as they occur. Do not wait until the end.
+
+**Log decisions immediately when:**
+- User chooses between options ("let's use X instead of Y")
+- A technical approach is selected ("we'll implement it this way")
+- Architecture or design choices are made
+- Any "why" question is answered with a decision
+
+```bash
+proj log decision "<topic>" "<what was decided>" "<why/rationale>"
+```
+
+**Add tasks when:**
+- User says: "todo", "need to", "should", "we'll have to", "don't forget to"
+- Work is identified for later: "we can do that next", "that's for phase 2"
+- Bugs or issues are found that aren't fixed immediately
+
+```bash
+proj task add "<description>" --priority <urgent|high|normal|low>
+```
+
+**Log blockers when:**
+- User says: "blocked", "waiting on", "can't because", "need X before"
+- External dependencies are identified
+- Missing information prevents progress
+
+```bash
+proj log blocker "<what is blocking progress>"
+```
+
+### Ending Sessions
+
+Before ending, the session activity will be displayed. Review it to ensure nothing was missed.
+
+Write substantive summaries (1-3 sentences) that answer "what was accomplished?" Avoid generic summaries like "reviewed status" - future sessions need specific context to resume effectively.
+
+```bash
+proj session end "<summary of what was accomplished>"
+```
 "#;
 
 /// Ensure session management rule exists in global AGENTS.md

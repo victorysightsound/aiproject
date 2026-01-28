@@ -302,3 +302,66 @@ proj docs search "authentication"
 ```
 
 This makes it easy for AI assistants to find relevant context quickly.
+
+## How AI Logging Works
+
+Understanding how proj integrates with AI assistants is important for setting expectations.
+
+### What's Automatic vs Manual
+
+| Component | How It's Tracked |
+|-----------|------------------|
+| **Sessions** | Automatic - `proj status` starts one, 8-hour timeout auto-closes |
+| **Decisions** | Manual - AI must run `proj log decision` |
+| **Tasks** | Manual - AI must run `proj task add` |
+| **Blockers** | Manual - AI must run `proj log blocker` |
+| **Notes** | Manual - AI must run `proj log note` |
+
+### How AI Assistants Know to Log
+
+When you run `proj init`, it adds session management rules to your global AGENTS.md file. These rules instruct AI assistants to:
+
+1. Run `proj status` at conversation start
+2. Log decisions when technical choices are made
+3. Add tasks when work is identified for later
+4. Log blockers when something prevents progress
+5. End sessions with summaries
+
+### The Reality
+
+AI assistants follow these instructions with varying reliability. The rules provide:
+
+- **Trigger phrases** - "let's use X", "todo", "blocked by"
+- **Command syntax** - exact commands to run
+- **Examples** - when and what to log
+
+However, AI compliance depends on the model and context. If important decisions aren't being logged, you can:
+
+1. Explicitly ask: "Log that decision"
+2. Run commands yourself: `proj log decision "topic" "choice" "why"`
+3. Review at session end - `proj session end` shows what was captured
+
+### Session End Review
+
+When ending a session, proj displays all logged activity:
+
+```
+Session Activity:
+──────────────────────────────────────────────────
+
+◆ Decisions (2)
+  • database: Using SQLite
+  • auth: JWT tokens for authentication
+
+◆ Tasks Added (3)
+  ○ Implement login endpoint [!]
+  ✓ Set up database schema
+  ○ Write unit tests
+
+◆ Blockers (1)
+  ✗ Waiting for API credentials
+
+──────────────────────────────────────────────────
+```
+
+This helps you verify nothing was missed before finalizing the session summary.
