@@ -2,6 +2,15 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.20] - 2026-01-28
+
+### Fixed
+- **Fixed CLI argument passing in VS Code extension**: Switched from `exec`/`execSync` (shell command string) to `execFile`/`execFileSync` (array args)
+  - Arguments with spaces (like session summaries) were being split by the shell
+  - `@proj /end my summary here` now works correctly
+  - Removed unnecessary double-quoting from all CLI wrapper functions
+  - This likely also fixes the auto-summary flow which passes args through `runProjSync`
+
 ## [1.7.19] - 2026-01-28
 
 ### Fixed

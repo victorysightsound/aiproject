@@ -2,11 +2,11 @@
  * CLI wrapper for executing proj commands
  */
 
-import { exec, execSync } from 'child_process';
+import { execFileSync, execFile } from 'child_process';
 import { promisify } from 'util';
 import * as vscode from 'vscode';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * Execute a proj command synchronously (for debugging)
@@ -23,24 +23,11 @@ export function runProjSync(args: string[]): ProjResult {
         };
     }
 
-    const command = `${projPath} ${args.join(' ')}`;
-    console.log(`[proj] Running sync: ${command} in ${workspacePath}`);
-
-    // Build extended PATH including cargo bin (cross-platform)
-    const path = require('path');
-    const isWindows = process.platform === 'win32';
-    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-    const pathSep = isWindows ? ';' : ':';
-    const currentPath = process.env.PATH || '';
-
-    // Add cargo bin to PATH
-    const cargoBin = path.join(homeDir, '.cargo', 'bin');
-    const extendedPath = isWindows
-        ? `${cargoBin}${pathSep}${currentPath}`
-        : `${cargoBin}:/usr/local/bin:/opt/homebrew/bin:${currentPath}`;
+    console.log(`[proj] Running sync: ${projPath} ${args.join(' ')} in ${workspacePath}`);
 
     try {
-        const stdout = execSync(command, {
+        // Use execFileSync to pass args as array (no shell parsing)
+        const stdout = execFileSync(projPath, args, {
             cwd: workspacePath,
             timeout: 10000,
             encoding: 'utf8',
@@ -48,7 +35,7 @@ export function runProjSync(args: string[]): ProjResult {
             env: {
                 ...process.env,
                 NO_COLOR: '1',
-                PATH: extendedPath
+                PATH: getExtendedPath()
             }
         });
 
@@ -143,6 +130,22 @@ function getWorkspacePath(): string | undefined {
 }
 
 /**
+ * Build extended PATH that includes common install locations
+ */
+function getExtendedPath(): string {
+    const path = require('path');
+    const isWindows = process.platform === 'win32';
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+    const pathSep = isWindows ? ';' : ':';
+    const currentPath = process.env.PATH || '';
+    const cargoBin = path.join(homeDir, '.cargo', 'bin');
+
+    return isWindows
+        ? `${cargoBin}${pathSep}${currentPath}`
+        : `${cargoBin}:/usr/local/bin:/opt/homebrew/bin:${currentPath}`;
+}
+
+/**
  * Execute a proj command
  */
 export async function runProj(args: string[]): Promise<ProjResult> {
@@ -157,14 +160,18 @@ export async function runProj(args: string[]): Promise<ProjResult> {
         };
     }
 
-    const command = `${projPath} ${args.join(' ')}`;
-    console.log(`[proj] Running: ${command} in ${workspacePath}`);
+    console.log(`[proj] Running: ${projPath} ${args.join(' ')} in ${workspacePath}`);
 
     try {
-        const { stdout, stderr } = await execAsync(command, {
+        // Use execFile to pass args as array (no shell parsing)
+        const { stdout, stderr } = await execFileAsync(projPath, args, {
             cwd: workspacePath,
-            timeout: 30000, // 30 second timeout
-            env: { ...process.env, NO_COLOR: '1' } // Disable colors for clean output
+            timeout: 30000,
+            env: {
+                ...process.env,
+                NO_COLOR: '1',
+                PATH: getExtendedPath()
+            }
         });
 
         console.log(`[proj] Success: ${stdout.substring(0, 100)}...`);
@@ -175,7 +182,6 @@ export async function runProj(args: string[]): Promise<ProjResult> {
         };
     } catch (error: any) {
         console.log(`[proj] Error: ${error.message}`);
-        // exec throws on non-zero exit code
         return {
             success: false,
             stdout: error.stdout?.trim() || '',
@@ -238,27 +244,27 @@ export async function getTasks(): Promise<ProjResult> {
 }
 
 export async function endSession(summary: string): Promise<ProjResult> {
-    return runProj(['session', 'end', `"${summary}"`]);
+    return runProj(['session', 'end', summary]);
 }
 
 export async function logDecision(topic: string, decision: string, rationale?: string): Promise<ProjResult> {
-    const args = ['log', 'decision', `"${topic}"`, `"${decision}"`];
+    const args = ['log', 'decision', topic, decision];
     if (rationale) {
-        args.push(`"${rationale}"`);
+        args.push(rationale);
     }
     return runProj(args);
 }
 
 export async function logBlocker(description: string): Promise<ProjResult> {
-    return runProj(['log', 'blocker', `"${description}"`]);
+    return runProj(['log', 'blocker', description]);
 }
 
 export async function logNote(category: string, title: string, content: string): Promise<ProjResult> {
-    return runProj(['log', 'note', `"${category}"`, `"${title}"`, `"${content}"`]);
+    return runProj(['log', 'note', category, title, content]);
 }
 
 export async function addTask(description: string, priority?: string): Promise<ProjResult> {
-    const args = ['task', 'add', `"${description}"`];
+    const args = ['task', 'add', description];
     if (priority) {
         args.push('--priority', priority);
     }
@@ -270,5 +276,5 @@ export async function updateTask(id: number, status: string): Promise<ProjResult
 }
 
 export async function searchContext(topic: string): Promise<ProjResult> {
-    return runProj(['context', `"${topic}"`]);
+    return runProj(['context', topic]);
 }
