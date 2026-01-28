@@ -2,6 +2,14 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.12] - 2026-01-28
+
+### Fixed
+- **VS Code extension now finds proj in cargo bin**: Extension was hardcoded to `/usr/local/bin/proj`
+  - Now checks `~/.cargo/bin/proj` first (cargo install), then Homebrew paths
+  - Configurable via `proj.cliPath` setting if needed
+  - Fixes "commands do nothing" issue when Homebrew version is outdated
+
 ## [1.7.11] - 2026-01-28
 
 ### Fixed

@@ -23,21 +23,23 @@ export function runProjSync(args: string[]): ProjResult {
         };
     }
 
-    // Use full path to proj to avoid PATH issues
-    const fullProjPath = '/usr/local/bin/proj';
-    const command = `${fullProjPath} ${args.join(' ')}`;
+    const command = `${projPath} ${args.join(' ')}`;
     console.log(`[proj] Running sync: ${command} in ${workspacePath}`);
+
+    // Build PATH including cargo bin directory
+    const homeDir = process.env.HOME || '';
+    const extendedPath = `${homeDir}/.cargo/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin`;
 
     try {
         const stdout = execSync(command, {
             cwd: workspacePath,
             timeout: 10000,
             encoding: 'utf8',
-            stdio: ['pipe', 'pipe', 'pipe'], // Explicit stdio
+            stdio: ['pipe', 'pipe', 'pipe'],
             env: {
                 ...process.env,
                 NO_COLOR: '1',
-                PATH: '/usr/local/bin:/usr/bin:/bin'
+                PATH: extendedPath
             }
         });
 
@@ -65,11 +67,37 @@ export interface ProjResult {
 
 /**
  * Get the configured path to the proj CLI
- * Defaults to full path since VS Code extension host may not have /usr/local/bin in PATH
+ * Checks common installation locations if not configured
  */
 function getProjPath(): string {
     const config = vscode.workspace.getConfiguration('proj');
-    return config.get<string>('cliPath') || '/usr/local/bin/proj';
+    const configuredPath = config.get<string>('cliPath');
+
+    if (configuredPath) {
+        return configuredPath;
+    }
+
+    // Check common installation paths in order of preference
+    const fs = require('fs');
+    const homeDir = process.env.HOME || '';
+    const paths = [
+        `${homeDir}/.cargo/bin/proj`,  // Cargo install (usually most up-to-date)
+        '/usr/local/bin/proj',          // Homebrew
+        '/opt/homebrew/bin/proj',       // Homebrew on Apple Silicon
+        'proj'                          // Fallback to PATH
+    ];
+
+    for (const p of paths) {
+        try {
+            if (fs.existsSync(p)) {
+                return p;
+            }
+        } catch {
+            // Continue to next path
+        }
+    }
+
+    return 'proj'; // Fallback
 }
 
 /**

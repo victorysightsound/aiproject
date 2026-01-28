@@ -252,47 +252,51 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     vscode.window.showErrorMessage(`Failed to end session: ${result.stderr}`);
                 }
             } else {
-                // Auto: get session activity and use LM API to generate summary
-                const result = cli.runProjSync(['resume', '--for-ai']);
-
-                if (!result.success) {
-                    vscode.window.showErrorMessage(`Failed to get session activity: ${result.stderr}`);
-                    return;
-                }
-
-                let activityText: string;
-                try {
-                    const data = JSON.parse(result.stdout);
-                    activityText = formatSessionActivity(data);
-                } catch {
-                    activityText = result.stdout;
-                }
-
-                // Try to use Language Model API to generate summary
+                // Auto: get session activity and try to generate summary with AI
                 let generatedSummary: string | undefined;
+
                 try {
-                    const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
-                    if (models.length > 0) {
-                        const model = models[0];
-                        const messages = [
-                            vscode.LanguageModelChatMessage.User(
-                                `Based on this session activity, generate a concise 1-2 sentence summary of what was accomplished. ` +
-                                `If no significant work was done, say "Session with minimal activity" or similar. ` +
-                                `Return ONLY the summary text, no explanations.\n\n${activityText}`
-                            )
-                        ];
-                        const response = await model.sendRequest(messages, {});
-                        let text = '';
-                        for await (const chunk of response.text) {
-                            text += chunk;
+                    const result = cli.runProjSync(['resume', '--for-ai']);
+
+                    if (result.success) {
+                        let activityText: string;
+                        try {
+                            const data = JSON.parse(result.stdout);
+                            activityText = formatSessionActivity(data);
+                        } catch {
+                            activityText = result.stdout;
                         }
-                        generatedSummary = text.trim();
+
+                        // Try to use Language Model API if available
+                        if (vscode.lm && typeof vscode.lm.selectChatModels === 'function') {
+                            try {
+                                const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+                                if (models && models.length > 0) {
+                                    const model = models[0];
+                                    const messages = [
+                                        vscode.LanguageModelChatMessage.User(
+                                            `Based on this session activity, generate a concise 1-2 sentence summary. ` +
+                                            `If minimal work, say "Session with minimal activity". ` +
+                                            `Return ONLY the summary, no explanations.\n\n${activityText}`
+                                        )
+                                    ];
+                                    const response = await model.sendRequest(messages, {});
+                                    let text = '';
+                                    for await (const chunk of response.text) {
+                                        text += chunk;
+                                    }
+                                    generatedSummary = text.trim();
+                                }
+                            } catch (err) {
+                                console.log('[proj] LM API error:', err);
+                            }
+                        }
                     }
                 } catch (err) {
-                    console.log('[proj] LM API error:', err);
+                    console.log('[proj] Error getting session activity:', err);
                 }
 
-                // Show input box with generated summary pre-filled (or empty if generation failed)
+                // Show input box - with AI summary if available, empty otherwise
                 const summary = await vscode.window.showInputBox({
                     prompt: generatedSummary ? 'Review and confirm session summary' : 'Enter session summary',
                     placeHolder: 'What did you accomplish?',
