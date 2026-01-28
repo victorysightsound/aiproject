@@ -2,6 +2,18 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.21] - 2026-01-28
+
+### Added
+- **`@proj /end-auto` command**: Auto-generate session summary and end session directly in Copilot Chat
+  - Uses Language Model API to generate summary from session activity
+  - Falls back to default summary if no AI model available
+  - Shows generated summary in chat, no separate input box needed
+
+### Fixed
+- **Status bar "View Status" now shows visible feedback**: Output panel shows timestamp header and info notification
+- **End Session from dropdown wrapped in error handler**: Uncaught errors now show as error messages instead of silently failing
+
 ## [1.7.20] - 2026-01-28
 
 ### Fixed

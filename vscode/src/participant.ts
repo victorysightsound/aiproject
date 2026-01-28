@@ -4,6 +4,7 @@
 
 import * as vscode from 'vscode';
 import * as cli from './cli';
+import { formatSessionActivity } from './tools';
 
 const PARTICIPANT_ID = 'proj.assistant';
 
@@ -96,6 +97,9 @@ async function handleCommand(
 
         case 'end':
             return await handleEndCommand(prompt, response);
+
+        case 'end-auto':
+            return await handleEndAutoCommand(response);
 
         default:
             response.markdown(`Unknown command: /${command}`);
@@ -326,6 +330,77 @@ async function handleEndCommand(
     }
 
     return { metadata: { command: 'end' } };
+}
+
+/**
+ * Handle /end-auto command - auto-generate summary and end session
+ */
+async function handleEndAutoCommand(
+    response: vscode.ChatResponseStream
+): Promise<ProjChatResult> {
+    // Step 1: Get session activity
+    response.markdown('Generating session summary...\n\n');
+
+    const result = cli.runProjSync(['resume', '--for-ai']);
+    if (!result.success) {
+        response.markdown(`**Error getting session activity:** ${result.stderr}`);
+        return { metadata: { command: 'end-auto' } };
+    }
+
+    let activityText: string;
+    try {
+        const data = JSON.parse(result.stdout);
+        activityText = formatSessionActivity(data);
+    } catch {
+        activityText = result.stdout;
+    }
+
+    // Step 2: Generate summary using Language Model API
+    let generatedSummary: string | undefined;
+
+    if (vscode.lm && typeof vscode.lm.selectChatModels === 'function') {
+        try {
+            const models = await vscode.lm.selectChatModels();
+            if (models && models.length > 0) {
+                const model = models[0];
+                const messages = [
+                    vscode.LanguageModelChatMessage.User(
+                        `Based on this session activity, generate a concise 1-2 sentence summary. ` +
+                        `If minimal work, say "Session with minimal activity". ` +
+                        `Return ONLY the summary, no explanations.\n\n${activityText}`
+                    )
+                ];
+
+                const chatResponse = await model.sendRequest(messages, {});
+                let text = '';
+                for await (const chunk of chatResponse.text) {
+                    text += chunk;
+                }
+                generatedSummary = text.trim();
+            }
+        } catch (err: any) {
+            response.markdown(`_Could not generate AI summary: ${err.message}_\n\n`);
+        }
+    }
+
+    if (!generatedSummary) {
+        // Fallback: use a simple summary
+        generatedSummary = 'Session with minimal activity';
+        response.markdown(`_No AI model available. Using default summary._\n\n`);
+    }
+
+    // Step 3: End session with generated summary
+    const endResult = cli.runProjSync(['session', 'end', generatedSummary]);
+
+    if (endResult.success) {
+        response.markdown(`**Session ended.**\n\n> ${generatedSummary}\n`);
+    } else {
+        response.markdown(`**Error ending session:** ${endResult.stderr}\n\n` +
+            `Generated summary was: "${generatedSummary}"\n\n` +
+            `You can try manually: \`@proj /end ${generatedSummary}\``);
+    }
+
+    return { metadata: { command: 'end-auto' } };
 }
 
 /**

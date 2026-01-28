@@ -2,7 +2,7 @@
   "name": "proj",
   "displayName": "proj - AI Project Tracker",
   "description": "Project tracking and context management for AI-assisted development",
-  "version": "1.7.20",
+  "version": "1.7.21",
   "publisher": "victorysightsound",
   "license": "MIT",
   "icon": "icon.png",
@@ -56,6 +56,10 @@
           {
             "name": "end",
             "description": "End the current session with a summary"
+          },
+          {
+            "name": "end-auto",
+            "description": "End session with an AI-generated summary"
           }
         ]
       }

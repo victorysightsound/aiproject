@@ -86,6 +86,9 @@ function registerCommands(context: vscode.ExtensionContext): void {
 
                 try {
                     const data = JSON.parse(result.stdout);
+                    const now = new Date().toLocaleTimeString();
+                    outputChannel.appendLine(`=== proj status (${now}) ===`);
+                    outputChannel.appendLine('');
                     outputChannel.appendLine(`Project: ${data.project?.name || 'Unknown'}`);
                     outputChannel.appendLine(`Session: #${data.current_session?.session_id || 'N/A'}`);
                     outputChannel.appendLine('');
@@ -123,7 +126,8 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     outputChannel.appendLine(result.stdout);
                 }
 
-                outputChannel.show();
+                outputChannel.show(false); // false = take focus
+                vscode.window.showInformationMessage('proj status refreshed - see Output panel');
             } catch (err) {
                 log(`proj.status error: ${err}`);
                 vscode.window.showErrorMessage(`proj.status failed: ${err}`);
@@ -239,6 +243,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     // proj.endSessionWithOptions - End session with choice of manual or auto summary
     context.subscriptions.push(
         vscode.commands.registerCommand('proj.endSessionWithOptions', async () => {
+            try {
             log('proj.endSessionWithOptions command triggered');
             const choice = await vscode.window.showQuickPick([
                 {
@@ -396,6 +401,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
                         vscode.window.showErrorMessage(`Failed to end session: ${endResult.stderr}`);
                     }
                 }
+            }
+            } catch (err) {
+                log(`endSessionWithOptions error: ${err}`);
+                vscode.window.showErrorMessage(`End Session failed: ${err}`);
             }
         })
     );
