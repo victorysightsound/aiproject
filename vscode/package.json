@@ -2,7 +2,7 @@
   "name": "proj",
   "displayName": "proj - AI Project Tracker",
   "description": "Project tracking and context management for AI-assisted development",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "publisher": "victorysightsound",
   "license": "MIT",
   "icon": "icon.png",
