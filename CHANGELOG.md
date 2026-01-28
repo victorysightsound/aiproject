@@ -2,7 +2,7 @@
 
 All notable changes to proj are documented here.
 
-## [1.7.6] - 2026-01-28
+## [1.7.7] - 2026-01-28
 
 ### Added
 - **Shell hook prompt in init wizard**: Interactive mode now asks if you want to enable automatic session tracking
