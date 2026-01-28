@@ -11,6 +11,9 @@ All notable changes to proj are documented here.
 - **Non-interactive support for shell install**: `proj shell install --force`
   - Installs for all available shells without prompting
   - Also available as `-y` short flag
+- **LLM CLI interviewer pattern in AGENTS.md**: New section instructs LLMs to ask users wizard questions in chat, then use command-line flags
+  - Covers: `proj init`, `proj uninstall`, `proj shell install`, `proj session end`, `proj upgrade`, `proj docs init`
+  - Auto-propagates to existing projects via `proj upgrade`
 
 ### Changed
 - Removed duplicate shell hook code from init.rs, now delegates to shell.rs

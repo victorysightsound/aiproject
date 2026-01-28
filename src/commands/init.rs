@@ -930,6 +930,55 @@ Write substantive summaries (1-3 sentences) that answer "what was accomplished?"
 ```bash
 proj session end "<summary of what was accomplished>"
 ```
+
+### Running proj Commands in LLM CLIs
+
+Interactive wizards don't work in LLM CLI environments (Claude Code, Codex, etc.). When running proj commands that normally have wizards, **ask the user first**, then use command-line flags.
+
+**proj init** (initializing a new project):
+Ask user: project name, type (rust/python/javascript/web/documentation/other), description, enable auto-commit?, install shell hook?
+```bash
+proj init --name "<name>" --type <type> --description "<desc>" [--auto-commit] [--shell-hook]
+```
+
+**proj uninstall --project** (removing tracking):
+Confirm with user: "Remove proj tracking from this project? This deletes all session history, decisions, and tasks."
+```bash
+proj uninstall --project --force
+```
+
+**proj uninstall --all** (complete removal):
+Confirm with user: "Remove proj from ALL registered projects? This cannot be undone."
+```bash
+proj uninstall --all --force
+```
+
+**proj shell install** (shell integration):
+Ask user: "Install shell hook for automatic session tracking?"
+```bash
+proj shell install --force
+```
+
+**proj session end** (ending session):
+Either ask "What was accomplished?" or generate summary from conversation context.
+```bash
+proj session end "<summary>"
+```
+If session has no logged activity, either log missed items first or use `--force`.
+
+**proj upgrade** (schema upgrades):
+No questions needed - use `--auto` to skip confirmation.
+```bash
+proj upgrade --auto
+```
+
+**proj docs init** (documentation database):
+Ask user: generate from source, import markdown, or create skeleton? What doc type?
+```bash
+proj docs init --generate --doc-type architecture
+proj docs init --import --doc-type guide
+proj docs init --new --name "<name>" --description "<desc>"
+```
 "#;
 
 /// Ensure session management rule exists in global AGENTS.md
@@ -1024,10 +1073,11 @@ fn update_single_agents_file(path: &std::path::Path) -> Result<bool> {
         return Ok(false); // No rules to update
     }
 
-    // Check if it has the newer trigger-based logging rules (added in v1.7.4)
-    // Key marker: "### Logging During Sessions" section
-    if content.contains("### Logging During Sessions") {
-        return Ok(false); // Already has updated rules
+    // Check if it has the latest rules by looking for the newest section
+    // v1.7.4: "### Logging During Sessions"
+    // v1.7.8: "### Running proj Commands in LLM CLIs"
+    if content.contains("### Running proj Commands in LLM CLIs") {
+        return Ok(false); // Already has latest rules
     }
 
     // Rules are outdated - need to replace the entire section
