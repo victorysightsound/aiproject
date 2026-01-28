@@ -58,56 +58,64 @@ function registerCommands(context: vscode.ExtensionContext): void {
     // proj.status - Show status in output panel
     context.subscriptions.push(
         vscode.commands.registerCommand('proj.status', async () => {
-            const result = await cli.getResume();
-
-            if (!result.success) {
-                vscode.window.showErrorMessage(`proj error: ${result.stderr}`);
-                return;
-            }
-
-            // Show in output channel
-            const outputChannel = vscode.window.createOutputChannel('proj');
-            outputChannel.clear();
-
+            console.log('[proj] proj.status command triggered');
             try {
-                const data = JSON.parse(result.stdout);
-                outputChannel.appendLine(`Project: ${data.project?.name || 'Unknown'}`);
-                outputChannel.appendLine(`Session: #${data.current_session?.session_id || 'N/A'}`);
-                outputChannel.appendLine('');
+                const result = await cli.getResume();
+                console.log('[proj] cli.getResume result:', result.success, result.stderr?.substring(0, 100));
 
-                if (data.last_session?.summary) {
-                    outputChannel.appendLine(`Last session: ${data.last_session.summary}`);
+                if (!result.success) {
+                    vscode.window.showErrorMessage(`proj error: ${result.stderr}`);
+                    return;
+                }
+
+                // Show in output channel
+                const outputChannel = vscode.window.createOutputChannel('proj');
+                outputChannel.clear();
+
+                try {
+                    const data = JSON.parse(result.stdout);
+                    outputChannel.appendLine(`Project: ${data.project?.name || 'Unknown'}`);
+                    outputChannel.appendLine(`Session: #${data.current_session?.session_id || 'N/A'}`);
                     outputChannel.appendLine('');
+
+                    if (data.last_session?.summary) {
+                        outputChannel.appendLine(`Last session: ${data.last_session.summary}`);
+                        outputChannel.appendLine('');
+                    }
+
+                    if (data.active_blockers && data.active_blockers.length > 0) {
+                        outputChannel.appendLine('BLOCKERS:');
+                        for (const blocker of data.active_blockers) {
+                            outputChannel.appendLine(`  - ${blocker.description}`);
+                        }
+                        outputChannel.appendLine('');
+                    }
+
+                    if (data.active_tasks && data.active_tasks.length > 0) {
+                        outputChannel.appendLine('TASKS:');
+                        for (const task of data.active_tasks) {
+                            const icon = task.status === 'in_progress' ? '>' : '-';
+                            outputChannel.appendLine(`  ${icon} [${task.priority}] ${task.description}`);
+                        }
+                        outputChannel.appendLine('');
+                    }
+
+                    if (data.recent_decisions && data.recent_decisions.length > 0) {
+                        outputChannel.appendLine('RECENT DECISIONS:');
+                        for (const decision of data.recent_decisions.slice(0, 5)) {
+                            outputChannel.appendLine(`  - ${decision.topic}: ${decision.decision}`);
+                        }
+                    }
+                } catch (parseErr) {
+                    console.log('[proj] JSON parse error:', parseErr);
+                    outputChannel.appendLine(result.stdout);
                 }
 
-                if (data.active_blockers && data.active_blockers.length > 0) {
-                    outputChannel.appendLine('BLOCKERS:');
-                    for (const blocker of data.active_blockers) {
-                        outputChannel.appendLine(`  - ${blocker.description}`);
-                    }
-                    outputChannel.appendLine('');
-                }
-
-                if (data.active_tasks && data.active_tasks.length > 0) {
-                    outputChannel.appendLine('TASKS:');
-                    for (const task of data.active_tasks) {
-                        const icon = task.status === 'in_progress' ? '>' : '-';
-                        outputChannel.appendLine(`  ${icon} [${task.priority}] ${task.description}`);
-                    }
-                    outputChannel.appendLine('');
-                }
-
-                if (data.recent_decisions && data.recent_decisions.length > 0) {
-                    outputChannel.appendLine('RECENT DECISIONS:');
-                    for (const decision of data.recent_decisions.slice(0, 5)) {
-                        outputChannel.appendLine(`  - ${decision.topic}: ${decision.decision}`);
-                    }
-                }
-            } catch {
-                outputChannel.appendLine(result.stdout);
+                outputChannel.show();
+            } catch (err) {
+                console.error('[proj] proj.status error:', err);
+                vscode.window.showErrorMessage(`proj.status failed: ${err}`);
             }
-
-            outputChannel.show();
         })
     );
 
@@ -164,6 +172,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     // proj.showMenu - Quick menu from status bar
     context.subscriptions.push(
         vscode.commands.registerCommand('proj.showMenu', async () => {
+            console.log('[proj] proj.showMenu command triggered');
             const choice = await vscode.window.showQuickPick([
                 {
                     label: '$(info) View Status',
@@ -193,18 +202,23 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 return;
             }
 
+            console.log('[proj] Menu choice:', choice.value);
             switch (choice.value) {
                 case 'status':
-                    vscode.commands.executeCommand('proj.status');
+                    console.log('[proj] Executing proj.status');
+                    await vscode.commands.executeCommand('proj.status');
                     break;
                 case 'tasks':
-                    vscode.commands.executeCommand('proj.tasks');
+                    console.log('[proj] Executing proj.tasks');
+                    await vscode.commands.executeCommand('proj.tasks');
                     break;
                 case 'end':
-                    vscode.commands.executeCommand('proj.endSessionWithOptions');
+                    console.log('[proj] Executing proj.endSessionWithOptions');
+                    await vscode.commands.executeCommand('proj.endSessionWithOptions');
                     break;
                 case 'refresh':
-                    vscode.commands.executeCommand('proj.refresh');
+                    console.log('[proj] Executing proj.refresh');
+                    await vscode.commands.executeCommand('proj.refresh');
                     break;
             }
         })
@@ -213,6 +227,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     // proj.endSessionWithOptions - End session with choice of manual or auto summary
     context.subscriptions.push(
         vscode.commands.registerCommand('proj.endSessionWithOptions', async () => {
+            console.log('[proj] proj.endSessionWithOptions command triggered');
             const choice = await vscode.window.showQuickPick([
                 {
                     label: '$(edit) Enter summary manually',

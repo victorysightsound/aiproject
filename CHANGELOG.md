@@ -2,6 +2,13 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.16] - 2026-01-28
+
+### Added
+- **VS Code extension debugging**: Added console logging to status bar menu commands
+  - Logs when commands are triggered and executed
+  - Check "Extension Host" output panel for debug info
+
 ## [1.7.15] - 2026-01-28
 
 ### Fixed
