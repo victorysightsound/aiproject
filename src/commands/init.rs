@@ -871,6 +871,16 @@ proj log blocker "<what is blocking progress>"
 
 Before ending, the session activity will be displayed. Review it to ensure nothing was missed.
 
+**If session activity is empty:**
+When `proj session end` shows "No activity was logged", you have three options:
+1. **Add manually** - Run proj log/task commands yourself to capture what happened
+2. **AI review** - Review the conversation and log items that should have been captured:
+   - Look for decisions made (technical choices, architecture, approach)
+   - Look for tasks identified (todos, future work, bugs found)
+   - Look for blockers encountered (waiting on, can't proceed, need info)
+   Then run the appropriate `proj log` or `proj task` commands
+3. **End anyway** - Run: `proj session end --force "<summary>"`
+
 Write substantive summaries (1-3 sentences) that answer "what was accomplished?" Avoid generic summaries like "reviewed status" - future sessions need specific context to resume effectively.
 
 ```bash

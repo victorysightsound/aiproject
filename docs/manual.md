@@ -195,7 +195,12 @@ End the current session with a summary.
 
 ```bash
 proj session end "What we accomplished"
+proj session end "Summary" --force   # Skip empty session check
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--force` | End session even if no activity was logged |
 
 **Session Activity Review:**
 
@@ -218,7 +223,23 @@ Session Activity:
 ──────────────────────────────────────────────────
 ```
 
-If the activity is empty ("No decisions, tasks, or blockers logged"), consider whether important items should have been captured during the session.
+**Empty Session Handling:**
+
+If no activity was logged during the session, proj shows options instead of ending immediately:
+
+```
+⚠ No activity was logged this session.
+
+Before ending, you can capture what happened:
+
+  1. Add manually - Run proj log/task commands yourself
+  2. AI review - AI analyzes conversation and logs items
+  3. End anyway - Run: proj session end --force "summary"
+
+Session not ended. Choose an option above.
+```
+
+To force-end an empty session: `proj session end --force "summary"`
 
 **Writing Good Summaries:**
 

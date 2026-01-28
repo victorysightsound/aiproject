@@ -365,3 +365,13 @@ Session Activity:
 ```
 
 This helps you verify nothing was missed before finalizing the session summary.
+
+### Empty Session Handling
+
+If you try to end a session with no logged activity, proj shows options:
+
+1. **Add manually** - Run `proj log` or `proj task` commands yourself
+2. **AI review** - The AI reviews the conversation and logs missed items
+3. **End anyway** - Use `proj session end --force "summary"` to end without logging
+
+This safety check catches sessions where logging was forgotten, giving you a chance to capture important decisions before they're lost.

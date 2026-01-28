@@ -2,6 +2,19 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.5] - 2026-01-27
+
+### Added
+- **Empty session handling**: `proj session end` now checks for logged activity
+  - If no decisions, tasks, blockers, notes, or questions were logged, shows options
+  - Options: add manually, AI review, or force-end with `--force` flag
+  - Prevents sessions from ending without capturing important context
+- **`--force` flag for session end**: `proj session end --force "summary"` skips empty check
+- **AI review guidance**: AGENTS.md rules now include instructions for AI to review and log missed items when session is empty
+
+### Improved
+- Documentation updated with empty session handling details
+
 ## [1.7.4] - 2026-01-27
 
 ### Added

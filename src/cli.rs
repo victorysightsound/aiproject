@@ -205,6 +205,9 @@ pub enum SessionSubcommand {
     End {
         /// What was accomplished this session (be specific, not generic)
         summary: String,
+        /// Force end even if no activity was logged
+        #[arg(long)]
+        force: bool,
     },
     /// List recent sessions
     List,

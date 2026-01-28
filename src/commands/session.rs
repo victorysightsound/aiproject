@@ -19,7 +19,7 @@ pub fn run(cmd: SessionCommands) -> Result<()> {
 
     match cmd.command {
         SessionSubcommand::Start => cmd_start(&conn),
-        SessionSubcommand::End { summary } => cmd_end(&conn, &summary),
+        SessionSubcommand::End { summary, force } => cmd_end(&conn, &summary, force),
         SessionSubcommand::List => cmd_list(&conn),
     }
 }
@@ -43,15 +43,35 @@ fn cmd_start(conn: &rusqlite::Connection) -> Result<()> {
 }
 
 /// End the current session with a summary
-fn cmd_end(conn: &rusqlite::Connection, summary: &str) -> Result<()> {
+fn cmd_end(conn: &rusqlite::Connection, summary: &str, force: bool) -> Result<()> {
     // Get active session
     let session = match get_active_session(conn)? {
         Some(s) => s,
         None => bail!("No active session to end"),
     };
 
-    // Display session activity before ending
+    // Check if any activity was logged
+    let has_activity = check_session_has_activity(conn, session.session_id)?;
+
+    // Display session activity
     display_session_activity(conn, session.session_id)?;
+
+    // If no activity and not forced, show options and exit
+    if !has_activity && !force {
+        println!();
+        println!("{}", "─".repeat(50));
+        println!();
+        println!("{} No activity was logged this session.", "⚠".yellow());
+        println!();
+        println!("Before ending, you can capture what happened:");
+        println!();
+        println!("  {} {} - Run proj log/task commands yourself", "1.".bold(), "Add manually".cyan());
+        println!("  {} {} - AI analyzes conversation and logs items", "2.".bold(), "AI review".cyan());
+        println!("  {} {} - Run: proj session end --force \"{}\"", "3.".bold(), "End anyway".cyan(), summary);
+        println!();
+        println!("{}", "Session not ended. Choose an option above.".dimmed());
+        return Ok(());
+    }
 
     // End the session
     end_session(conn, session.session_id, summary)?;
@@ -72,6 +92,62 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str) -> Result<()> {
     // TODO: Create backup if auto_backup enabled in config
 
     Ok(())
+}
+
+/// Check if a session has any logged activity
+fn check_session_has_activity(conn: &rusqlite::Connection, session_id: i64) -> Result<bool> {
+    // Check decisions
+    let decision_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM decisions WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+
+    if decision_count > 0 {
+        return Ok(true);
+    }
+
+    // Check tasks
+    let task_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM tasks WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+
+    if task_count > 0 {
+        return Ok(true);
+    }
+
+    // Check blockers
+    let blocker_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM blockers WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+
+    if blocker_count > 0 {
+        return Ok(true);
+    }
+
+    // Check notes
+    let note_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM context_notes WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+
+    if note_count > 0 {
+        return Ok(true);
+    }
+
+    // Check questions
+    let question_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM questions WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+
+    Ok(question_count > 0)
 }
 
 /// Display activity logged during a session
