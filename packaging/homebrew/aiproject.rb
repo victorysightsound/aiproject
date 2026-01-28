@@ -7,22 +7,22 @@ class Aiproject < Formula
   on_macos do
     on_arm do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-aarch64-apple-darwin.tar.gz"
-      sha256 "f870617e6ee4bc0ae6174161257ad5242eb77a06013d4ccfde5e8540fbcdbf1c"
+      sha256 "b71ca7a08fde629a567a7090593ee91fc5111dc08645f0256b0801aeb038de9b"
     end
     on_intel do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-x86_64-apple-darwin.tar.gz"
-      sha256 "1f395f7bcedf640ccaa9df10c028015e45931dacbd948e3d0f57a8e0d10e0bb2"
+      sha256 "9d56ed8a205410c43365ef5bbad969f4baa9887c161613dfd60b8534d9a1e329"
     end
   end
 
   on_linux do
     on_arm do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "a8377cd473f2683a530326c3a2134e40591e3cd8f800997c174c0d02eab61a8b"
+      sha256 "6fe739a08d4a8f6bb8063a703ad0fb9acfbf84adaebb0d07b585a6d417f793d5"
     end
     on_intel do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "f34d7db38ed73d0b4cf33ef16ccf4fbc2ba4223611899c6dadce3f800a8d712c"
+      sha256 "112e3abd314a899087551679dee7e94e8bc957a35e5fe7ae0cfc25d58e83f814"
     end
   end
 
