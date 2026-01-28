@@ -2,6 +2,14 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.18] - 2026-01-28
+
+### Fixed
+- **Dedicated debug output channel for VS Code**: Replaced console.log with dedicated `proj-debug` output channel
+  - All log messages now written to "proj-debug" output panel in VS Code
+  - Logs visible even when Extension Host console is not accessible
+  - Timestamped messages for easier debugging of auto-summary flow
+
 ## [1.7.17] - 2026-01-28
 
 ### Fixed

@@ -10,11 +10,23 @@ import { registerParticipant } from './participant';
 import * as statusBar from './statusBar';
 import { registerTools, formatSessionActivity } from './tools';
 
+// Debug output channel
+let debugChannel: vscode.OutputChannel;
+
+function log(message: string): void {
+    if (!debugChannel) {
+        debugChannel = vscode.window.createOutputChannel('proj-debug');
+    }
+    const timestamp = new Date().toISOString().substring(11, 23);
+    debugChannel.appendLine(`[${timestamp}] ${message}`);
+    console.log(`[proj] ${message}`);
+}
+
 /**
  * Extension activation
  */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-    console.log('proj extension activating...');
+    log('Extension activating...');
 
     // Check if proj CLI is available
     const projInstalled = await cli.checkProjInstalled();
@@ -48,7 +60,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         showSessionNotification();
     }
 
-    console.log('proj extension activated');
+    log('Extension activated');
 }
 
 /**
@@ -58,10 +70,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
     // proj.status - Show status in output panel
     context.subscriptions.push(
         vscode.commands.registerCommand('proj.status', async () => {
-            console.log('[proj] proj.status command triggered');
+            log('proj.status command triggered');
             try {
                 const result = await cli.getResume();
-                console.log('[proj] cli.getResume result:', result.success, result.stderr?.substring(0, 100));
+                log(`cli.getResume result: ${result.success}, ${result.stderr?.substring(0, 100)}`);
 
                 if (!result.success) {
                     vscode.window.showErrorMessage(`proj error: ${result.stderr}`);
@@ -107,13 +119,13 @@ function registerCommands(context: vscode.ExtensionContext): void {
                         }
                     }
                 } catch (parseErr) {
-                    console.log('[proj] JSON parse error:', parseErr);
+                    log(`JSON parse error: ${parseErr}`);
                     outputChannel.appendLine(result.stdout);
                 }
 
                 outputChannel.show();
             } catch (err) {
-                console.error('[proj] proj.status error:', err);
+                log(`proj.status error: ${err}`);
                 vscode.window.showErrorMessage(`proj.status failed: ${err}`);
             }
         })
@@ -172,7 +184,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     // proj.showMenu - Quick menu from status bar
     context.subscriptions.push(
         vscode.commands.registerCommand('proj.showMenu', async () => {
-            console.log('[proj] proj.showMenu command triggered');
+            log('proj.showMenu command triggered');
             const choice = await vscode.window.showQuickPick([
                 {
                     label: '$(info) View Status',
@@ -202,22 +214,22 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 return;
             }
 
-            console.log('[proj] Menu choice:', choice.value);
+            log(`Menu choice: ${choice.value}`);
             switch (choice.value) {
                 case 'status':
-                    console.log('[proj] Executing proj.status');
+                    log('Executing proj.status');
                     await vscode.commands.executeCommand('proj.status');
                     break;
                 case 'tasks':
-                    console.log('[proj] Executing proj.tasks');
+                    log('Executing proj.tasks');
                     await vscode.commands.executeCommand('proj.tasks');
                     break;
                 case 'end':
-                    console.log('[proj] Executing proj.endSessionWithOptions');
+                    log('Executing proj.endSessionWithOptions');
                     await vscode.commands.executeCommand('proj.endSessionWithOptions');
                     break;
                 case 'refresh':
-                    console.log('[proj] Executing proj.refresh');
+                    log('Executing proj.refresh');
                     await vscode.commands.executeCommand('proj.refresh');
                     break;
             }
@@ -227,7 +239,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
     // proj.endSessionWithOptions - End session with choice of manual or auto summary
     context.subscriptions.push(
         vscode.commands.registerCommand('proj.endSessionWithOptions', async () => {
-            console.log('[proj] proj.endSessionWithOptions command triggered');
+            log('proj.endSessionWithOptions command triggered');
             const choice = await vscode.window.showQuickPick([
                 {
                     label: '$(edit) Enter summary manually',
@@ -268,13 +280,13 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 }
             } else {
                 // Auto: get session activity and try to generate summary with AI
-                console.log('[proj] Auto-summary selected');
+                log('Auto-summary selected');
                 let generatedSummary: string | undefined;
 
                 try {
-                    console.log('[proj] Getting session activity...');
+                    log('Getting session activity...');
                     const result = cli.runProjSync(['resume', '--for-ai']);
-                    console.log('[proj] CLI result:', result.success);
+                    log(`CLI result: ${result.success}`);
 
                     if (result.success) {
                         let activityText: string;
@@ -284,11 +296,11 @@ function registerCommands(context: vscode.ExtensionContext): void {
                         } catch {
                             activityText = result.stdout;
                         }
-                        console.log('[proj] Activity text length:', activityText.length);
+                        log(`Activity text length: ${activityText.length}`);
 
                         // Try to use Language Model API if available (with timeout)
                         if (vscode.lm && typeof vscode.lm.selectChatModels === 'function') {
-                            console.log('[proj] LM API available, trying to get models...');
+                            log('LM API available, trying to get models...');
                             try {
                                 // Add timeout for model selection
                                 const modelPromise = vscode.lm.selectChatModels({ family: 'gpt-4' });
@@ -297,11 +309,11 @@ function registerCommands(context: vscode.ExtensionContext): void {
                                 );
 
                                 const models = await Promise.race([modelPromise, timeoutPromise]);
-                                console.log('[proj] Models found:', models?.length || 0);
+                                log(`Models found: ${models?.length || 0}`);
 
                                 if (models && models.length > 0) {
                                     const model = models[0];
-                                    console.log('[proj] Using model:', model.id);
+                                    log(`Using model: ${model.id}`);
                                     const messages = [
                                         vscode.LanguageModelChatMessage.User(
                                             `Based on this session activity, generate a concise 1-2 sentence summary. ` +
@@ -324,27 +336,27 @@ function registerCommands(context: vscode.ExtensionContext): void {
                                     );
 
                                     generatedSummary = await Promise.race([requestPromise, requestTimeout]);
-                                    console.log('[proj] Generated summary:', generatedSummary?.substring(0, 50));
+                                    log(`Generated summary: ${generatedSummary?.substring(0, 50)}`);
                                 }
                             } catch (err) {
-                                console.log('[proj] LM API error:', err);
+                                log(`LM API error: ${err}`);
                             }
                         } else {
-                            console.log('[proj] LM API not available');
+                            log('LM API not available');
                         }
                     }
                 } catch (err) {
-                    console.log('[proj] Error getting session activity:', err);
+                    log(`Error getting session activity: ${err}`);
                 }
 
                 // Show input box - with AI summary if available, empty otherwise
-                console.log('[proj] Showing input box, summary:', generatedSummary ? 'yes' : 'no');
+                log(`Showing input box, summary: ${generatedSummary ? 'yes' : 'no'}`);
                 const summary = await vscode.window.showInputBox({
                     prompt: generatedSummary ? 'Review and confirm session summary' : 'Enter session summary',
                     placeHolder: 'What did you accomplish?',
                     value: generatedSummary || ''
                 });
-                console.log('[proj] User entered summary:', summary ? 'yes' : 'cancelled');
+                log(`User entered summary: ${summary ? 'yes' : 'cancelled'}`);
 
                 if (summary) {
                     const endResult = await cli.endSession(summary);
@@ -433,7 +445,7 @@ async function showSessionNotification(): Promise<void> {
 
     } catch (error) {
         // Silently fail - don't bother user with parsing errors on startup
-        console.log('[proj] Failed to show session notification:', error);
+        log(`Failed to show session notification: ${error}`);
     }
 }
 
@@ -442,5 +454,5 @@ async function showSessionNotification(): Promise<void> {
  */
 export function deactivate(): void {
     statusBar.dispose();
-    console.log('proj extension deactivated');
+    log('Extension deactivated');
 }
