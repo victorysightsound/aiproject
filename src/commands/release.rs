@@ -232,7 +232,19 @@ pub fn run(version: Option<String>, check_only: bool) -> Result<()> {
     let commit_msg = format!("Release v{}", new_version);
 
     // Add all relevant files
-    run_command("git", &["add", "Cargo.toml", "Cargo.lock", "CHANGELOG.md", "vscode/package.json", "vscode/README.md", "packaging/npm/package.json", "packaging/npm/scripts/install.js"])?;
+    run_command(
+        "git",
+        &[
+            "add",
+            "Cargo.toml",
+            "Cargo.lock",
+            "CHANGELOG.md",
+            "vscode/package.json",
+            "vscode/README.md",
+            "packaging/npm/package.json",
+            "packaging/npm/scripts/install.js",
+        ],
+    )?;
 
     // Also add any other uncommitted changes if user approved
     if !uncommitted.is_empty() {
@@ -603,8 +615,8 @@ fn update_vscode_version(new_version: &str) -> Result<()> {
     let content = std::fs::read_to_string(path)?;
 
     // Parse as JSON, update version, write back
-    let mut json: serde_json::Value = serde_json::from_str(&content)
-        .with_context(|| format!("Failed to parse {}", path))?;
+    let mut json: serde_json::Value =
+        serde_json::from_str(&content).with_context(|| format!("Failed to parse {}", path))?;
 
     if let Some(obj) = json.as_object_mut() {
         obj.insert(
@@ -624,8 +636,8 @@ fn update_npm_package_version(new_version: &str) -> Result<()> {
     let path = "packaging/npm/package.json";
     let content = std::fs::read_to_string(path)?;
 
-    let mut json: serde_json::Value = serde_json::from_str(&content)
-        .with_context(|| format!("Failed to parse {}", path))?;
+    let mut json: serde_json::Value =
+        serde_json::from_str(&content).with_context(|| format!("Failed to parse {}", path))?;
 
     if let Some(obj) = json.as_object_mut() {
         obj.insert(

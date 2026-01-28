@@ -180,8 +180,16 @@ fn detect_language(project_root: &Path) -> Result<Language> {
                 if path.is_dir() {
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
                     // Skip common non-source directories
-                    if !["target", "node_modules", ".git", "vendor", "__pycache__", "build", "dist"]
-                        .contains(&name)
+                    if ![
+                        "target",
+                        "node_modules",
+                        ".git",
+                        "vendor",
+                        "__pycache__",
+                        "build",
+                        "dist",
+                    ]
+                    .contains(&name)
                     {
                         count_files(&path, counts, depth + 1);
                     }
@@ -233,8 +241,17 @@ fn find_source_files(project_root: &Path, language: &Language) -> Result<Vec<Pat
                 if path.is_dir() {
                     let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
                     // Skip non-source directories
-                    if !["target", "node_modules", ".git", "vendor", "__pycache__", "build", "dist", ".tracking"]
-                        .contains(&name)
+                    if ![
+                        "target",
+                        "node_modules",
+                        ".git",
+                        "vendor",
+                        "__pycache__",
+                        "build",
+                        "dist",
+                        ".tracking",
+                    ]
+                    .contains(&name)
                     {
                         walk_dir(&path, extensions, files, depth + 1);
                     }
@@ -305,7 +322,13 @@ fn parse_rust_file(content: &str, file_path: &Path) -> Result<Vec<SourceItem>> {
             .trim();
 
         // Detect item type
-        if let Some(item) = parse_rust_item(without_vis, visibility, &current_doc, file_path, line_num + 1) {
+        if let Some(item) = parse_rust_item(
+            without_vis,
+            visibility,
+            &current_doc,
+            file_path,
+            line_num + 1,
+        ) {
             items.push(item);
         }
 
@@ -394,7 +417,11 @@ fn parse_rust_item(
     }
 
     if line.starts_with("fn ") || line.starts_with("async fn ") {
-        let prefix = if line.starts_with("async ") { "async fn " } else { "fn " };
+        let prefix = if line.starts_with("async ") {
+            "async fn "
+        } else {
+            "fn "
+        };
         let name = extract_name(line, prefix);
         return Some(SourceItem {
             kind: ItemKind::Function,
@@ -482,7 +509,11 @@ fn extract_impl_name(line: &str) -> String {
     // Check for "Trait for Type" pattern
     if let Some(idx) = line.find(" for ") {
         let trait_name = line[..idx].split('<').next().unwrap_or("").trim();
-        let type_name = line[idx + 5..].split(|c: char| !c.is_alphanumeric() && c != '_').next().unwrap_or("").trim();
+        let type_name = line[idx + 5..]
+            .split(|c: char| !c.is_alphanumeric() && c != '_')
+            .next()
+            .unwrap_or("")
+            .trim();
         return format!("{} for {}", trait_name, type_name);
     }
 
@@ -515,7 +546,11 @@ fn parse_python_file(content: &str, file_path: &Path) -> Result<Vec<SourceItem>>
         // Handle docstrings (""" or ''')
         if !in_docstring {
             if trimmed.starts_with("\"\"\"") || trimmed.starts_with("'''") {
-                docstring_delimiter = if trimmed.starts_with("\"\"\"") { "\"\"\"" } else { "'''" };
+                docstring_delimiter = if trimmed.starts_with("\"\"\"") {
+                    "\"\"\""
+                } else {
+                    "'''"
+                };
                 // Check if docstring ends on same line
                 let after_start = &trimmed[3..];
                 if after_start.contains(docstring_delimiter) {
@@ -568,7 +603,11 @@ fn parse_python_file(content: &str, file_path: &Path) -> Result<Vec<SourceItem>>
 
         // Detect function definitions
         if trimmed.starts_with("def ") || trimmed.starts_with("async def ") {
-            let prefix = if trimmed.starts_with("async ") { "async def " } else { "def " };
+            let prefix = if trimmed.starts_with("async ") {
+                "async def "
+            } else {
+                "def "
+            };
             let name = extract_python_name(trimmed, prefix);
             let visibility = if name.starts_with('_') && !name.starts_with("__") {
                 Visibility::Private
@@ -588,7 +627,12 @@ fn parse_python_file(content: &str, file_path: &Path) -> Result<Vec<SourceItem>>
         }
 
         // Clear doc if we hit a non-def/class line
-        if !trimmed.is_empty() && !trimmed.starts_with("def ") && !trimmed.starts_with("async def ") && !trimmed.starts_with("class ") && !trimmed.starts_with('@') {
+        if !trimmed.is_empty()
+            && !trimmed.starts_with("def ")
+            && !trimmed.starts_with("async def ")
+            && !trimmed.starts_with("class ")
+            && !trimmed.starts_with('@')
+        {
             current_doc.clear();
         }
     }
@@ -622,7 +666,11 @@ fn parse_typescript_file(content: &str, file_path: &Path) -> Result<Vec<SourceIt
             let after_start = trimmed.strip_prefix("/**").unwrap_or("").trim();
             if after_start.ends_with("*/") {
                 // Single-line JSDoc
-                current_doc = after_start.strip_suffix("*/").unwrap_or(after_start).trim().to_string();
+                current_doc = after_start
+                    .strip_suffix("*/")
+                    .unwrap_or(after_start)
+                    .trim()
+                    .to_string();
                 in_jsdoc = false;
             } else {
                 current_doc = after_start.to_string();
@@ -753,7 +801,11 @@ fn parse_typescript_file(content: &str, file_path: &Path) -> Result<Vec<SourceIt
         if (without_modifiers.starts_with("const ") || without_modifiers.starts_with("let "))
             && (without_modifiers.contains(" = (") || without_modifiers.contains(" = async ("))
         {
-            let keyword = if without_modifiers.starts_with("const ") { "const " } else { "let " };
+            let keyword = if without_modifiers.starts_with("const ") {
+                "const "
+            } else {
+                "let "
+            };
             let name = extract_ts_name(without_modifiers, keyword);
             items.push(SourceItem {
                 kind: ItemKind::Function,
@@ -780,7 +832,9 @@ fn parse_typescript_file(content: &str, file_path: &Path) -> Result<Vec<SourceIt
 fn extract_ts_name(line: &str, prefix: &str) -> String {
     let after_prefix = line.strip_prefix(prefix).unwrap_or(line);
     after_prefix
-        .split(|c: char| c == '<' || c == '(' || c == '{' || c == ':' || c == '=' || c.is_whitespace())
+        .split(|c: char| {
+            c == '<' || c == '(' || c == '{' || c == ':' || c == '=' || c.is_whitespace()
+        })
         .next()
         .unwrap_or("")
         .to_string()
@@ -976,7 +1030,10 @@ pub fn generate_sections(structure: &ProjectStructure) -> Vec<GeneratedSection> 
             title: "Modules".to_string(),
             level: 1,
             sort_order,
-            content: format!("The project is organized into the following modules:\n\n{}", module_list),
+            content: format!(
+                "The project is organized into the following modules:\n\n{}",
+                module_list
+            ),
             generated: true,
             source_file: None,
         });
@@ -1001,7 +1058,13 @@ pub fn generate_sections(structure: &ProjectStructure) -> Vec<GeneratedSection> 
             if item.visibility == Visibility::Public {
                 sort_order += 1;
                 let content = item.doc_comment.clone().unwrap_or_else(|| {
-                    format!("Defined in `{}`", item.file_path.file_name().and_then(|n| n.to_str()).unwrap_or(""))
+                    format!(
+                        "Defined in `{}`",
+                        item.file_path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("")
+                    )
                 });
                 sections.push(GeneratedSection {
                     section_id: format!("{}.{}", section_id, sort_order - section_id),
@@ -1020,7 +1083,13 @@ pub fn generate_sections(structure: &ProjectStructure) -> Vec<GeneratedSection> 
             if item.visibility == Visibility::Public {
                 sort_order += 1;
                 let content = item.doc_comment.clone().unwrap_or_else(|| {
-                    format!("Defined in `{}`", item.file_path.file_name().and_then(|n| n.to_str()).unwrap_or(""))
+                    format!(
+                        "Defined in `{}`",
+                        item.file_path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("")
+                    )
                 });
                 sections.push(GeneratedSection {
                     section_id: format!("{}.{}", section_id, sort_order - section_id),
@@ -1053,7 +1122,13 @@ pub fn generate_sections(structure: &ProjectStructure) -> Vec<GeneratedSection> 
             if item.visibility == Visibility::Public {
                 sort_order += 1;
                 let content = item.doc_comment.clone().unwrap_or_else(|| {
-                    format!("Defined in `{}`", item.file_path.file_name().and_then(|n| n.to_str()).unwrap_or(""))
+                    format!(
+                        "Defined in `{}`",
+                        item.file_path
+                            .file_name()
+                            .and_then(|n| n.to_str())
+                            .unwrap_or("")
+                    )
                 });
                 sections.push(GeneratedSection {
                     section_id: format!("{}.{}", section_id, sort_order - section_id),
@@ -1085,7 +1160,13 @@ pub fn generate_sections(structure: &ProjectStructure) -> Vec<GeneratedSection> 
         for item in &functions {
             sort_order += 1;
             let content = item.doc_comment.clone().unwrap_or_else(|| {
-                format!("Defined in `{}`", item.file_path.file_name().and_then(|n| n.to_str()).unwrap_or(""))
+                format!(
+                    "Defined in `{}`",
+                    item.file_path
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("")
+                )
             });
             sections.push(GeneratedSection {
                 section_id: format!("{}.{}", section_id, sort_order - section_id),

@@ -10,18 +10,25 @@ use crate::schema_docs::DocType;
 
 pub fn run(cmd: DocsCommands) -> Result<()> {
     match cmd.command {
-        DocsSubcommand::Init { generate, import, new, doc_type, name, description } => {
-            cmd_init(generate, import, new, &doc_type, name, description)
-        }
+        DocsSubcommand::Init {
+            generate,
+            import,
+            new,
+            doc_type,
+            name,
+            description,
+        } => cmd_init(generate, import, new, &doc_type, name, description),
         DocsSubcommand::Status => cmd_status(),
         DocsSubcommand::Refresh { force } => cmd_refresh(force),
         DocsSubcommand::Search { query } => cmd_search(&query),
         DocsSubcommand::Export { format, output } => cmd_export(&format, output),
         DocsSubcommand::Show { section } => cmd_show(section),
         DocsSubcommand::Term(term_cmd) => match term_cmd.command {
-            DocsTermSubcommand::Add { term, def, category } => {
-                cmd_term_add(&term, &def, category.as_deref())
-            }
+            DocsTermSubcommand::Add {
+                term,
+                def,
+                category,
+            } => cmd_term_add(&term, &def, category.as_deref()),
             DocsTermSubcommand::List => cmd_term_list(),
             DocsTermSubcommand::Search { query } => cmd_term_search(&query),
         },
@@ -172,7 +179,9 @@ fn cmd_init_generate_auto(
     crate::schema_docs::set_meta(
         &conn,
         "generated_at",
-        &chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.6f").to_string(),
+        &chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.6f")
+            .to_string(),
     )?;
 
     println!(
@@ -255,17 +264,15 @@ fn cmd_init_import_auto(
                 println!(
                     "  {} {}",
                     "✓".green(),
-                    file_path.strip_prefix(project_root).unwrap_or(file_path).display()
+                    file_path
+                        .strip_prefix(project_root)
+                        .unwrap_or(file_path)
+                        .display()
                 );
                 total_sections += count;
             }
             Err(e) => {
-                println!(
-                    "  {} {}: {}",
-                    "✗".red(),
-                    file_path.display(),
-                    e
-                );
+                println!("  {} {}: {}", "✗".red(), file_path.display(), e);
             }
         }
     }
@@ -449,7 +456,9 @@ fn cmd_init_import(project_root: &std::path::Path) -> Result<()> {
     crate::schema_docs::set_meta(
         &conn,
         "imported_at",
-        &chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.6f").to_string(),
+        &chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.6f")
+            .to_string(),
     )?;
 
     println!(
@@ -493,10 +502,7 @@ fn import_markdown_file(
                 section_counter[i] = 0;
             }
 
-            let title = line
-                .trim_start_matches('#')
-                .trim()
-                .to_string();
+            let title = line.trim_start_matches('#').trim().to_string();
 
             current_section = Some((heading_level, title, String::new()));
         } else if let Some((_, _, ref mut content)) = current_section {
@@ -587,27 +593,49 @@ fn cmd_init_new_auto(
     // Create basic skeleton sections
     let sections = vec![
         ("1", "Overview", 1, desc.clone()),
-        ("2", "Architecture", 1, "Describe the system architecture and design decisions.".to_string()),
-        ("3", "Components", 1, "List and describe the main components.".to_string()),
-        ("4", "Data Model", 1, "Describe the data structures and storage.".to_string()),
-        ("5", "API Reference", 1, "Document the public API.".to_string()),
-        ("6", "Configuration", 1, "Document configuration options.".to_string()),
-        ("7", "Development", 1, "Build instructions and contribution guidelines.".to_string()),
+        (
+            "2",
+            "Architecture",
+            1,
+            "Describe the system architecture and design decisions.".to_string(),
+        ),
+        (
+            "3",
+            "Components",
+            1,
+            "List and describe the main components.".to_string(),
+        ),
+        (
+            "4",
+            "Data Model",
+            1,
+            "Describe the data structures and storage.".to_string(),
+        ),
+        (
+            "5",
+            "API Reference",
+            1,
+            "Document the public API.".to_string(),
+        ),
+        (
+            "6",
+            "Configuration",
+            1,
+            "Document configuration options.".to_string(),
+        ),
+        (
+            "7",
+            "Development",
+            1,
+            "Build instructions and contribution guidelines.".to_string(),
+        ),
     ];
 
     let mut sort_order = 0;
     for (section_id, title, level, content) in &sections {
         sort_order += 1;
         docs_db::insert_section(
-            &conn,
-            section_id,
-            title,
-            None,
-            *level,
-            sort_order,
-            content,
-            true,
-            None,
+            &conn, section_id, title, None, *level, sort_order, content, true, None,
         )?;
     }
 
@@ -752,7 +780,9 @@ fn cmd_init_generate(project_root: &std::path::Path) -> Result<()> {
     crate::schema_docs::set_meta(
         &conn,
         "generated_at",
-        &chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.6f").to_string(),
+        &chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.6f")
+            .to_string(),
     )?;
 
     println!(
@@ -991,14 +1021,7 @@ fn cmd_init_new(project_root: &std::path::Path) -> Result<()> {
     for (section_id, title, level, content) in &sections {
         sort_order += 1;
         docs_db::insert_section(
-            &conn,
-            section_id,
-            title,
-            None,
-            *level,
-            sort_order,
-            content,
-            true, // generated
+            &conn, section_id, title, None, *level, sort_order, content, true, // generated
             None,
         )?;
     }
@@ -1078,7 +1101,8 @@ fn cmd_status() -> Result<()> {
         if generated_from == "source_analysis" {
             if let Ok(Some(refreshed)) = crate::schema_docs::get_meta(&conn, "refreshed_at") {
                 println!("  Last refresh: {}", refreshed);
-            } else if let Ok(Some(generated)) = crate::schema_docs::get_meta(&conn, "generated_at") {
+            } else if let Ok(Some(generated)) = crate::schema_docs::get_meta(&conn, "generated_at")
+            {
                 println!("  Generated: {}", generated);
             }
 
@@ -1086,7 +1110,11 @@ fn cmd_status() -> Result<()> {
             let last_update = crate::schema_docs::get_meta(&conn, "refreshed_at")
                 .ok()
                 .flatten()
-                .or_else(|| crate::schema_docs::get_meta(&conn, "generated_at").ok().flatten());
+                .or_else(|| {
+                    crate::schema_docs::get_meta(&conn, "generated_at")
+                        .ok()
+                        .flatten()
+                });
 
             if let Some(last_update) = last_update {
                 // Check if any source files are newer than last update
@@ -1116,8 +1144,7 @@ fn check_staleness(project_root: &std::path::Path, since: &str) -> Result<usize>
         .parse::<DateTime<Utc>>()
         .or_else(|_| {
             // Try parsing without timezone (our format doesn't have Z suffix)
-            NaiveDateTime::parse_from_str(since, "%Y-%m-%dT%H:%M:%S%.f")
-                .map(|ndt| ndt.and_utc())
+            NaiveDateTime::parse_from_str(since, "%Y-%m-%dT%H:%M:%S%.f").map(|ndt| ndt.and_utc())
         })
         .unwrap_or_else(|_| Utc::now());
 
@@ -1136,7 +1163,8 @@ fn check_staleness(project_root: &std::path::Path, since: &str) -> Result<usize>
                     } else if path.extension().map_or(false, |e| e == "rs") {
                         if let Ok(meta) = std::fs::metadata(&path) {
                             if let Ok(modified) = meta.modified() {
-                                if let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH) {
+                                if let Ok(duration) = modified.duration_since(std::time::UNIX_EPOCH)
+                                {
                                     if duration.as_secs() as i64 > since_secs {
                                         *count += 1;
                                     }
@@ -1168,7 +1196,10 @@ fn cmd_refresh(force: bool) -> Result<()> {
     // Check if this was generated from source analysis
     let generated_from = crate::schema_docs::get_meta(&conn, "generated_from")?;
     if generated_from.as_deref() != Some("source_analysis") {
-        println!("{} This database was not generated from source analysis.", "!".yellow());
+        println!(
+            "{} This database was not generated from source analysis.",
+            "!".yellow()
+        );
         println!("Refresh only works for databases created with 'proj docs init --generate'.");
         return Ok(());
     }
@@ -1231,14 +1262,12 @@ fn cmd_refresh(force: bool) -> Result<()> {
     crate::schema_docs::set_meta(
         &conn,
         "refreshed_at",
-        &chrono::Utc::now().format("%Y-%m-%dT%H:%M:%S%.6f").to_string(),
+        &chrono::Utc::now()
+            .format("%Y-%m-%dT%H:%M:%S%.6f")
+            .to_string(),
     )?;
 
-    println!(
-        "{} Refreshed with {} sections",
-        "✓".green(),
-        sections.len()
-    );
+    println!("{} Refreshed with {} sections", "✓".green(), sections.len());
 
     Ok(())
 }
@@ -1375,12 +1404,7 @@ fn cmd_show(section_id: Option<String>) -> Result<()> {
 
             for section in sections {
                 let indent = "  ".repeat((section.level - 1) as usize);
-                println!(
-                    "{}{} {}",
-                    indent,
-                    section.section_id.cyan(),
-                    section.title
-                );
+                println!("{}{} {}", indent, section.section_id.cyan(), section.title);
             }
         }
     }

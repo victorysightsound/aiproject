@@ -21,11 +21,7 @@ pub fn open_docs_db(path: &Path) -> Result<Connection> {
 }
 
 /// Create a new documentation database with schema
-pub fn create_docs_db(
-    path: &Path,
-    project_name: &str,
-    doc_type: DocType,
-) -> Result<Connection> {
+pub fn create_docs_db(path: &Path, project_name: &str, doc_type: DocType) -> Result<Connection> {
     let conn = open_docs_db(path)?;
 
     // Initialize schema
@@ -86,23 +82,29 @@ pub struct DocsDbInfo {
 pub fn is_valid_docs_db(conn: &Connection) -> bool {
     // Check for either 'meta' (new schema) or 'metadata' (old doc-orchestrator schema)
     // Also verify sections table exists
-    let has_meta = conn.query_row(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'",
-        [],
-        |_| Ok(()),
-    ).is_ok();
+    let has_meta = conn
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'",
+            [],
+            |_| Ok(()),
+        )
+        .is_ok();
 
-    let has_metadata = conn.query_row(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='metadata'",
-        [],
-        |_| Ok(()),
-    ).is_ok();
+    let has_metadata = conn
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='metadata'",
+            [],
+            |_| Ok(()),
+        )
+        .is_ok();
 
-    let has_sections = conn.query_row(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sections'",
-        [],
-        |_| Ok(()),
-    ).is_ok();
+    let has_sections = conn
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='sections'",
+            [],
+            |_| Ok(()),
+        )
+        .is_ok();
 
     (has_meta || has_metadata) && has_sections
 }
@@ -113,7 +115,8 @@ fn has_meta_table(conn: &Connection) -> bool {
         "SELECT 1 FROM sqlite_master WHERE type='table' AND name='meta'",
         [],
         |_| Ok(()),
-    ).is_ok()
+    )
+    .is_ok()
 }
 
 /// Get metadata value, trying both new 'meta' and old 'metadata' table
@@ -122,11 +125,10 @@ fn get_meta_compat(conn: &Connection, key: &str) -> Result<Option<String>> {
         schema_docs::get_meta(conn, key)
     } else {
         // Try old 'metadata' table
-        let result: Result<String, _> = conn.query_row(
-            "SELECT value FROM metadata WHERE key = ?1",
-            [key],
-            |row| row.get(0),
-        );
+        let result: Result<String, _> =
+            conn.query_row("SELECT value FROM metadata WHERE key = ?1", [key], |row| {
+                row.get(0)
+            });
         match result {
             Ok(value) => Ok(Some(value)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
@@ -145,25 +147,19 @@ pub fn get_docs_info(conn: &Connection) -> Result<DocsDbInfo> {
     let project_name = get_meta_compat(conn, "project_name")?
         .or_else(|| get_meta_compat(conn, "title").ok().flatten())
         .unwrap_or_else(|| "unknown".to_string());
-    let doc_type = get_meta_compat(conn, "doc_type")?
-        .unwrap_or_else(|| "unknown".to_string());
+    let doc_type = get_meta_compat(conn, "doc_type")?.unwrap_or_else(|| "unknown".to_string());
     let created_at = get_meta_compat(conn, "created_at")?;
     let version = get_meta_compat(conn, "version")?;
     let imported_from = get_meta_compat(conn, "imported_from")?
         .or_else(|| get_meta_compat(conn, "imported_at").ok().flatten());
 
-    let section_count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM sections",
-        [],
-        |row| row.get(0),
-    )?;
+    let section_count: i64 =
+        conn.query_row("SELECT COUNT(*) FROM sections", [], |row| row.get(0))?;
 
     // terminology table might not exist in older schemas
-    let term_count: i64 = conn.query_row(
-        "SELECT COUNT(*) FROM terminology",
-        [],
-        |row| row.get(0),
-    ).unwrap_or(0);
+    let term_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM terminology", [], |row| row.get(0))
+        .unwrap_or(0);
 
     Ok(DocsDbInfo {
         path: PathBuf::new(), // Caller should set this
@@ -284,12 +280,8 @@ pub fn get_section_counts(conn: &Connection) -> Result<(i64, i64)> {
 
 /// Check if sections table has the 'generated' column (new schema)
 fn has_generated_column(conn: &Connection) -> bool {
-    conn.query_row(
-        "SELECT generated FROM sections LIMIT 1",
-        [],
-        |_| Ok(()),
-    )
-    .is_ok()
+    conn.query_row("SELECT generated FROM sections LIMIT 1", [], |_| Ok(()))
+        .is_ok()
 }
 
 /// Get all sections ordered by sort_order
@@ -301,45 +293,47 @@ pub fn get_all_sections(conn: &Connection) -> Result<Vec<Section>> {
              FROM sections ORDER BY sort_order"
         )?;
 
-        let sections = stmt.query_map([], |row| {
-            Ok(Section {
-                id: row.get(0)?,
-                section_id: row.get(1)?,
-                title: row.get(2)?,
-                parent_id: row.get(3)?,
-                level: row.get(4)?,
-                sort_order: row.get(5)?,
-                content: row.get(6)?,
-                word_count: row.get(7)?,
-                generated: row.get::<_, i32>(8)? != 0,
-                source_file: row.get(9)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let sections = stmt
+            .query_map([], |row| {
+                Ok(Section {
+                    id: row.get(0)?,
+                    section_id: row.get(1)?,
+                    title: row.get(2)?,
+                    parent_id: row.get(3)?,
+                    level: row.get(4)?,
+                    sort_order: row.get(5)?,
+                    content: row.get(6)?,
+                    word_count: row.get(7)?,
+                    generated: row.get::<_, i32>(8)? != 0,
+                    source_file: row.get(9)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(sections)
     } else {
         // Older schema without generated/source_file
         let mut stmt = conn.prepare(
             "SELECT id, section_id, title, parent_id, level, sort_order, content, word_count
-             FROM sections ORDER BY sort_order"
+             FROM sections ORDER BY sort_order",
         )?;
 
-        let sections = stmt.query_map([], |row| {
-            Ok(Section {
-                id: row.get(0)?,
-                section_id: row.get(1)?,
-                title: row.get(2)?,
-                parent_id: row.get(3)?,
-                level: row.get(4)?,
-                sort_order: row.get(5)?,
-                content: row.get(6)?,
-                word_count: row.get(7)?,
-                generated: false,
-                source_file: None,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let sections = stmt
+            .query_map([], |row| {
+                Ok(Section {
+                    id: row.get(0)?,
+                    section_id: row.get(1)?,
+                    title: row.get(2)?,
+                    parent_id: row.get(3)?,
+                    level: row.get(4)?,
+                    sort_order: row.get(5)?,
+                    content: row.get(6)?,
+                    word_count: row.get(7)?,
+                    generated: false,
+                    source_file: None,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(sections)
     }
@@ -384,20 +378,21 @@ pub fn get_all_terms(conn: &Connection) -> Result<Vec<TermEntry>> {
         "SELECT id, canonical, variants, definition, category, first_used_in FROM terminology ORDER BY canonical"
     )?;
 
-    let terms = stmt.query_map([], |row| {
-        let variants_json: String = row.get(2)?;
-        let variants: Vec<String> = serde_json::from_str(&variants_json).unwrap_or_default();
+    let terms = stmt
+        .query_map([], |row| {
+            let variants_json: String = row.get(2)?;
+            let variants: Vec<String> = serde_json::from_str(&variants_json).unwrap_or_default();
 
-        Ok(TermEntry {
-            id: row.get(0)?,
-            canonical: row.get(1)?,
-            variants,
-            definition: row.get(3)?,
-            category: row.get(4)?,
-            first_used_in: row.get(5)?,
-        })
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+            Ok(TermEntry {
+                id: row.get(0)?,
+                canonical: row.get(1)?,
+                variants,
+                definition: row.get(3)?,
+                category: row.get(4)?,
+                first_used_in: row.get(5)?,
+            })
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(terms)
 }
@@ -411,24 +406,25 @@ pub fn search_sections(conn: &Connection, query: &str) -> Result<Vec<Section>> {
                FROM sections s
                JOIN sections_fts fts ON s.id = fts.rowid
                WHERE sections_fts MATCH ?1
-               ORDER BY rank"#
+               ORDER BY rank"#,
         )?;
 
-        let sections = stmt.query_map([query], |row| {
-            Ok(Section {
-                id: row.get(0)?,
-                section_id: row.get(1)?,
-                title: row.get(2)?,
-                parent_id: row.get(3)?,
-                level: row.get(4)?,
-                sort_order: row.get(5)?,
-                content: row.get(6)?,
-                word_count: row.get(7)?,
-                generated: row.get::<_, i32>(8)? != 0,
-                source_file: row.get(9)?,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let sections = stmt
+            .query_map([query], |row| {
+                Ok(Section {
+                    id: row.get(0)?,
+                    section_id: row.get(1)?,
+                    title: row.get(2)?,
+                    parent_id: row.get(3)?,
+                    level: row.get(4)?,
+                    sort_order: row.get(5)?,
+                    content: row.get(6)?,
+                    word_count: row.get(7)?,
+                    generated: row.get::<_, i32>(8)? != 0,
+                    source_file: row.get(9)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(sections)
     } else {
@@ -438,24 +434,25 @@ pub fn search_sections(conn: &Connection, query: &str) -> Result<Vec<Section>> {
                FROM sections s
                JOIN sections_fts fts ON s.id = fts.rowid
                WHERE sections_fts MATCH ?1
-               ORDER BY rank"#
+               ORDER BY rank"#,
         )?;
 
-        let sections = stmt.query_map([query], |row| {
-            Ok(Section {
-                id: row.get(0)?,
-                section_id: row.get(1)?,
-                title: row.get(2)?,
-                parent_id: row.get(3)?,
-                level: row.get(4)?,
-                sort_order: row.get(5)?,
-                content: row.get(6)?,
-                word_count: row.get(7)?,
-                generated: false,
-                source_file: None,
-            })
-        })?
-        .collect::<Result<Vec<_>, _>>()?;
+        let sections = stmt
+            .query_map([query], |row| {
+                Ok(Section {
+                    id: row.get(0)?,
+                    section_id: row.get(1)?,
+                    title: row.get(2)?,
+                    parent_id: row.get(3)?,
+                    level: row.get(4)?,
+                    sort_order: row.get(5)?,
+                    content: row.get(6)?,
+                    word_count: row.get(7)?,
+                    generated: false,
+                    source_file: None,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
 
         Ok(sections)
     }
@@ -493,10 +490,10 @@ pub fn get_analyzed_file_hash(conn: &Connection, file_path: &str) -> Result<Opti
 /// Compute SHA256 hash of file contents
 #[allow(dead_code)]
 pub fn hash_file(path: &Path) -> Result<String> {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
 
-    let contents = std::fs::read(path)
-        .with_context(|| format!("Failed to read file: {:?}", path))?;
+    let contents =
+        std::fs::read(path).with_context(|| format!("Failed to read file: {:?}", path))?;
 
     let mut hasher = Sha256::new();
     hasher.update(&contents);

@@ -85,7 +85,8 @@ pub fn run(
 
     // Determine if we're in non-interactive mode
     // Non-interactive if: name and type are provided, OR path is provided, OR we're not in a terminal
-    let non_interactive = (name.is_some() && project_type.is_some()) || path.is_some() || !is_interactive();
+    let non_interactive =
+        (name.is_some() && project_type.is_some()) || path.is_some() || !is_interactive();
 
     if non_interactive {
         run_non_interactive(
@@ -148,7 +149,10 @@ fn run_non_interactive(
 
     // Validate commit mode
     if commit_mode != "prompt" && commit_mode != "auto" {
-        bail!("Invalid commit mode '{}'. Valid modes: prompt, auto", commit_mode);
+        bail!(
+            "Invalid commit mode '{}'. Valid modes: prompt, auto",
+            commit_mode
+        );
     }
 
     println!("Initializing project in: {}", project_root.display());
@@ -181,8 +185,7 @@ fn run_non_interactive(
     let conn = open_database(&db_path)?;
 
     // Initialize schema
-    init_tracking_schema(&conn)
-        .with_context(|| "Failed to initialize tracking database schema")?;
+    init_tracking_schema(&conn).with_context(|| "Failed to initialize tracking database schema")?;
     println!("  {} tracking.db", "✓".green());
 
     // Register project in global registry
@@ -262,7 +265,10 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
 
         // Check if already initialized
         if tracking_path.exists() {
-            println!("Project already initialized at {}. Use 'proj status' to see current state.", project_root.display());
+            println!(
+                "Project already initialized at {}. Use 'proj status' to see current state.",
+                project_root.display()
+            );
             return Ok(());
         }
     }
@@ -370,8 +376,7 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
     let conn = open_database(&db_path)?;
 
     // Initialize schema
-    init_tracking_schema(&conn)
-        .with_context(|| "Failed to initialize tracking database schema")?;
+    init_tracking_schema(&conn).with_context(|| "Failed to initialize tracking database schema")?;
     println!("  {} tracking.db", "✓".green());
 
     // Register project in global registry
@@ -452,10 +457,7 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
     // If user chose a different directory, offer to show cd command
     if path_changed {
         println!();
-        println!(
-            "{} To work on this project, run:",
-            "→".cyan()
-        );
+        println!("{} To work on this project, run:", "→".cyan());
         println!("  cd {}", project_root.display());
     }
 
@@ -463,7 +465,11 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
 }
 
 /// Setup docs by generating from source
-fn setup_docs_generate(project_root: &PathBuf, project_name: &str, doc_type: DocType) -> Result<()> {
+fn setup_docs_generate(
+    project_root: &PathBuf,
+    project_name: &str,
+    doc_type: DocType,
+) -> Result<()> {
     println!("\n  {}", "Analyzing codebase...".cyan());
     match source_analyzer::analyze_project(project_root) {
         Ok(structure) => {
@@ -501,7 +507,12 @@ fn setup_docs_generate(project_root: &PathBuf, project_name: &str, doc_type: Doc
                 crate::schema_docs::set_meta(&doc_conn, "generated_from", "source_analysis")?;
                 crate::schema_docs::set_meta(&doc_conn, "language", structure.language.as_str())?;
 
-                println!("  {} {} ({} sections)", "✓".green(), db_filename, sections.len());
+                println!(
+                    "  {} {} ({} sections)",
+                    "✓".green(),
+                    db_filename,
+                    sections.len()
+                );
             }
         }
         Err(e) => {
@@ -538,7 +549,12 @@ fn setup_docs_import(project_root: &PathBuf, project_name: &str, doc_type: DocTy
         }
 
         crate::schema_docs::set_meta(&doc_conn, "generated_from", "import")?;
-        println!("  {} {} ({} sections)", "✓".green(), db_filename, total_sections);
+        println!(
+            "  {} {} ({} sections)",
+            "✓".green(),
+            db_filename,
+            total_sections
+        );
     }
     Ok(())
 }
@@ -600,15 +616,7 @@ fn setup_docs_skeleton(
     for (section_id, title, level, content) in &sections {
         sort_order += 1;
         docs_db::insert_section(
-            &doc_conn,
-            section_id,
-            title,
-            None,
-            *level,
-            sort_order,
-            content,
-            true,
-            None,
+            &doc_conn, section_id, title, None, *level, sort_order, content, true, None,
         )?;
     }
 
@@ -891,8 +899,7 @@ proj session end "<summary of what was accomplished>"
 /// Ensure session management rule exists in global AGENTS.md
 fn ensure_agents_session_rule() -> Result<()> {
     // Try common locations for global AGENTS.md
-    let home =
-        dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
+    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
     let possible_paths = [
         home.join("projects/global/AGENTS.md"),

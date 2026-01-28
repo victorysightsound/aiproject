@@ -29,9 +29,18 @@ pub fn run(shell_only: bool, project_only: bool, all: bool) -> Result<()> {
     println!("Remove proj tracking from projects and/or system.");
     println!();
     println!("Options:");
-    println!("  {} Remove shell hook only, keep all project data", "--shell".cyan());
-    println!("  {} Remove .tracking/ from current project only", "--project".cyan());
-    println!("  {} Remove shell hook + .tracking/ from ALL registered projects", "--all".cyan());
+    println!(
+        "  {} Remove shell hook only, keep all project data",
+        "--shell".cyan()
+    );
+    println!(
+        "  {} Remove .tracking/ from current project only",
+        "--project".cyan()
+    );
+    println!(
+        "  {} Remove shell hook + .tracking/ from ALL registered projects",
+        "--all".cyan()
+    );
     println!();
     println!("Examples:");
     println!("  proj uninstall --shell    # Remove shell integration");
@@ -206,8 +215,8 @@ fn load_registry() -> Result<Registry> {
         return Ok(Registry::default());
     }
 
-    let content = std::fs::read_to_string(&registry_path)
-        .with_context(|| "Failed to read registry.json")?;
+    let content =
+        std::fs::read_to_string(&registry_path).with_context(|| "Failed to read registry.json")?;
     let registry: Registry =
         serde_json::from_str(&content).with_context(|| "Failed to parse registry.json")?;
     Ok(registry)
@@ -225,9 +234,7 @@ fn remove_from_registry(project_path: &Path) -> Result<()> {
     let mut registry: Registry = serde_json::from_str(&content)?;
 
     let path_str = project_path.to_string_lossy().to_string();
-    registry
-        .registered_projects
-        .retain(|p| p.path != path_str);
+    registry.registered_projects.retain(|p| p.path != path_str);
 
     let content = serde_json::to_string_pretty(&registry)?;
     std::fs::write(&registry_path, content)?;

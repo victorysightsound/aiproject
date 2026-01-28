@@ -65,9 +65,22 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str, force: bool) -> Result<()
         println!();
         println!("Before ending, you can capture what happened:");
         println!();
-        println!("  {} {} - Run proj log/task commands yourself", "1.".bold(), "Add manually".cyan());
-        println!("  {} {} - AI analyzes conversation and logs items", "2.".bold(), "AI review".cyan());
-        println!("  {} {} - Run: proj session end --force \"{}\"", "3.".bold(), "End anyway".cyan(), summary);
+        println!(
+            "  {} {} - Run proj log/task commands yourself",
+            "1.".bold(),
+            "Add manually".cyan()
+        );
+        println!(
+            "  {} {} - AI analyzes conversation and logs items",
+            "2.".bold(),
+            "AI review".cyan()
+        );
+        println!(
+            "  {} {} - Run: proj session end --force \"{}\"",
+            "3.".bold(),
+            "End anyway".cyan(),
+            summary
+        );
         println!();
         println!("{}", "Session not ended. Choose an option above.".dimmed());
         return Ok(());
@@ -179,7 +192,9 @@ fn display_session_activity(conn: &rusqlite::Connection, session_id: i64) -> Res
         "SELECT description, priority, status FROM tasks WHERE session_id = ? ORDER BY created_at",
     )?;
     let tasks: Vec<(String, String, String)> = stmt
-        .query_map([session_id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+        .query_map([session_id], |row| {
+            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+        })?
         .filter_map(|r| r.ok())
         .collect();
 
@@ -263,8 +278,13 @@ fn display_session_activity(conn: &rusqlite::Connection, session_id: i64) -> Res
     }
 
     if !has_activity {
-        println!("\n  {} No decisions, tasks, or blockers logged this session.", "ℹ".blue());
-        println!("  Tip: Use 'proj log decision', 'proj task add', 'proj log blocker' during sessions.");
+        println!(
+            "\n  {} No decisions, tasks, or blockers logged this session.",
+            "ℹ".blue()
+        );
+        println!(
+            "  Tip: Use 'proj log decision', 'proj task add', 'proj log blocker' during sessions."
+        );
     }
 
     println!("{}", "─".repeat(50));

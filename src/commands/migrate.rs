@@ -10,7 +10,7 @@ use dialoguer::{Confirm, Input, Select};
 use crate::config::{ProjectConfig, Registry, RegistryEntry};
 use crate::database::open_database;
 use crate::paths::{ensure_dir, get_registry_path};
-use crate::schema::{TRACKING_SCHEMA, FTS_SCHEMA};
+use crate::schema::{FTS_SCHEMA, TRACKING_SCHEMA};
 use crate::SCHEMA_VERSION;
 
 pub fn run() -> Result<()> {

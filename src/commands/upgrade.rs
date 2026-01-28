@@ -2,12 +2,12 @@
 
 use std::path::Path;
 
-use anyhow::{Context, Result};
-use colored::Colorize;
 use crate::config::{ProjectConfig, Registry};
 use crate::database::{get_schema_version, open_database, set_schema_version};
 use crate::paths::{get_config_path, get_registry_path, get_tracking_db_path};
 use crate::SCHEMA_VERSION;
+use anyhow::{Context, Result};
+use colored::Colorize;
 
 /// Schema change definition
 struct SchemaChange {
@@ -336,8 +336,7 @@ fn upgrade_current_project(info_mode: bool) -> Result<()> {
 /// Check if an upgrade is safe
 fn check_upgrade_compatibility(db_path: &Path) -> Result<UpgradeCompatibility> {
     let conn = open_database(db_path)?;
-    let current_version =
-        get_schema_version(&conn)?.unwrap_or_else(|| "1.0".to_string());
+    let current_version = get_schema_version(&conn)?.unwrap_or_else(|| "1.0".to_string());
     let target_version = SCHEMA_VERSION.to_string();
 
     let mut result = UpgradeCompatibility {
@@ -395,8 +394,7 @@ fn check_upgrade_compatibility(db_path: &Path) -> Result<UpgradeCompatibility> {
 /// Apply pending upgrades to the database
 fn apply_upgrades(db_path: &Path, config_path: &Path) -> Result<()> {
     let conn = open_database(db_path)?;
-    let current_version =
-        get_schema_version(&conn)?.unwrap_or_else(|| "1.0".to_string());
+    let current_version = get_schema_version(&conn)?.unwrap_or_else(|| "1.0".to_string());
 
     let pending = get_pending_upgrades(&current_version, SCHEMA_VERSION);
 

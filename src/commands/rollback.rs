@@ -159,7 +159,10 @@ fn list_schema_backups() -> Result<()> {
         if config_path.exists() {
             let content = std::fs::read_to_string(&config_path).ok()?;
             let config: serde_json::Value = serde_json::from_str(&content).ok()?;
-            config.get("name").and_then(|v| v.as_str()).map(String::from)
+            config
+                .get("name")
+                .and_then(|v| v.as_str())
+                .map(String::from)
         } else {
             None
         }
@@ -355,10 +358,7 @@ fn restore_schema_backup() -> Result<()> {
         backup_metadata.schema_version.yellow()
     );
     println!();
-    println!(
-        "{}",
-        "Warning: Current .tracking/ data will be lost!".red()
-    );
+    println!("{}", "Warning: Current .tracking/ data will be lost!".red());
     println!();
 
     if !Confirm::new()

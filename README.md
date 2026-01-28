@@ -73,7 +73,7 @@ The biggest finding: without tracking, AI agents literally cannot recover what t
 - **[Cheat Sheet](docs/cheatsheet.md)** - One-page quick reference
 - **[Changelog](CHANGELOG.md)** - Version history and release notes
 
-## Documentation Database (New in v1.6.0)
+## Documentation Database
 
 proj can also manage project documentation with full-text search:
 

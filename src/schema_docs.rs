@@ -207,7 +207,6 @@ impl DocType {
             _ => None,
         }
     }
-
 }
 
 impl std::fmt::Display for DocType {
@@ -238,11 +237,10 @@ pub fn set_meta(conn: &rusqlite::Connection, key: &str, value: &str) -> anyhow::
 
 /// Get metadata from the docs database
 pub fn get_meta(conn: &rusqlite::Connection, key: &str) -> anyhow::Result<Option<String>> {
-    let result: Result<String, _> = conn.query_row(
-        "SELECT value FROM meta WHERE key = ?1",
-        [key],
-        |row| row.get(0),
-    );
+    let result: Result<String, _> =
+        conn.query_row("SELECT value FROM meta WHERE key = ?1", [key], |row| {
+            row.get(0)
+        });
     match result {
         Ok(value) => Ok(Some(value)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),

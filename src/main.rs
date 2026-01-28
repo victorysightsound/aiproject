@@ -98,9 +98,11 @@ fn main() -> Result<()> {
         Commands::Archive => commands::archive::run(),
         Commands::Update => commands::update_check::run(),
         Commands::Release { version, check } => commands::release::run(version, check),
-        Commands::Rollback { version, schema, list } => {
-            commands::rollback::run(version, schema, list)
-        }
+        Commands::Rollback {
+            version,
+            schema,
+            list,
+        } => commands::rollback::run(version, schema, list),
         Commands::Shell(cmd) => {
             use cli::ShellSubcommand;
             match cmd.command {
@@ -109,9 +111,11 @@ fn main() -> Result<()> {
                 ShellSubcommand::Status => commands::shell::status(),
             }
         }
-        Commands::Uninstall { shell, project, all } => {
-            commands::uninstall::run(shell, project, all)
-        }
+        Commands::Uninstall {
+            shell,
+            project,
+            all,
+        } => commands::uninstall::run(shell, project, all),
         Commands::Docs(cmd) => commands::docs::run(cmd),
     }
 }
