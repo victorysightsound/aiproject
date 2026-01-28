@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import * as cli from './cli';
 import { registerParticipant } from './participant';
 import * as statusBar from './statusBar';
-import { registerTools, formatSessionActivity } from './tools';
+import { registerTools } from './tools';
 
 // Debug output channel
 let debugChannel: vscode.OutputChannel;
@@ -219,18 +219,40 @@ function registerCommands(context: vscode.ExtensionContext): void {
             }
 
             log(`Menu choice: ${choice.value}`);
+
+            // Small delay to let the QuickPick fully close before opening another UI
+            await new Promise(resolve => setTimeout(resolve, 150));
+
             switch (choice.value) {
                 case 'status':
-                    log('Executing proj.status');
-                    await vscode.commands.executeCommand('proj.status');
+                    log('Opening Copilot Chat with @proj /status');
+                    try {
+                        await vscode.commands.executeCommand('workbench.action.chat.open', {
+                            query: '@proj /status'
+                        });
+                    } catch {
+                        await vscode.commands.executeCommand('proj.status');
+                    }
                     break;
                 case 'tasks':
-                    log('Executing proj.tasks');
-                    await vscode.commands.executeCommand('proj.tasks');
+                    log('Opening Copilot Chat with @proj /tasks');
+                    try {
+                        await vscode.commands.executeCommand('workbench.action.chat.open', {
+                            query: '@proj /tasks'
+                        });
+                    } catch {
+                        await vscode.commands.executeCommand('proj.tasks');
+                    }
                     break;
                 case 'end':
-                    log('Executing proj.endSessionWithOptions');
-                    await vscode.commands.executeCommand('proj.endSessionWithOptions');
+                    log('Opening Copilot Chat with @proj /end-auto');
+                    try {
+                        await vscode.commands.executeCommand('workbench.action.chat.open', {
+                            query: '@proj /end-auto'
+                        });
+                    } catch {
+                        await vscode.commands.executeCommand('proj.endSessionWithOptions');
+                    }
                     break;
                 case 'refresh':
                     log('Executing proj.refresh');
@@ -245,26 +267,22 @@ function registerCommands(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('proj.endSessionWithOptions', async () => {
             try {
             log('proj.endSessionWithOptions command triggered');
-            const choice = await vscode.window.showQuickPick([
-                {
-                    label: '$(edit) Enter summary manually',
-                    description: 'Type your own session summary',
-                    value: 'manual'
-                },
-                {
-                    label: '$(sparkle) Auto-generate summary',
-                    description: 'Let Copilot generate a summary from session activity',
-                    value: 'auto'
-                }
-            ], {
-                placeHolder: 'How do you want to end this session?'
-            });
+
+            // Use a notification dialog instead of QuickPick to avoid
+            // chained-QuickPick issues when triggered from the status bar menu
+            const choice = await vscode.window.showInformationMessage(
+                'End session - how do you want to provide a summary?',
+                { modal: false },
+                'Enter Manually',
+                'Auto-Generate'
+            );
+            log(`endSession choice: ${choice}`);
 
             if (!choice) {
                 return;
             }
 
-            if (choice.value === 'manual') {
+            if (choice === 'Enter Manually') {
                 // Manual: prompt for summary
                 const summary = await vscode.window.showInputBox({
                     prompt: 'Session summary',
@@ -284,122 +302,17 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     vscode.window.showErrorMessage(`Failed to end session: ${result.stderr}`);
                 }
             } else {
-                // Auto: get session activity and try to generate summary with AI
-                log('Auto-summary selected');
-
-                const generatedSummary = await vscode.window.withProgress({
-                    location: vscode.ProgressLocation.Notification,
-                    title: 'Generating session summary...',
-                    cancellable: false
-                }, async (progress) => {
-                    let summary: string | undefined;
-
-                    try {
-                        // Step 1: Get session activity
-                        progress.report({ message: 'Getting session activity...' });
-                        log('Getting session activity...');
-                        const result = cli.runProjSync(['resume', '--for-ai']);
-                        log(`CLI result: success=${result.success}, stdout length=${result.stdout?.length || 0}`);
-
-                        if (!result.success) {
-                            log(`CLI failed: ${result.stderr}`);
-                            return undefined;
-                        }
-
-                        let activityText: string;
-                        try {
-                            const data = JSON.parse(result.stdout);
-                            activityText = formatSessionActivity(data);
-                        } catch {
-                            activityText = result.stdout;
-                        }
-                        log(`Activity text length: ${activityText.length}`);
-
-                        // Step 2: Try to use Language Model API
-                        progress.report({ message: 'Connecting to Copilot...' });
-
-                        if (!vscode.lm || typeof vscode.lm.selectChatModels !== 'function') {
-                            log('LM API not available on this vscode.lm object');
-                            return undefined;
-                        }
-
-                        log('LM API available, trying to get models (no family filter)...');
-                        try {
-                            // Try without family filter first to find ANY available model
-                            const modelPromise = vscode.lm.selectChatModels();
-                            const timeoutPromise = new Promise<never>((_, reject) =>
-                                setTimeout(() => reject(new Error('Model selection timeout')), 5000)
-                            );
-
-                            const models = await Promise.race([modelPromise, timeoutPromise]);
-                            log(`Models found: ${models?.length || 0}`);
-                            if (models && models.length > 0) {
-                                // Log all available models for debugging
-                                for (const m of models) {
-                                    log(`  Available model: id=${m.id}, name=${m.name}, vendor=${m.vendor}, family=${m.family}`);
-                                }
-                            }
-
-                            if (!models || models.length === 0) {
-                                log('No language models available');
-                                return undefined;
-                            }
-
-                            const model = models[0];
-                            log(`Using model: ${model.id} (${model.family})`);
-
-                            // Step 3: Generate summary
-                            progress.report({ message: 'Generating summary...' });
-                            const messages = [
-                                vscode.LanguageModelChatMessage.User(
-                                    `Based on this session activity, generate a concise 1-2 sentence summary. ` +
-                                    `If minimal work, say "Session with minimal activity". ` +
-                                    `Return ONLY the summary, no explanations.\n\n${activityText}`
-                                )
-                            ];
-
-                            const requestPromise = (async () => {
-                                const response = await model.sendRequest(messages, {});
-                                let text = '';
-                                for await (const chunk of response.text) {
-                                    text += chunk;
-                                }
-                                return text.trim();
-                            })();
-                            const requestTimeout = new Promise<string>((_, reject) =>
-                                setTimeout(() => reject(new Error('LM request timeout')), 15000)
-                            );
-
-                            summary = await Promise.race([requestPromise, requestTimeout]);
-                            log(`Generated summary: ${summary?.substring(0, 80)}`);
-
-                        } catch (err) {
-                            log(`LM API error: ${err}`);
-                        }
-                    } catch (err) {
-                        log(`Error in auto-summary flow: ${err}`);
-                    }
-
-                    return summary;
-                });
-
-                // Show input box - with AI summary if available, empty otherwise
-                log(`Showing input box, summary: ${generatedSummary ? 'yes' : 'no'}`);
-                const summary = await vscode.window.showInputBox({
-                    prompt: generatedSummary ? 'Review and confirm session summary' : 'Enter session summary',
-                    placeHolder: 'What did you accomplish?',
-                    value: generatedSummary || ''
-                });
-                log(`User entered summary: ${summary ? 'yes' : 'cancelled'}`);
-
-                if (summary) {
-                    const endResult = await cli.endSession(summary);
-                    if (endResult.success) {
-                        vscode.window.showInformationMessage(`Session ended: ${summary}`);
-                        statusBar.refresh();
-                    } else {
-                        vscode.window.showErrorMessage(`Failed to end session: ${endResult.stderr}`);
-                    }
+                // Auto: open Copilot Chat with @proj /end-auto command
+                log('Auto-summary selected - opening Copilot Chat');
+                try {
+                    await vscode.commands.executeCommand('workbench.action.chat.open', {
+                        query: '@proj /end-auto'
+                    });
+                } catch {
+                    // Fallback if chat command doesn't work
+                    vscode.window.showInformationMessage(
+                        'Open Copilot Chat and type: @proj /end-auto'
+                    );
                 }
             }
             } catch (err) {
@@ -476,9 +389,21 @@ async function showSessionNotification(): Promise<void> {
         );
 
         if (selection === 'View Full Status') {
-            vscode.commands.executeCommand('proj.status');
+            try {
+                await vscode.commands.executeCommand('workbench.action.chat.open', {
+                    query: '@proj /status'
+                });
+            } catch {
+                vscode.commands.executeCommand('proj.status');
+            }
         } else if (selection === 'End Session') {
-            vscode.commands.executeCommand('proj.endSessionWithOptions');
+            try {
+                await vscode.commands.executeCommand('workbench.action.chat.open', {
+                    query: '@proj /end-auto'
+                });
+            } catch {
+                vscode.commands.executeCommand('proj.endSessionWithOptions');
+            }
         }
 
     } catch (error) {

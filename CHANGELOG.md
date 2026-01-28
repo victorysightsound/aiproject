@@ -2,6 +2,17 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.25] - 2026-01-28
+
+### Fixed
+- **Restored Copilot Chat integration for all UI actions**: Status bar menu and startup notification buttons now open Copilot Chat instead of native popups
+  - "View Status" opens `@proj /status` in Copilot Chat
+  - "View Tasks" opens `@proj /tasks` in Copilot Chat
+  - "End Session" opens `@proj /end-auto` in Copilot Chat
+  - Startup notification "View Full Status" and "End Session" buttons also route through Copilot Chat
+  - Falls back to native UI if Copilot Chat is unavailable
+- **Removed inline Language Model API code**: Auto-summary no longer uses complex inline LM calls with timeouts; delegates to the `@proj /end-auto` chat command instead
+
 ## [1.7.21] - 2026-01-28
 
 ### Added
