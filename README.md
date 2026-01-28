@@ -6,7 +6,7 @@ Your memory for AI-assisted work.
 
 When you work with AI assistants, a lot happens: decisions get made, tasks pile up, things get done. Then the session ends, and you forget half of it.
 
-**proj** remembers for you. It works for any type of project folder - software development, writing projects, research, documentation, planning, or anything else you're working on with AI assistance. It tracks:
+**proj** remembers for you. It works for any type of project folder - software development, research, documentation, planning, or anything else you're working on with AI assistance. It tracks:
 - What you decided and why
 - What tasks are pending
 - What's blocking you
