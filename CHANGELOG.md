@@ -2,6 +2,15 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.28] - 2026-01-28
+
+### Added
+- **Comprehensive "@proj in Copilot Chat" guide in README**: New section covering three usage methods (slash commands, natural language, automatic tools) ranked by reliability, Copilot mode compatibility table, recommended workflow, quick reference, and troubleshooting
+- **Honest expectations note**: Added "What to Expect" callout clarifying that @proj commands always work while automatic logging depends on Copilot mode and language model
+
+### Changed
+- **Quick Start Step 5 updated**: Renamed from "Let Copilot log automatically" to "Try automatic logging (bonus)" with honest language about mode/model dependency
+
 ## [1.7.27] - 2026-01-28
 
 ### Added
