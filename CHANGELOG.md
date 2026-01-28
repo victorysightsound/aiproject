@@ -2,6 +2,13 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.6] - 2026-01-28
+
+### Added
+- **Shell hook prompt in init wizard**: Interactive mode now asks if you want to enable automatic session tracking
+- **`--shell-hook` flag**: Non-interactive init can install shell hook with this flag
+- Shell hook installation is global (once installed, subsequent `proj init` calls won't ask again)
+
 ## [1.7.5] - 2026-01-27
 
 ### Added
