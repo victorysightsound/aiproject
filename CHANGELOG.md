@@ -2,6 +2,14 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.11] - 2026-01-28
+
+### Fixed
+- **VS Code auto-summary now actually ends the session**: v1.7.10 fix was incomplete - it generated a summary but didn't call `proj session end`
+  - Now uses VS Code Language Model API to generate summary
+  - Shows input box with AI-generated summary pre-filled for user review
+  - Actually ends the session after user confirms
+
 ## [1.7.10] - 2026-01-28
 
 ### Fixed

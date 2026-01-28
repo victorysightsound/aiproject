@@ -252,7 +252,7 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     vscode.window.showErrorMessage(`Failed to end session: ${result.stderr}`);
                 }
             } else {
-                // Auto: get session activity directly and ask Copilot to summarize
+                // Auto: get session activity and use LM API to generate summary
                 const result = cli.runProjSync(['resume', '--for-ai']);
 
                 if (!result.success) {
@@ -268,27 +268,44 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     activityText = result.stdout;
                 }
 
-                // Open Copilot Chat with the activity included in the query
+                // Try to use Language Model API to generate summary
+                let generatedSummary: string | undefined;
                 try {
-                    await vscode.commands.executeCommand('workbench.action.chat.open', {
-                        query: `Based on this session activity, generate a concise 1-2 sentence summary of what was accomplished. Then I'll use that summary to end the session.\n\n${activityText}`
-                    });
-                } catch {
-                    // Fallback: show activity and ask user to summarize
-                    const summary = await vscode.window.showInputBox({
-                        prompt: 'AI summary unavailable. Enter session summary manually',
-                        placeHolder: 'What did you accomplish?',
-                        value: ''
-                    });
-
-                    if (summary) {
-                        const endResult = await cli.endSession(summary);
-                        if (endResult.success) {
-                            vscode.window.showInformationMessage(`Session ended: ${summary}`);
-                            statusBar.refresh();
-                        } else {
-                            vscode.window.showErrorMessage(`Failed to end session: ${endResult.stderr}`);
+                    const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+                    if (models.length > 0) {
+                        const model = models[0];
+                        const messages = [
+                            vscode.LanguageModelChatMessage.User(
+                                `Based on this session activity, generate a concise 1-2 sentence summary of what was accomplished. ` +
+                                `If no significant work was done, say "Session with minimal activity" or similar. ` +
+                                `Return ONLY the summary text, no explanations.\n\n${activityText}`
+                            )
+                        ];
+                        const response = await model.sendRequest(messages, {});
+                        let text = '';
+                        for await (const chunk of response.text) {
+                            text += chunk;
                         }
+                        generatedSummary = text.trim();
+                    }
+                } catch (err) {
+                    console.log('[proj] LM API error:', err);
+                }
+
+                // Show input box with generated summary pre-filled (or empty if generation failed)
+                const summary = await vscode.window.showInputBox({
+                    prompt: generatedSummary ? 'Review and confirm session summary' : 'Enter session summary',
+                    placeHolder: 'What did you accomplish?',
+                    value: generatedSummary || ''
+                });
+
+                if (summary) {
+                    const endResult = await cli.endSession(summary);
+                    if (endResult.success) {
+                        vscode.window.showInformationMessage(`Session ended: ${summary}`);
+                        statusBar.refresh();
+                    } else {
+                        vscode.window.showErrorMessage(`Failed to end session: ${endResult.stderr}`);
                     }
                 }
             }

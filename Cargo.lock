@@ -31,7 +31,7 @@ dependencies = [
 
 [[package]]
 name = "aiproject"
-version = "1.7.10"
+version = "1.7.11"
 dependencies = [
  "anyhow",
  "assert_cmd",
