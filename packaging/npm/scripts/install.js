@@ -6,7 +6,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const zlib = require('zlib');
 
-const VERSION = '1.7.13';
+const VERSION = '1.7.14';
 const REPO = 'victorysightsound/aiproject';
 
 function getPlatformTarget() {
@@ -72,9 +72,17 @@ async function install() {
     const data = await download(url);
 
     if (isWindows) {
-      // For Windows, we'd need to handle zip extraction
-      // For simplicity, write a placeholder
-      console.log('Windows installation requires manual binary placement');
+      // Extract zip on Windows using PowerShell
+      const tempZip = path.join(binDir, 'temp.zip');
+      fs.writeFileSync(tempZip, data);
+      try {
+        execSync(`powershell -Command "Expand-Archive -Path '${tempZip}' -DestinationPath '${binDir}' -Force"`, { stdio: 'inherit' });
+        fs.unlinkSync(tempZip);
+      } catch (e) {
+        console.error('Failed to extract zip. Please extract manually from:', url);
+        fs.unlinkSync(tempZip);
+        process.exit(1);
+      }
     } else {
       // Extract tar.gz
       const tempTar = path.join(binDir, 'temp.tar');

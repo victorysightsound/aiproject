@@ -2,6 +2,13 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.14] - 2026-01-28
+
+### Fixed
+- **npm installer now works on Windows**: Was just printing a message instead of installing
+  - Uses PowerShell `Expand-Archive` to extract zip files
+- **VS Code extension checks npm install location**: Added `%APPDATA%\npm` to path search on Windows
+
 ## [1.7.13] - 2026-01-28
 
 ### Fixed

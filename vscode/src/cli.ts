@@ -100,14 +100,19 @@ function getProjPath(): string {
     paths.push(path.join(homeDir, '.cargo', 'bin', `proj${exe}`));
 
     if (isWindows) {
-        // Windows: check scoop, chocolatey, and common locations
+        // Windows: check npm global, scoop, chocolatey, and common locations
+        const appData = process.env.APPDATA || path.join(homeDir, 'AppData', 'Roaming');
+        paths.push(path.join(appData, 'npm', `proj.cmd`));  // npm global install
+        paths.push(path.join(appData, 'npm', 'node_modules', 'create-aiproj', 'bin', `proj${exe}`));
         paths.push(path.join(homeDir, 'scoop', 'shims', `proj${exe}`));
         paths.push(`C:\\Program Files\\proj\\proj${exe}`);
     } else {
-        // macOS/Linux: Homebrew and standard paths
-        paths.push('/usr/local/bin/proj');           // Homebrew Intel / Linux
+        // macOS/Linux: Homebrew, npm global, and standard paths
+        paths.push('/usr/local/bin/proj');           // Homebrew Intel / Linux / npm global
         paths.push('/opt/homebrew/bin/proj');        // Homebrew Apple Silicon
         paths.push('/usr/bin/proj');                 // System install
+        // npm global on macOS/Linux (if using custom prefix)
+        paths.push(path.join(homeDir, '.npm-global', 'bin', 'proj'));
     }
 
     // Fallback to just the command name (rely on PATH)
