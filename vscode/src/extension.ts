@@ -281,14 +281,26 @@ function registerCommands(context: vscode.ExtensionContext): void {
             } else {
                 // Auto: get session activity and try to generate summary with AI
                 log('Auto-summary selected');
-                let generatedSummary: string | undefined;
 
-                try {
-                    log('Getting session activity...');
-                    const result = cli.runProjSync(['resume', '--for-ai']);
-                    log(`CLI result: ${result.success}`);
+                const generatedSummary = await vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: 'Generating session summary...',
+                    cancellable: false
+                }, async (progress) => {
+                    let summary: string | undefined;
 
-                    if (result.success) {
+                    try {
+                        // Step 1: Get session activity
+                        progress.report({ message: 'Getting session activity...' });
+                        log('Getting session activity...');
+                        const result = cli.runProjSync(['resume', '--for-ai']);
+                        log(`CLI result: success=${result.success}, stdout length=${result.stdout?.length || 0}`);
+
+                        if (!result.success) {
+                            log(`CLI failed: ${result.stderr}`);
+                            return undefined;
+                        }
+
                         let activityText: string;
                         try {
                             const data = JSON.parse(result.stdout);
@@ -298,56 +310,73 @@ function registerCommands(context: vscode.ExtensionContext): void {
                         }
                         log(`Activity text length: ${activityText.length}`);
 
-                        // Try to use Language Model API if available (with timeout)
-                        if (vscode.lm && typeof vscode.lm.selectChatModels === 'function') {
-                            log('LM API available, trying to get models...');
-                            try {
-                                // Add timeout for model selection
-                                const modelPromise = vscode.lm.selectChatModels({ family: 'gpt-4' });
-                                const timeoutPromise = new Promise<never>((_, reject) =>
-                                    setTimeout(() => reject(new Error('Model selection timeout')), 5000)
-                                );
+                        // Step 2: Try to use Language Model API
+                        progress.report({ message: 'Connecting to Copilot...' });
 
-                                const models = await Promise.race([modelPromise, timeoutPromise]);
-                                log(`Models found: ${models?.length || 0}`);
-
-                                if (models && models.length > 0) {
-                                    const model = models[0];
-                                    log(`Using model: ${model.id}`);
-                                    const messages = [
-                                        vscode.LanguageModelChatMessage.User(
-                                            `Based on this session activity, generate a concise 1-2 sentence summary. ` +
-                                            `If minimal work, say "Session with minimal activity". ` +
-                                            `Return ONLY the summary, no explanations.\n\n${activityText}`
-                                        )
-                                    ];
-
-                                    // Add timeout for the request
-                                    const requestPromise = (async () => {
-                                        const response = await model.sendRequest(messages, {});
-                                        let text = '';
-                                        for await (const chunk of response.text) {
-                                            text += chunk;
-                                        }
-                                        return text.trim();
-                                    })();
-                                    const requestTimeout = new Promise<string>((_, reject) =>
-                                        setTimeout(() => reject(new Error('LM request timeout')), 15000)
-                                    );
-
-                                    generatedSummary = await Promise.race([requestPromise, requestTimeout]);
-                                    log(`Generated summary: ${generatedSummary?.substring(0, 50)}`);
-                                }
-                            } catch (err) {
-                                log(`LM API error: ${err}`);
-                            }
-                        } else {
-                            log('LM API not available');
+                        if (!vscode.lm || typeof vscode.lm.selectChatModels !== 'function') {
+                            log('LM API not available on this vscode.lm object');
+                            return undefined;
                         }
+
+                        log('LM API available, trying to get models (no family filter)...');
+                        try {
+                            // Try without family filter first to find ANY available model
+                            const modelPromise = vscode.lm.selectChatModels();
+                            const timeoutPromise = new Promise<never>((_, reject) =>
+                                setTimeout(() => reject(new Error('Model selection timeout')), 5000)
+                            );
+
+                            const models = await Promise.race([modelPromise, timeoutPromise]);
+                            log(`Models found: ${models?.length || 0}`);
+                            if (models && models.length > 0) {
+                                // Log all available models for debugging
+                                for (const m of models) {
+                                    log(`  Available model: id=${m.id}, name=${m.name}, vendor=${m.vendor}, family=${m.family}`);
+                                }
+                            }
+
+                            if (!models || models.length === 0) {
+                                log('No language models available');
+                                return undefined;
+                            }
+
+                            const model = models[0];
+                            log(`Using model: ${model.id} (${model.family})`);
+
+                            // Step 3: Generate summary
+                            progress.report({ message: 'Generating summary...' });
+                            const messages = [
+                                vscode.LanguageModelChatMessage.User(
+                                    `Based on this session activity, generate a concise 1-2 sentence summary. ` +
+                                    `If minimal work, say "Session with minimal activity". ` +
+                                    `Return ONLY the summary, no explanations.\n\n${activityText}`
+                                )
+                            ];
+
+                            const requestPromise = (async () => {
+                                const response = await model.sendRequest(messages, {});
+                                let text = '';
+                                for await (const chunk of response.text) {
+                                    text += chunk;
+                                }
+                                return text.trim();
+                            })();
+                            const requestTimeout = new Promise<string>((_, reject) =>
+                                setTimeout(() => reject(new Error('LM request timeout')), 15000)
+                            );
+
+                            summary = await Promise.race([requestPromise, requestTimeout]);
+                            log(`Generated summary: ${summary?.substring(0, 80)}`);
+
+                        } catch (err) {
+                            log(`LM API error: ${err}`);
+                        }
+                    } catch (err) {
+                        log(`Error in auto-summary flow: ${err}`);
                     }
-                } catch (err) {
-                    log(`Error getting session activity: ${err}`);
-                }
+
+                    return summary;
+                });
 
                 // Show input box - with AI summary if available, empty otherwise
                 log(`Showing input box, summary: ${generatedSummary ? 'yes' : 'no'}`);

@@ -2,6 +2,15 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.19] - 2026-01-28
+
+### Fixed
+- **VS Code auto-summary: visible progress and broader model search**
+  - Added progress notification ("Generating session summary...") so user sees activity
+  - Removed `{ family: 'gpt-4' }` filter from model selection - now finds ANY available Copilot model
+  - Logs all available models with id, name, vendor, family for debugging
+  - Uses `vscode.window.withProgress` for visible spinner during generation
+
 ## [1.7.18] - 2026-01-28
 
 ### Fixed
