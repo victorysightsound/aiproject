@@ -26,9 +26,18 @@ export function runProjSync(args: string[]): ProjResult {
     const command = `${projPath} ${args.join(' ')}`;
     console.log(`[proj] Running sync: ${command} in ${workspacePath}`);
 
-    // Build PATH including cargo bin directory
-    const homeDir = process.env.HOME || '';
-    const extendedPath = `${homeDir}/.cargo/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin`;
+    // Build extended PATH including cargo bin (cross-platform)
+    const path = require('path');
+    const isWindows = process.platform === 'win32';
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+    const pathSep = isWindows ? ';' : ':';
+    const currentPath = process.env.PATH || '';
+
+    // Add cargo bin to PATH
+    const cargoBin = path.join(homeDir, '.cargo', 'bin');
+    const extendedPath = isWindows
+        ? `${cargoBin}${pathSep}${currentPath}`
+        : `${cargoBin}:/usr/local/bin:/opt/homebrew/bin:${currentPath}`;
 
     try {
         const stdout = execSync(command, {
@@ -68,6 +77,7 @@ export interface ProjResult {
 /**
  * Get the configured path to the proj CLI
  * Checks common installation locations if not configured
+ * Works on macOS, Linux, and Windows
  */
 function getProjPath(): string {
     const config = vscode.workspace.getConfiguration('proj');
@@ -77,15 +87,31 @@ function getProjPath(): string {
         return configuredPath;
     }
 
-    // Check common installation paths in order of preference
     const fs = require('fs');
-    const homeDir = process.env.HOME || '';
-    const paths = [
-        `${homeDir}/.cargo/bin/proj`,  // Cargo install (usually most up-to-date)
-        '/usr/local/bin/proj',          // Homebrew
-        '/opt/homebrew/bin/proj',       // Homebrew on Apple Silicon
-        'proj'                          // Fallback to PATH
-    ];
+    const path = require('path');
+    const isWindows = process.platform === 'win32';
+    const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+    const exe = isWindows ? '.exe' : '';
+
+    // Build platform-specific paths
+    const paths: string[] = [];
+
+    // Cargo install location (cross-platform)
+    paths.push(path.join(homeDir, '.cargo', 'bin', `proj${exe}`));
+
+    if (isWindows) {
+        // Windows: check scoop, chocolatey, and common locations
+        paths.push(path.join(homeDir, 'scoop', 'shims', `proj${exe}`));
+        paths.push(`C:\\Program Files\\proj\\proj${exe}`);
+    } else {
+        // macOS/Linux: Homebrew and standard paths
+        paths.push('/usr/local/bin/proj');           // Homebrew Intel / Linux
+        paths.push('/opt/homebrew/bin/proj');        // Homebrew Apple Silicon
+        paths.push('/usr/bin/proj');                 // System install
+    }
+
+    // Fallback to just the command name (rely on PATH)
+    paths.push(`proj${exe}`);
 
     for (const p of paths) {
         try {
@@ -97,7 +123,7 @@ function getProjPath(): string {
         }
     }
 
-    return 'proj'; // Fallback
+    return `proj${exe}`; // Final fallback
 }
 
 /**

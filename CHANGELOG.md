@@ -2,6 +2,14 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.13] - 2026-01-28
+
+### Fixed
+- **VS Code extension now works on Windows**: Path detection was Unix-only
+  - Now properly handles Windows paths (`%USERPROFILE%\.cargo\bin\proj.exe`)
+  - Checks scoop and common Windows install locations
+  - Uses correct path separator (`;` on Windows, `:` on Unix)
+
 ## [1.7.12] - 2026-01-28
 
 ### Fixed
