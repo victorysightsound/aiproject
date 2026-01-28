@@ -108,7 +108,7 @@ fn main() -> Result<()> {
         Commands::Shell(cmd) => {
             use cli::ShellSubcommand;
             match cmd.command {
-                ShellSubcommand::Install => commands::shell::install(),
+                ShellSubcommand::Install { force } => commands::shell::install(force),
                 ShellSubcommand::Uninstall => commands::shell::uninstall(),
                 ShellSubcommand::Status => commands::shell::status(),
             }
@@ -117,7 +117,8 @@ fn main() -> Result<()> {
             shell,
             project,
             all,
-        } => commands::uninstall::run(shell, project, all),
+            force,
+        } => commands::uninstall::run(shell, project, all, force),
         Commands::Docs(cmd) => commands::docs::run(cmd),
     }
 }

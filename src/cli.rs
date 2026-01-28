@@ -173,6 +173,9 @@ pub enum Commands {
         /// Remove shell hook + .tracking/ from ALL registered projects
         #[arg(long)]
         all: bool,
+        /// Skip confirmation prompts (for non-interactive use)
+        #[arg(long, short = 'y')]
+        force: bool,
     },
     /// Project documentation database
     Docs(DocsCommands),
@@ -187,7 +190,11 @@ pub struct ShellCommands {
 #[derive(Subcommand)]
 pub enum ShellSubcommand {
     /// Install shell hook for automatic session tracking
-    Install,
+    Install {
+        /// Install for all available shells without prompting (for non-interactive use)
+        #[arg(long, short = 'y')]
+        force: bool,
+    },
     /// Remove shell hook
     Uninstall,
     /// Show shell integration status

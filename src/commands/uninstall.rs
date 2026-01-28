@@ -10,17 +10,17 @@ use crate::commands::shell;
 use crate::config::Registry;
 use crate::paths::get_registry_path;
 
-pub fn run(shell_only: bool, project_only: bool, all: bool) -> Result<()> {
+pub fn run(shell_only: bool, project_only: bool, all: bool, force: bool) -> Result<()> {
     if shell_only {
         return uninstall_shell();
     }
 
     if project_only {
-        return uninstall_current_project();
+        return uninstall_current_project(force);
     }
 
     if all {
-        return uninstall_all();
+        return uninstall_all(force);
     }
 
     // No flags - show help
@@ -56,7 +56,7 @@ fn uninstall_shell() -> Result<()> {
 }
 
 /// Remove .tracking from current project
-fn uninstall_current_project() -> Result<()> {
+fn uninstall_current_project(force: bool) -> Result<()> {
     let project_root = std::env::current_dir()?;
     let tracking_path = project_root.join(".tracking");
 
@@ -70,27 +70,29 @@ fn uninstall_current_project() -> Result<()> {
         .and_then(|n| n.to_str())
         .unwrap_or("this project");
 
-    println!("{}", "Uninstall proj from current project".bold());
-    println!();
-    println!(
-        "This will {} .tracking/ directory from {}",
-        "permanently delete".red(),
-        project_name
-    );
-    println!();
-    println!("Data that will be lost:");
-    println!("  • All session history");
-    println!("  • All logged decisions, notes, tasks");
-    println!("  • Project configuration");
-    println!();
+    if !force {
+        println!("{}", "Uninstall proj from current project".bold());
+        println!();
+        println!(
+            "This will {} .tracking/ directory from {}",
+            "permanently delete".red(),
+            project_name
+        );
+        println!();
+        println!("Data that will be lost:");
+        println!("  • All session history");
+        println!("  • All logged decisions, notes, tasks");
+        println!("  • Project configuration");
+        println!();
 
-    if !Confirm::new()
-        .with_prompt("Are you sure you want to remove proj from this project?")
-        .default(false)
-        .interact()?
-    {
-        println!("Cancelled.");
-        return Ok(());
+        if !Confirm::new()
+            .with_prompt("Are you sure you want to remove proj from this project?")
+            .default(false)
+            .interact()?
+        {
+            println!("Cancelled.");
+            return Ok(());
+        }
     }
 
     // Remove the tracking directory
@@ -106,10 +108,7 @@ fn uninstall_current_project() -> Result<()> {
 }
 
 /// Remove everything - shell hook + all registered projects
-fn uninstall_all() -> Result<()> {
-    println!("{}", "Complete proj Uninstall".bold().red());
-    println!();
-
+fn uninstall_all(force: bool) -> Result<()> {
     // Load registry to see what will be removed
     let registry = load_registry()?;
     let project_count = registry.registered_projects.len();
@@ -119,43 +118,48 @@ fn uninstall_all() -> Result<()> {
         return Ok(());
     }
 
-    println!("This will:");
-    if shell::is_installed() {
-        println!("  • Remove shell integration from ~/.zshrc and/or ~/.bashrc");
-    }
-    if project_count > 0 {
-        println!(
-            "  • {} .tracking/ from {} registered project(s):",
-            "Permanently delete".red(),
-            project_count
-        );
-        for proj in &registry.registered_projects {
-            println!("    - {} ({})", proj.name, proj.path);
-        }
-    }
-    println!();
-
-    if !Confirm::new()
-        .with_prompt("Are you absolutely sure? This cannot be undone.")
-        .default(false)
-        .interact()?
-    {
-        println!("Cancelled.");
-        return Ok(());
-    }
-
-    // Extra confirmation for complete removal
-    if project_count > 0 {
+    if !force {
+        println!("{}", "Complete proj Uninstall".bold().red());
         println!();
-        println!(
-            "{}",
-            "Type 'DELETE ALL' to confirm complete removal:".yellow()
-        );
-        let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        if input.trim() != "DELETE ALL" {
+
+        println!("This will:");
+        if shell::is_installed() {
+            println!("  • Remove shell integration from ~/.zshrc and/or ~/.bashrc");
+        }
+        if project_count > 0 {
+            println!(
+                "  • {} .tracking/ from {} registered project(s):",
+                "Permanently delete".red(),
+                project_count
+            );
+            for proj in &registry.registered_projects {
+                println!("    - {} ({})", proj.name, proj.path);
+            }
+        }
+        println!();
+
+        if !Confirm::new()
+            .with_prompt("Are you absolutely sure? This cannot be undone.")
+            .default(false)
+            .interact()?
+        {
             println!("Cancelled.");
             return Ok(());
+        }
+
+        // Extra confirmation for complete removal
+        if project_count > 0 {
+            println!();
+            println!(
+                "{}",
+                "Type 'DELETE ALL' to confirm complete removal:".yellow()
+            );
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            if input.trim() != "DELETE ALL" {
+                println!("Cancelled.");
+                return Ok(());
+            }
         }
     }
 

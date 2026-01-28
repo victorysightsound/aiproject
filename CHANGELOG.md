@@ -2,6 +2,19 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.8] - 2026-01-28
+
+### Added
+- **Non-interactive support for uninstall**: `proj uninstall --project --force` and `proj uninstall --all --force`
+  - Skip confirmation prompts for LLM CLI tools (Claude Code, Codex, etc.)
+  - Also available as `-y` short flag
+- **Non-interactive support for shell install**: `proj shell install --force`
+  - Installs for all available shells without prompting
+  - Also available as `-y` short flag
+
+### Changed
+- Removed duplicate shell hook code from init.rs, now delegates to shell.rs
+
 ## [1.7.7] - 2026-01-28
 
 ### Added

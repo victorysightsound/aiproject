@@ -43,10 +43,7 @@ if [[ "$PROMPT_COMMAND" != *"_proj_auto_enter"* ]]; then
 fi
 # <<< proj shell integration <<<"#;
 
-pub fn install() -> Result<()> {
-    println!("{}", "Shell Integration Setup".bold());
-    println!();
-
+pub fn install(force: bool) -> Result<()> {
     let home = dirs::home_dir().context("Could not determine home directory")?;
     let zshrc = home.join(".zshrc");
     let bashrc = home.join(".bashrc");
@@ -76,27 +73,36 @@ pub fn install() -> Result<()> {
         if bash_installed {
             println!("  • ~/.bashrc");
         }
-        println!();
-        println!("To reinstall, first run: proj shell uninstall");
+        if !force {
+            println!();
+            println!("To reinstall, first run: proj shell uninstall");
+        }
         return Ok(());
     }
 
-    // Show what we're about to do
-    println!("This will add a hook to your shell configuration that:");
-    println!("  • Detects when you cd into a directory with .tracking/");
-    println!("  • Automatically runs 'proj enter' to start/continue session");
-    println!("  • Shows project context only when starting a new session");
-    println!();
+    if !force {
+        println!("{}", "Shell Integration Setup".bold());
+        println!();
+
+        // Show what we're about to do
+        println!("This will add a hook to your shell configuration that:");
+        println!("  • Detects when you cd into a directory with .tracking/");
+        println!("  • Automatically runs 'proj enter' to start/continue session");
+        println!("  • Shows project context only when starting a new session");
+        println!();
+    }
 
     let mut installed_shells = Vec::new();
 
     // Install for zsh
     if zsh_exists && !zsh_installed {
-        if Confirm::new()
-            .with_prompt("Install for zsh (~/.zshrc)?")
-            .default(true)
-            .interact()?
-        {
+        let should_install = force
+            || Confirm::new()
+                .with_prompt("Install for zsh (~/.zshrc)?")
+                .default(true)
+                .interact()?;
+
+        if should_install {
             install_hook(&zshrc, ZSH_HOOK)?;
             installed_shells.push("zsh");
             println!("{} Installed in ~/.zshrc", "✓".green());
@@ -105,11 +111,13 @@ pub fn install() -> Result<()> {
 
     // Install for bash
     if bash_exists && !bash_installed {
-        if Confirm::new()
-            .with_prompt("Install for bash (~/.bashrc)?")
-            .default(true)
-            .interact()?
-        {
+        let should_install = force
+            || Confirm::new()
+                .with_prompt("Install for bash (~/.bashrc)?")
+                .default(true)
+                .interact()?;
+
+        if should_install {
             install_hook(&bashrc, BASH_HOOK)?;
             installed_shells.push("bash");
             println!("{} Installed in ~/.bashrc", "✓".green());

@@ -249,75 +249,8 @@ fn run_non_interactive(
 
 /// Install shell hook without interactive prompts (for non-interactive mode)
 fn install_shell_hook_silent() -> Result<()> {
-    let home = dirs::home_dir().context("Could not determine home directory")?;
-    let zshrc = home.join(".zshrc");
-    let bashrc = home.join(".bashrc");
-
-    // Zsh hook code
-    let zsh_hook = r#"# >>> proj shell integration >>>
-# Automatically runs proj enter when cd'ing into a project with tracking
-_proj_auto_enter() {
-    if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
-        proj enter
-    fi
-}
-# Add to chpwd hooks if not already present
-if [[ -z "${chpwd_functions[(r)_proj_auto_enter]}" ]]; then
-    chpwd_functions+=(_proj_auto_enter)
-fi
-# <<< proj shell integration <<<"#;
-
-    // Bash hook code
-    let bash_hook = r#"# >>> proj shell integration >>>
-# Automatically runs proj enter when cd'ing into a project with tracking
-_proj_last_dir=""
-_proj_auto_enter() {
-    if [[ "$PWD" != "$_proj_last_dir" ]]; then
-        _proj_last_dir="$PWD"
-        if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
-            proj enter
-        fi
-    fi
-}
-# Add to PROMPT_COMMAND if not already present
-if [[ "$PROMPT_COMMAND" != *"_proj_auto_enter"* ]]; then
-    PROMPT_COMMAND="_proj_auto_enter${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
-fi
-# <<< proj shell integration <<<"#;
-
-    let hook_marker = "# >>> proj shell integration >>>";
-
-    // Install for zsh if exists and not already installed
-    if zshrc.exists() {
-        let content = std::fs::read_to_string(&zshrc).unwrap_or_default();
-        if !content.contains(hook_marker) {
-            let mut new_content = content;
-            if !new_content.ends_with('\n') {
-                new_content.push('\n');
-            }
-            new_content.push('\n');
-            new_content.push_str(zsh_hook);
-            new_content.push('\n');
-            std::fs::write(&zshrc, new_content)?;
-        }
-    }
-
-    // Install for bash if exists and not already installed
-    if bashrc.exists() {
-        let content = std::fs::read_to_string(&bashrc).unwrap_or_default();
-        if !content.contains(hook_marker) {
-            let mut new_content = content;
-            if !new_content.ends_with('\n') {
-                new_content.push('\n');
-            }
-            new_content.push('\n');
-            new_content.push_str(bash_hook);
-            new_content.push('\n');
-            std::fs::write(&bashrc, new_content)?;
-        }
-    }
-
-    Ok(())
+    // Delegate to shell::install with force=true to skip prompts
+    crate::commands::shell::install(true)
 }
 
 fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Result<()> {
