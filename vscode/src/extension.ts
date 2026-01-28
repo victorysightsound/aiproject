@@ -268,10 +268,13 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 }
             } else {
                 // Auto: get session activity and try to generate summary with AI
+                console.log('[proj] Auto-summary selected');
                 let generatedSummary: string | undefined;
 
                 try {
+                    console.log('[proj] Getting session activity...');
                     const result = cli.runProjSync(['resume', '--for-ai']);
+                    console.log('[proj] CLI result:', result.success);
 
                     if (result.success) {
                         let activityText: string;
@@ -281,13 +284,24 @@ function registerCommands(context: vscode.ExtensionContext): void {
                         } catch {
                             activityText = result.stdout;
                         }
+                        console.log('[proj] Activity text length:', activityText.length);
 
-                        // Try to use Language Model API if available
+                        // Try to use Language Model API if available (with timeout)
                         if (vscode.lm && typeof vscode.lm.selectChatModels === 'function') {
+                            console.log('[proj] LM API available, trying to get models...');
                             try {
-                                const models = await vscode.lm.selectChatModels({ family: 'gpt-4' });
+                                // Add timeout for model selection
+                                const modelPromise = vscode.lm.selectChatModels({ family: 'gpt-4' });
+                                const timeoutPromise = new Promise<never>((_, reject) =>
+                                    setTimeout(() => reject(new Error('Model selection timeout')), 5000)
+                                );
+
+                                const models = await Promise.race([modelPromise, timeoutPromise]);
+                                console.log('[proj] Models found:', models?.length || 0);
+
                                 if (models && models.length > 0) {
                                     const model = models[0];
+                                    console.log('[proj] Using model:', model.id);
                                     const messages = [
                                         vscode.LanguageModelChatMessage.User(
                                             `Based on this session activity, generate a concise 1-2 sentence summary. ` +
@@ -295,16 +309,28 @@ function registerCommands(context: vscode.ExtensionContext): void {
                                             `Return ONLY the summary, no explanations.\n\n${activityText}`
                                         )
                                     ];
-                                    const response = await model.sendRequest(messages, {});
-                                    let text = '';
-                                    for await (const chunk of response.text) {
-                                        text += chunk;
-                                    }
-                                    generatedSummary = text.trim();
+
+                                    // Add timeout for the request
+                                    const requestPromise = (async () => {
+                                        const response = await model.sendRequest(messages, {});
+                                        let text = '';
+                                        for await (const chunk of response.text) {
+                                            text += chunk;
+                                        }
+                                        return text.trim();
+                                    })();
+                                    const requestTimeout = new Promise<string>((_, reject) =>
+                                        setTimeout(() => reject(new Error('LM request timeout')), 15000)
+                                    );
+
+                                    generatedSummary = await Promise.race([requestPromise, requestTimeout]);
+                                    console.log('[proj] Generated summary:', generatedSummary?.substring(0, 50));
                                 }
                             } catch (err) {
                                 console.log('[proj] LM API error:', err);
                             }
+                        } else {
+                            console.log('[proj] LM API not available');
                         }
                     }
                 } catch (err) {
@@ -312,11 +338,13 @@ function registerCommands(context: vscode.ExtensionContext): void {
                 }
 
                 // Show input box - with AI summary if available, empty otherwise
+                console.log('[proj] Showing input box, summary:', generatedSummary ? 'yes' : 'no');
                 const summary = await vscode.window.showInputBox({
                     prompt: generatedSummary ? 'Review and confirm session summary' : 'Enter session summary',
                     placeHolder: 'What did you accomplish?',
                     value: generatedSummary || ''
                 });
+                console.log('[proj] User entered summary:', summary ? 'yes' : 'cancelled');
 
                 if (summary) {
                     const endResult = await cli.endSession(summary);

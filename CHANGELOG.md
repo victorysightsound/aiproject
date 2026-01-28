@@ -2,6 +2,14 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.17] - 2026-01-28
+
+### Fixed
+- **More debug logging for End Session**: Added detailed logging to auto-summary flow
+  - Logs each step: CLI call, LM API availability, model selection, request
+  - Added 5s timeout for model selection, 15s timeout for LM request
+  - Helps diagnose where the flow is failing
+
 ## [1.7.16] - 2026-01-28
 
 ### Added

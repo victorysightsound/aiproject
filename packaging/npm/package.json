@@ -1,6 +1,6 @@
 {
   "name": "create-aiproj",
-  "version": "1.7.16",
+  "version": "1.7.17",
   "description": "Project tracking and context management for AI-assisted development",
   "keywords": [
     "cli",
