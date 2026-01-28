@@ -452,8 +452,27 @@ async function handleQuery(
         }
     }
 
-    // Default: show status
-    return handleStatusCommand(response);
+    // No keyword match — analyze message for decisions, tasks, and blockers
+    const counts = await detectAndLogItems(prompt, response);
+    const totalLogged = counts.decisions + counts.tasks + counts.blockers;
+
+    if (totalLogged > 0) {
+        // Items were detected and logged — acknowledge
+        response.markdown('---\n');
+        response.markdown('Use `@proj /status` to see all tracked items.\n');
+        return { metadata: { command: 'auto-detect' } };
+    }
+
+    // Nothing detected — show helpful message
+    response.markdown(
+        'I can help you track your project. Try:\n\n' +
+        '- **Tell me a decision:** "Let\'s use SQLite for the database"\n' +
+        '- **Mention a task:** "We need to add error handling"\n' +
+        '- **Report a blocker:** "Blocked on API credentials"\n' +
+        '- **Check status:** `/status`, `/tasks`, `/decisions`\n' +
+        '- **End session:** `/end-auto` or `/end Your summary`\n'
+    );
+    return { metadata: { command: 'help' } };
 }
 
 /**
@@ -573,4 +592,119 @@ function extractTopic(prompt: string): string | null {
     }
 
     return null;
+}
+
+/**
+ * Analyze a message for decisions, tasks, and blockers using the LM API.
+ * Automatically logs any detected items to the proj database.
+ * Returns counts of what was logged.
+ */
+async function detectAndLogItems(
+    prompt: string,
+    response: vscode.ChatResponseStream
+): Promise<{decisions: number; tasks: number; blockers: number}> {
+    const counts = { decisions: 0, tasks: 0, blockers: 0 };
+
+    try {
+        if (!vscode.lm || typeof vscode.lm.selectChatModels !== 'function') {
+            return counts;
+        }
+
+        const models = await vscode.lm.selectChatModels();
+        if (!models || models.length === 0) {
+            return counts;
+        }
+
+        const model = models[0];
+        const messages = [
+            vscode.LanguageModelChatMessage.User(
+                `Analyze this message for project tracking items. Return ONLY valid JSON, no markdown, no explanation.\n\n` +
+                `Message: "${prompt}"\n\n` +
+                `Return this exact JSON structure:\n` +
+                `{"decisions":[{"topic":"short-kebab-topic","decision":"what was decided","rationale":"why"}],"tasks":[{"description":"task description","priority":"high"}],"blockers":[{"description":"blocker description"}]}\n\n` +
+                `Rules:\n` +
+                `- Only extract CLEAR, EXPLICIT items from the message. Do not infer or guess.\n` +
+                `- A decision requires a clear choice: "let's use X", "we'll go with Y", "decided on Z", "choosing X over Y"\n` +
+                `- A task requires clear future work: "need to", "should", "todo", "don't forget", "we'll have to", "remind me to"\n` +
+                `- A blocker requires something preventing progress: "blocked by", "waiting on", "can't because", "stuck on"\n` +
+                `- If the message is a question, greeting, status check, or doesn't contain trackable items, return: {"decisions":[],"tasks":[],"blockers":[]}\n` +
+                `- Return empty arrays if uncertain. Do NOT fabricate items.`
+            )
+        ];
+
+        const requestPromise = (async () => {
+            const chatResponse = await model.sendRequest(messages, {});
+            let text = '';
+            for await (const chunk of chatResponse.text) {
+                text += chunk;
+            }
+            return text.trim();
+        })();
+        const timeout = new Promise<string>((_, reject) =>
+            setTimeout(() => reject(new Error('Detection timeout')), 10000)
+        );
+
+        const text = await Promise.race([requestPromise, timeout]);
+
+        // Parse JSON from response (may be wrapped in markdown code blocks)
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            return counts;
+        }
+
+        const items = JSON.parse(jsonMatch[0]);
+
+        // Log decisions
+        if (items.decisions && Array.isArray(items.decisions)) {
+            for (const d of items.decisions) {
+                if (d.topic && d.decision) {
+                    const args = ['log', 'decision', d.topic, d.decision];
+                    if (d.rationale) {
+                        args.push(d.rationale);
+                    }
+                    const result = cli.runProjSync(args);
+                    if (result.success) {
+                        response.markdown(`> ✓ Logged decision: **${d.topic}** — ${d.decision}\n\n`);
+                        counts.decisions++;
+                    }
+                }
+            }
+        }
+
+        // Log tasks
+        if (items.tasks && Array.isArray(items.tasks)) {
+            for (const t of items.tasks) {
+                if (t.description) {
+                    const args = ['task', 'add', t.description];
+                    if (t.priority) {
+                        args.push('--priority', t.priority);
+                    }
+                    const result = cli.runProjSync(args);
+                    if (result.success) {
+                        response.markdown(`> ✓ Added task: ${t.description}\n\n`);
+                        counts.tasks++;
+                    }
+                }
+            }
+        }
+
+        // Log blockers
+        if (items.blockers && Array.isArray(items.blockers)) {
+            for (const b of items.blockers) {
+                if (b.description) {
+                    const result = cli.runProjSync(['log', 'blocker', b.description]);
+                    if (result.success) {
+                        response.markdown(`> ✓ Logged blocker: ${b.description}\n\n`);
+                        counts.blockers++;
+                    }
+                }
+            }
+        }
+
+    } catch (err) {
+        // Silently fail - don't block the conversation
+        console.log('[proj] detectAndLogItems error:', err);
+    }
+
+    return counts;
 }

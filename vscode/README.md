@@ -112,7 +112,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see a version number like `1.7.17`.
+You should see a version number like `1.7.27`.
 
 ### 2. Initialize proj in your project
 
@@ -170,7 +170,7 @@ cd vscode
 npm install
 npm run compile
 npm run package
-code --install-extension proj-1.7.17.vsix
+code --install-extension proj-1.7.27.vsix
 ```
 
 ---
@@ -248,8 +248,8 @@ Click **Allow** and it will be saved to your project history.
 
 | Button | What it does |
 |--------|--------------|
-| View Full Status | Opens the Output panel with detailed project status |
-| End Session | Opens options to end your session with a summary |
+| View Full Status | Opens `@proj /status` in Copilot Chat |
+| End Session | Opens `@proj /end-auto` in Copilot Chat |
 | OK | Dismisses the notification |
 
 **Important:** The notification stays on screen until you click a button. It won't disappear on its own.
@@ -268,12 +268,12 @@ Click **Allow** and it will be saved to your project history.
 
 | Option | What it does |
 |--------|--------------|
-| View Status | Shows full project status in the Output panel |
-| View Tasks | Shows all your active tasks |
-| End Session... | Opens options to end your session |
+| View Status | Opens `@proj /status` in Copilot Chat |
+| View Tasks | Opens `@proj /tasks` in Copilot Chat |
+| End Session... | Opens `@proj /end-auto` in Copilot Chat |
 | Refresh | Updates the status bar with current data |
 
-**Why it's useful:** One click to end your session - no typing required!
+**Why it's useful:** One click opens Copilot Chat with the right command - no typing required!
 
 ---
 
@@ -294,6 +294,7 @@ These are shortcuts for common actions:
 | `@proj /decisions` | Shows recent decisions | Just type it |
 | `@proj /log` | Shows how to log things | Just type it |
 | `@proj /end` | Ends session with a summary | `@proj /end Fixed the login bug` |
+| `@proj /end-auto` | Ends session with AI-generated summary | Just type it |
 
 #### Natural Language
 
@@ -324,16 +325,20 @@ Use `/log` to record things:
 
 ### 4. Automatic Logging with Language Model Tools
 
-**What it is:** The extension gives Copilot special "tools" it can use to log things automatically during your conversation.
+The extension provides two ways to automatically log decisions, tasks, and blockers:
 
-**How it works:**
+#### Method A: Copilot Ask Mode (Language Model Tools)
 
-1. You're chatting with Copilot (not using @proj, just normal chat)
-2. You say something like "Let's use Redis for caching"
+The extension registers tools that Copilot can call during **Ask mode** conversations. When Copilot recognizes a decision, task, or blocker, it asks for permission before logging.
+
+1. Open Copilot Chat in **Ask mode** (not Agent mode)
+2. Say something like "Let's use Redis for caching"
 3. Copilot recognizes this is a decision
 4. Copilot asks: "Would you like me to log this decision?"
 5. You click Allow
 6. The decision is saved to your project history
+
+**Important:** This only works in Copilot **Ask mode**. Agent mode (which can edit files) does not support extension-provided Language Model Tools.
 
 **The tools available to Copilot:**
 
@@ -349,19 +354,23 @@ Use `/log` to record things:
 | `proj_search_context` | When you ask about past decisions |
 | `proj_get_session_activity` | When generating session summaries |
 
-**Examples of automatic logging:**
+#### Method B: @proj Auto-Detection
 
-> You: "I decided to use TypeScript instead of JavaScript for better type safety"
->
-> Copilot: *asks to log decision* → Logs: "language" - "Using TypeScript instead of JavaScript" - "Better type safety"
+When chatting with `@proj` (any mode), the participant analyzes your messages using AI and automatically detects and logs decisions, tasks, and blockers. No permission dialog needed.
 
-> You: "I need to add error handling to the API later"
+> You: `@proj Let's use TypeScript instead of JavaScript for better type safety`
 >
-> Copilot: *asks to add task* → Adds task: "Add error handling to the API"
+> @proj: `> Logged decision: typescript — Using TypeScript instead of JavaScript`
 
-> You: "I'm stuck because the staging server is down"
+> You: `@proj I need to add error handling to the API later`
 >
-> Copilot: *asks to log blocker* → Logs blocker: "Staging server is down"
+> @proj: `> Added task: Add error handling to the API`
+
+> You: `@proj I'm stuck because the staging server is down`
+>
+> @proj: `> Logged blocker: Staging server is down`
+
+This works in any Copilot mode because it runs through the @proj participant, not through Copilot's general tool system.
 
 ---
 
@@ -369,35 +378,41 @@ Use `/log` to record things:
 
 When you're done working, you should end your session with a summary. This helps you remember what you did when you come back later.
 
-**Three ways to end a session:**
+**Four ways to end a session:**
 
 #### Option A: Status Bar Menu (Easiest)
 
 1. Click the status bar item (`proj (#5)`)
 2. Select "End Session..."
-3. Choose:
-   - **Enter summary manually** - Type your own summary
-   - **Auto-generate summary** - Let Copilot write it for you
+3. Copilot Chat opens with `@proj /end-auto` to generate a summary automatically
 
 #### Option B: Notification Button
 
-When you first open VS Code, click the "End Session" button on the notification.
+When you first open VS Code, click the "End Session" button on the notification. This opens Copilot Chat with `@proj /end-auto`.
 
-#### Option C: Chat Command
+#### Option C: Chat Command (Manual Summary)
 
 Type in Copilot Chat:
 ```
 @proj /end Implemented user authentication and fixed the login bug
 ```
 
-#### Auto-Generated Summaries
+#### Option D: Chat Command (Auto Summary)
 
-When you choose "Auto-generate summary":
+Type in Copilot Chat:
+```
+@proj /end-auto
+```
 
-1. Copilot opens in a new chat
-2. Copilot looks at what you did (decisions, tasks, git changes)
-3. Copilot writes a summary like: "Modified VS Code extension files and added tools.ts"
-4. Copilot ends the session with that summary
+This uses AI to review your session activity (decisions, tasks, git changes) and generate a summary automatically.
+
+#### How Auto-Generated Summaries Work
+
+When you use `/end-auto` (from the menu, notification, or chat):
+
+1. The extension reviews all session activity (decisions, tasks, blockers, git commits)
+2. An AI model generates a concise summary of what was accomplished
+3. The session ends with that summary saved for future reference
 
 This saves you from having to remember and type everything yourself!
 
@@ -531,13 +546,19 @@ Then update `proj.cliPath` in settings to match.
 
 ### Copilot not using proj tools
 
-**Problem:** Copilot doesn't offer to log things.
+**Problem:** Copilot doesn't offer to log decisions, tasks, or blockers automatically.
+
+**Understanding Copilot modes:**
+- **Ask mode**: Language Model Tools work here. Copilot can call `proj_log_decision`, `proj_add_task`, etc. and will ask for your permission.
+- **Agent mode** (Copilot Edits): Does NOT support extension-provided Language Model Tools. Agent mode can edit files but cannot call proj tools.
 
 **Solutions:**
-1. Make sure GitHub Copilot is installed and you're signed in
-2. The tools only work in Copilot Chat (not inline code completions)
-3. Try being explicit: "Please log this decision using the proj tools"
-4. Make sure you're in a workspace with proj tracking
+1. Make sure you're using **Ask mode** in Copilot Chat (not Agent mode)
+2. Make sure GitHub Copilot is installed and you're signed in
+3. The tools only work in Copilot Chat (not inline code completions)
+4. Try being explicit: "Please log this decision using the proj tools"
+5. Make sure you're in a workspace with proj tracking (has `.tracking` folder)
+6. As an alternative, use `@proj` with your message - the auto-detection feature works in any mode
 
 ### Status bar not updating
 
@@ -652,7 +673,7 @@ Creates a `.vsix` file you can install or distribute.
 
 ```bash
 npm run package
-code --install-extension proj-1.7.17.vsix --force
+code --install-extension proj-1.7.27.vsix --force
 ```
 
 Then restart VS Code.
@@ -660,6 +681,35 @@ Then restart VS Code.
 ---
 
 ## Version History
+
+### 1.7.27
+
+- Restored Copilot Chat integration for all UI actions (status bar menu and notification buttons open Copilot Chat)
+- Added `@proj /end-auto` slash command for AI-generated session summaries
+- Added auto-detection: `@proj` analyzes messages and automatically logs decisions, tasks, and blockers
+- Fixed invisible confirmation dialog (changed from `showInputBox` to `showInformationMessage`)
+- Fixed chained QuickPick issue with 150ms delay between UI elements
+- Removed inline Language Model API code from extension.ts (delegates to `@proj /end-auto`)
+
+### 1.7.21
+
+- Added `@proj /end-auto` command for AI-generated summaries in Copilot Chat
+- Fixed status bar "View Status" to show visible feedback
+- Wrapped End Session in error handler for better error reporting
+
+### 1.7.20
+
+- Fixed CLI argument passing: switched from `exec` (shell string) to `execFile` (array args) so arguments with spaces work correctly
+
+### 1.7.19
+
+- Added progress notification during auto-summary generation
+- Broadened Language Model API model search (removed `gpt-4` family filter)
+
+### 1.7.18
+
+- Added dedicated `proj-debug` output channel for VS Code debugging
+- All extension log messages now visible in "proj-debug" output panel
 
 ### 1.7.0
 
@@ -689,7 +739,7 @@ Then restart VS Code.
 - Added Language Model Tools for automatic logging (9 tools)
 - Added session notification on workspace open with action buttons
 - Notification shows last session summary and stays until dismissed
-- Copilot can automatically log decisions, tasks, and blockers during conversation
+- Copilot can automatically log decisions, tasks, and blockers during conversation (Ask mode)
 - Added "End Session" button to status output in Copilot Chat
 - Added auto-generate summary option for ending sessions
 - Copilot can generate session summaries based on actual activity

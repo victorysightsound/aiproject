@@ -2,7 +2,7 @@
   "name": "proj",
   "displayName": "proj - AI Project Tracker",
   "description": "Project tracking and context management for AI-assisted development",
-  "version": "1.7.26",
+  "version": "1.7.27",
   "publisher": "victorysightsound",
   "license": "MIT",
   "icon": "icon.png",
@@ -35,7 +35,7 @@
         "fullName": "proj",
         "name": "proj",
         "description": "Project tracking assistant - query status, tasks, decisions, and log context",
-        "isSticky": true,
+        "isSticky": false,
         "commands": [
           {
             "name": "status",
@@ -111,7 +111,7 @@
         "name": "proj_get_status",
         "displayName": "Get Project Status",
         "description": "Gets the current project status including active tasks, blockers, and recent decisions. Use this at the start of conversations to understand project context.",
-        "modelDescription": "IMPORTANT: Call this tool at the START of every conversation to load project context. Returns active tasks, blockers, recent decisions, and session info. You need this context to understand what the user is working on.",
+        "modelDescription": "Get current project tracking status including tasks, blockers, decisions, and session info. Call this to understand what the user is working on and what context exists.",
         "inputSchema": {
           "type": "object",
           "properties": {}
@@ -121,7 +121,7 @@
         "name": "proj_log_decision",
         "displayName": "Log Decision",
         "description": "Logs an architectural or design decision for future reference. Use when making technical choices.",
-        "modelDescription": "ALWAYS call this tool when a technical decision is made during the conversation. This includes: choosing between options, selecting a library/framework, picking an architecture pattern, deciding on an approach, or any 'let's go with X' moment. Do NOT write decisions to files - use this tool instead. Include the topic, what was decided, and why.",
+        "modelDescription": "Log a decision that was made during the conversation. Use when the user makes a technical choice, architectural decision, or picks between options. Include topic, the decision made, and the rationale.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -145,7 +145,7 @@
         "name": "proj_add_task",
         "displayName": "Add Task",
         "description": "Adds a new task to the project tracking system.",
-        "modelDescription": "ALWAYS call this tool when a task or TODO is identified. Trigger words: 'todo', 'need to', 'should', 'we'll have to', 'don't forget', 'later', 'next time', 'phase 2'. Do NOT write tasks to files - use this tool to track them in the project database. Set priority: high for urgent, medium for normal, low for nice-to-have.",
+        "modelDescription": "Add a task when the user identifies something that needs to be done, a TODO item, or work to complete later. Set priority based on urgency.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -166,7 +166,7 @@
         "name": "proj_log_blocker",
         "displayName": "Log Blocker",
         "description": "Logs a blocker that is preventing progress on the project.",
-        "modelDescription": "ALWAYS call this tool when something is blocking progress. Trigger words: 'blocked', 'waiting on', 'can't because', 'need X before', 'stuck', 'depends on'. Do NOT write blockers to files - use this tool to track them in the project database.",
+        "modelDescription": "Log a blocker when the user encounters something preventing progress - missing dependencies, waiting on external input, permissions issues, etc.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -182,7 +182,7 @@
         "name": "proj_log_note",
         "displayName": "Log Note",
         "description": "Logs a context note for future reference in a specific category.",
-        "modelDescription": "Call this tool to save important context for future sessions. Use for: constraints discovered, requirements clarified, technical findings, architecture notes, or any information that should persist across sessions. Do NOT write notes to files - use this tool to store them in the project database.",
+        "modelDescription": "Log important context that should be remembered for future sessions - constraints, requirements, findings, or other information worth preserving.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -206,7 +206,7 @@
         "name": "proj_update_task",
         "displayName": "Update Task",
         "description": "Updates the status of an existing task.",
-        "modelDescription": "Call this tool to update a task's status. Mark as in_progress when starting work, completed when done, blocked when stuck, or cancelled when no longer needed. Always update task status as work progresses.",
+        "modelDescription": "Update a task's status when work begins (in_progress), completes (completed), gets blocked (blocked), or is no longer needed (cancelled).",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -227,7 +227,7 @@
         "name": "proj_end_session",
         "displayName": "End Session",
         "description": "Ends the current tracking session with a summary of what was accomplished.",
-        "modelDescription": "Call this tool when the user says they are done, finished, or wants to end their session. Provide a concise 1-2 sentence summary of what was accomplished. Always call proj_get_session_activity first to review what happened before generating the summary.",
+        "modelDescription": "End the session when the user is done working or explicitly asks to end. Provide a concise summary of what was accomplished.",
         "inputSchema": {
           "type": "object",
           "properties": {

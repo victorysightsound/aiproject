@@ -2,23 +2,27 @@
 
 All notable changes to proj are documented here.
 
-## [1.7.26] - 2026-01-28
+## [1.7.27] - 2026-01-28
 
-### Changed
-- **@proj participant is now sticky**: Once invoked, @proj stays active for the rest of the chat thread
-- **Assertive tool descriptions**: `modelDescription` fields now use ALWAYS/IMPORTANT language and trigger-word lists to encourage Copilot to proactively call proj tools instead of writing to files
-- **Added `.github/copilot-instructions.md` template**: Workspace-level instructions that tell Copilot to use proj tools for decisions, tasks, and blockers (created in projtest as reference)
-
-## [1.7.25] - 2026-01-28
+### Added
+- **`@proj /end-auto` command**: Auto-generate session summary and end session directly in Copilot Chat
+  - Uses Language Model API to generate summary from session activity
+  - Falls back to default summary if no AI model available
+- **Auto-detection of decisions/tasks/blockers**: When chatting with `@proj` (without a slash command), the participant analyzes messages using the LM API and automatically logs any decisions, tasks, or blockers it detects
+- **Inline confirmations**: Logged items show as `> Logged decision:` or `> Added task:` directly in the chat
 
 ### Fixed
 - **Restored Copilot Chat integration for all UI actions**: Status bar menu and startup notification buttons now open Copilot Chat instead of native popups
   - "View Status" opens `@proj /status` in Copilot Chat
   - "View Tasks" opens `@proj /tasks` in Copilot Chat
   - "End Session" opens `@proj /end-auto` in Copilot Chat
-  - Startup notification "View Full Status" and "End Session" buttons also route through Copilot Chat
+  - Startup notification buttons also route through Copilot Chat
   - Falls back to native UI if Copilot Chat is unavailable
-- **Removed inline Language Model API code**: Auto-summary no longer uses complex inline LM calls with timeouts; delegates to the `@proj /end-auto` chat command instead
+- **Fixed invisible confirmation dialog**: Auto-summary confirmation changed from `showInputBox` (appears at top of window, easy to miss) to `showInformationMessage` (appears bottom-right, always visible)
+- **Fixed chained QuickPick issue**: Added 150ms delay between status bar menu close and next UI element to prevent silent failures
+
+### Changed
+- **Removed inline Language Model API code from extension.ts**: Auto-summary delegates to the `@proj /end-auto` chat command instead of calling LM API directly
 
 ## [1.7.21] - 2026-01-28
 

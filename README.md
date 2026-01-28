@@ -173,23 +173,26 @@ A VS Code extension integrates proj with GitHub Copilot for a visual, interactiv
 **Or search:** `victorysightsound.proj`
 
 **Features:**
-- **@proj chat participant** - Ask Copilot about your project: `@proj /status`, `@proj /tasks`
-- **Automatic logging** - Copilot can log decisions, tasks, and blockers during conversation
+- **@proj chat participant** - Ask Copilot about your project: `@proj /status`, `@proj /tasks`, `@proj /end-auto`
+- **Automatic logging** - Copilot can log decisions, tasks, and blockers during conversation (Ask mode)
+- **Auto-detection** - `@proj` analyzes messages and logs decisions, tasks, and blockers automatically
 - **Session notification** - See where you left off when opening a project
-- **Status bar menu** - One-click access to view status, tasks, or end session
-- **Auto-generate summaries** - Let Copilot write your session summary
+- **Status bar menu** - One-click access to view status, tasks, or end session (opens Copilot Chat)
+- **Auto-generate summaries** - Let Copilot write your session summary with `/end-auto`
 
 **Requirements:**
 - GitHub Copilot subscription
 - proj CLI installed (see Installation above)
 - Project initialized with `proj init`
 
-**Quick example:**
+**Quick example (Ask mode):**
 ```
 You: "I decided to use Redis for caching"
 Copilot: "Would you like me to log this decision?"
 → Click Allow → Decision saved to project history
 ```
+
+**Note:** Language Model Tools work in Copilot **Ask mode**. Agent mode (Copilot Edits) does not support extension-provided tools. Use `@proj` with your messages as an alternative that works in any mode.
 
 See the [full VS Code documentation](vscode/README.md) for setup guide, all features, and troubleshooting.
 

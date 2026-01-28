@@ -71,7 +71,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see the current version (e.g., `proj 1.7.0`).
+You should see the current version (e.g., `proj 1.7.27`).
 
 ### Optional: Enable Automatic Session Tracking
 
