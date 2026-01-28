@@ -60,6 +60,7 @@ struct SessionInfo {
     started_at: String,
     ended_at: Option<String>,
     summary: Option<String>,
+    structured_summary: Option<serde_json::Value>,
 }
 
 #[derive(Serialize)]
@@ -110,6 +111,7 @@ fn output_json(conn: &Connection, config: &ProjectConfig) -> Result<()> {
                 .ended_at
                 .map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
             summary: session.summary.clone(),
+            structured_summary: session.structured_summary.as_ref().and_then(|s| serde_json::from_str(s).ok()),
         }),
         last_session: last_session.map(|s| SessionInfo {
             session_id: s.session_id,
@@ -118,6 +120,7 @@ fn output_json(conn: &Connection, config: &ProjectConfig) -> Result<()> {
                 .ended_at
                 .map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
             summary: s.summary.clone(),
+            structured_summary: s.structured_summary.as_ref().and_then(|ss| serde_json::from_str(ss).ok()),
         }),
         active_blockers: get_active_blockers(conn)?
             .into_iter()
@@ -196,6 +199,31 @@ fn output_human(conn: &Connection, config: &ProjectConfig) -> Result<()> {
         );
         if let Some(summary) = &last.summary {
             println!("Summary: {}", summary);
+        }
+        // Show structured summary details if available
+        if let Some(ref structured) = last.structured_summary {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(structured) {
+                if let Some(arr) = parsed.get("decisions").and_then(|v| v.as_array()) {
+                    if !arr.is_empty() {
+                        println!("  Decisions made:");
+                        for d in arr {
+                            if let Some(s) = d.as_str() {
+                                println!("    - {}", s);
+                            }
+                        }
+                    }
+                }
+                if let Some(arr) = parsed.get("git_commits").and_then(|v| v.as_array()) {
+                    if !arr.is_empty() {
+                        println!("  Commits ({}):", arr.len());
+                        for c in arr.iter().take(5) {
+                            if let Some(s) = c.as_str() {
+                                println!("    - {}", s);
+                            }
+                        }
+                    }
+                }
+            }
         }
         println!();
     }

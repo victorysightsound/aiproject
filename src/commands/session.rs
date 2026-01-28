@@ -4,13 +4,13 @@ use std::process::Command;
 
 use anyhow::{bail, Context, Result};
 use colored::Colorize;
-use dialoguer::Confirm;
 
 use crate::cli::{SessionCommands, SessionSubcommand};
 use crate::config::ProjectConfig;
 use crate::database::open_database;
-use crate::paths::{get_project_root, get_tracking_db_path};
-use crate::session::{create_session, end_session, get_active_session, get_recent_sessions};
+use crate::git;
+use crate::paths::get_tracking_db_path;
+use crate::session::{create_session, end_session_with_structured, get_active_session, get_recent_sessions};
 
 pub fn run(cmd: SessionCommands) -> Result<()> {
     let db_path = get_tracking_db_path()?;
@@ -56,6 +56,9 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str, force: bool) -> Result<()
     // Display session activity
     display_session_activity(conn, session.session_id)?;
 
+    // Display session review hints
+    display_session_hints(conn, session.session_id, &session.started_at.format("%Y-%m-%d %H:%M:%S").to_string())?;
+
     // If no activity and not forced, show options and exit
     if !has_activity && !force {
         println!();
@@ -86,8 +89,11 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str, force: bool) -> Result<()
         return Ok(());
     }
 
-    // End the session
-    end_session(conn, session.session_id, summary)?;
+    // Build structured summary
+    let structured = build_structured_summary(conn, session.session_id, summary)?;
+
+    // End the session with structured summary
+    end_session_with_structured(conn, session.session_id, summary, &structured)?;
 
     println!(
         "\n{} Session #{} ended. Summary: {}",
@@ -101,8 +107,6 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str, force: bool) -> Result<()
         // Don't fail the session end, just warn
         println!("  {} Auto-commit skipped: {}", "⚠".yellow(), e);
     }
-
-    // TODO: Create backup if auto_backup enabled in config
 
     Ok(())
 }
@@ -292,92 +296,241 @@ fn display_session_activity(conn: &rusqlite::Connection, session_id: i64) -> Res
     Ok(())
 }
 
+/// Display session review hints - check for potentially missed logging
+fn display_session_hints(
+    conn: &rusqlite::Connection,
+    session_id: i64,
+    session_started_at: &str,
+) -> Result<()> {
+    // Count logged items
+    let decision_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM decisions WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+    let task_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM tasks WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+    let blocker_count: i64 = conn.query_row(
+        "SELECT COUNT(*) FROM blockers WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+
+    // Count git commits since session start
+    let commit_count = git::get_commit_count_since(conn, session_started_at).unwrap_or(0);
+
+    println!();
+    println!("{}", "Session Review:".bold());
+    println!(
+        "  Logged: {} decisions, {} tasks, {} blockers",
+        decision_count, task_count, blocker_count
+    );
+    if commit_count > 0 {
+        println!("  Git: {} commits since session start", commit_count);
+    }
+
+    // Generate hints
+    let mut hints = Vec::new();
+
+    if commit_count > 0 && decision_count == 0 {
+        hints.push(format!(
+            "{} commits were made but no decisions logged. Consider logging key decisions.",
+            commit_count
+        ));
+    }
+
+    if commit_count > 3 && task_count == 0 {
+        hints.push(
+            "Several commits suggest meaningful work. Consider adding tasks for follow-up items."
+                .to_string(),
+        );
+    }
+
+    // Check session duration
+    if let Ok(started) =
+        chrono::NaiveDateTime::parse_from_str(session_started_at, "%Y-%m-%d %H:%M:%S")
+    {
+        let now = chrono::Utc::now().naive_utc();
+        let duration = now - started;
+        if duration.num_hours() >= 1
+            && decision_count == 0
+            && task_count == 0
+            && blocker_count == 0
+        {
+            hints.push(
+                "Session lasted 1+ hours with no activity logged. Consider reviewing what was accomplished.".to_string()
+            );
+        }
+    }
+
+    if !hints.is_empty() {
+        println!();
+        println!("  {}:", "Hints".yellow());
+        for hint in &hints {
+            println!("    {}", hint);
+        }
+    }
+
+    Ok(())
+}
+
+/// Build a structured JSON summary of session activity
+fn build_structured_summary(
+    conn: &rusqlite::Connection,
+    session_id: i64,
+    summary: &str,
+) -> Result<String> {
+    // Gather decisions
+    let mut stmt = conn.prepare(
+        "SELECT topic, decision FROM decisions WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let decisions: Vec<String> = stmt
+        .query_map([session_id], |row| {
+            Ok(format!(
+                "{}: {}",
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Gather tasks created
+    let mut stmt = conn.prepare(
+        "SELECT description FROM tasks WHERE session_id = ? AND status != 'completed' ORDER BY created_at",
+    )?;
+    let tasks_created: Vec<String> = stmt
+        .query_map([session_id], |row| row.get(0))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Gather tasks completed (any task marked completed during this session period)
+    let mut stmt = conn.prepare(
+        "SELECT description FROM tasks WHERE session_id = ? AND status = 'completed' ORDER BY created_at",
+    )?;
+    let tasks_completed: Vec<String> = stmt
+        .query_map([session_id], |row| row.get(0))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Gather blockers
+    let mut stmt = conn.prepare(
+        "SELECT description FROM blockers WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let blockers: Vec<String> = stmt
+        .query_map([session_id], |row| row.get(0))?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Gather notes
+    let mut stmt = conn.prepare(
+        "SELECT category, title FROM context_notes WHERE session_id = ? ORDER BY created_at",
+    )?;
+    let notes: Vec<String> = stmt
+        .query_map([session_id], |row| {
+            Ok(format!(
+                "{}: {}",
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    // Get session start time for git commit query
+    let started_at: String = conn.query_row(
+        "SELECT started_at FROM sessions WHERE session_id = ?",
+        [session_id],
+        |row| row.get(0),
+    )?;
+
+    // Gather git commits since session start
+    let git_commits_data = git::get_commits_since(conn, &started_at)?;
+    let git_commits: Vec<String> = git_commits_data
+        .iter()
+        .map(|c| format!("{}: {}", c.short_hash, c.message))
+        .collect();
+
+    // Get files from git diff since session start
+    let files_touched = get_files_touched_since(&started_at);
+
+    // Build JSON
+    let structured = serde_json::json!({
+        "summary": summary,
+        "decisions": decisions,
+        "tasks_created": tasks_created,
+        "tasks_completed": tasks_completed,
+        "blockers": blockers,
+        "notes": notes,
+        "git_commits": git_commits,
+        "files_touched": files_touched,
+    });
+
+    Ok(structured.to_string())
+}
+
+/// Get list of files changed since a given datetime via git
+fn get_files_touched_since(since: &str) -> Vec<String> {
+    let project_root = match crate::paths::get_project_root() {
+        Ok(r) => r,
+        Err(_) => return Vec::new(),
+    };
+
+    if !project_root.join(".git").exists() {
+        return Vec::new();
+    }
+
+    // Use git diff to find files changed
+    let output = Command::new("git")
+        .args(["diff", "--name-only", &format!("--since={}", since), "HEAD"])
+        .current_dir(&project_root)
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => {
+            String::from_utf8_lossy(&o.stdout)
+                .lines()
+                .filter(|l| !l.is_empty())
+                .map(|l| l.to_string())
+                .collect()
+        }
+        _ => {
+            // Fallback: try git log --name-only
+            let output = Command::new("git")
+                .args(["log", "--name-only", "--pretty=format:", &format!("--since={}", since)])
+                .current_dir(&project_root)
+                .output();
+
+            match output {
+                Ok(o) if o.status.success() => {
+                    let mut files: Vec<String> = String::from_utf8_lossy(&o.stdout)
+                        .lines()
+                        .filter(|l| !l.is_empty())
+                        .map(|l| l.to_string())
+                        .collect();
+                    files.sort();
+                    files.dedup();
+                    files
+                }
+                _ => Vec::new(),
+            }
+        }
+    }
+}
+
 /// Handle auto-commit on session end
 fn handle_auto_commit(summary: &str) -> Result<()> {
-    // Load config
     let config = ProjectConfig::load()?;
 
-    // Check if auto-commit is enabled
     if !config.auto_commit {
         return Ok(());
     }
 
-    // Check if we're in a git repo
-    let project_root = get_project_root()?;
-    if !project_root.join(".git").exists() {
-        return Ok(());
-    }
-
-    // Check if there are any changes to commit
-    let status_output = Command::new("git")
-        .args(["status", "--porcelain"])
-        .current_dir(&project_root)
-        .output()
-        .with_context(|| "Failed to run git status")?;
-
-    let has_changes = !status_output.stdout.is_empty();
-
-    if !has_changes {
-        println!("  {} No changes to commit", "ℹ".blue());
-        return Ok(());
-    }
-
-    // Determine if we should commit
-    let should_commit = match config.auto_commit_mode.as_str() {
-        "auto" => true,
-        "prompt" | _ => {
-            // Check if we're in a TTY (interactive terminal)
-            if atty::is(atty::Stream::Stdin) {
-                Confirm::new()
-                    .with_prompt("Commit changes with session summary?")
-                    .default(true)
-                    .interact()
-                    .unwrap_or(false)
-            } else {
-                // Non-interactive, skip
-                println!("  {} Skipping commit (non-interactive)", "ℹ".blue());
-                false
-            }
-        }
-    };
-
-    if !should_commit {
-        return Ok(());
-    }
-
-    // Stage all changes
-    let add_result = Command::new("git")
-        .args(["add", "-A"])
-        .current_dir(&project_root)
-        .output()
-        .with_context(|| "Failed to run git add")?;
-
-    if !add_result.status.success() {
-        bail!(
-            "git add failed: {}",
-            String::from_utf8_lossy(&add_result.stderr)
-        );
-    }
-
-    // Create commit with session summary
     let commit_message = format!("[proj] {}", summary);
-    let commit_result = Command::new("git")
-        .args(["commit", "-m", &commit_message])
-        .current_dir(&project_root)
-        .output()
-        .with_context(|| "Failed to run git commit")?;
-
-    if !commit_result.status.success() {
-        let stderr = String::from_utf8_lossy(&commit_result.stderr);
-        // Check if it's just "nothing to commit"
-        if stderr.contains("nothing to commit") {
-            println!("  {} No changes to commit", "ℹ".blue());
-            return Ok(());
-        }
-        bail!("git commit failed: {}", stderr);
-    }
-
-    println!("  {} Committed: {}", "✓".green(), commit_message);
+    crate::commit::auto_commit(&commit_message, &config)?;
 
     Ok(())
 }

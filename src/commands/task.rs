@@ -199,6 +199,9 @@ fn cmd_task_update(
     stmt.raw_bind_parameter(param_idx, task_id)?;
     stmt.raw_execute()?;
 
+    // Check if this is a completion before we consume the status variable
+    let is_completed = status.as_deref() == Some("completed");
+
     // Build status message
     let mut changes = Vec::new();
     if let Some(s) = status {
@@ -220,6 +223,29 @@ fn cmd_task_update(
         task_id,
         changes.join(", ")
     );
+
+    // Auto-commit on task completion if enabled
+    if is_completed {
+        if let Ok(config) = crate::config::ProjectConfig::load() {
+            if config.auto_commit_on_task {
+                // Get task description for commit message
+                let task_desc: String = conn
+                    .query_row(
+                        "SELECT description FROM tasks WHERE task_id = ?1",
+                        [task_id],
+                        |row| row.get(0),
+                    )
+                    .unwrap_or_else(|_| format!("task #{}", task_id));
+
+                let commit_message =
+                    format!("[proj] Completed task #{}: {}", task_id, task_desc);
+                if let Err(e) = crate::commit::auto_commit(&commit_message, &config) {
+                    println!("  {} Auto-commit skipped: {}", "⚠".yellow(), e);
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 

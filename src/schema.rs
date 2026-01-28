@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     summary TEXT,
     files_touched TEXT,
     status TEXT DEFAULT 'active',
-    full_context_shown INTEGER DEFAULT 0
+    full_context_shown INTEGER DEFAULT 0,
+    structured_summary TEXT
 );
 
 -- Decisions
@@ -150,7 +151,23 @@ CREATE TABLE IF NOT EXISTS compressed_sessions (
     compressed_token_estimate INTEGER
 );
 
+-- Git commits (v1.4)
+CREATE TABLE IF NOT EXISTS git_commits (
+    commit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    hash TEXT NOT NULL UNIQUE,
+    short_hash TEXT NOT NULL,
+    author TEXT,
+    message TEXT NOT NULL,
+    committed_at TEXT NOT NULL,
+    files_changed INTEGER DEFAULT 0,
+    insertions INTEGER DEFAULT 0,
+    deletions INTEGER DEFAULT 0,
+    synced_at TEXT DEFAULT (datetime('now'))
+);
+
 -- Indexes
+CREATE INDEX IF NOT EXISTS idx_git_commits_hash ON git_commits(hash);
+CREATE INDEX IF NOT EXISTS idx_git_commits_date ON git_commits(committed_at);
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_started ON sessions(started_at);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);

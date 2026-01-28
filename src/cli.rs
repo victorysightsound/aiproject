@@ -91,6 +91,9 @@ pub enum Commands {
         topic: String,
         #[arg(long)]
         ranked: bool,
+        /// Show last 10 items chronologically across all tables
+        #[arg(long)]
+        recent: bool,
     },
     /// Show changes since last status
     Delta,

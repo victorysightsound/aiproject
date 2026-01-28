@@ -5,14 +5,17 @@ use colored::Colorize;
 use rusqlite::Connection;
 
 use crate::database::open_database;
+use crate::git;
 use crate::paths::get_tracking_db_path;
 
-pub fn run(topic: &str, ranked: bool) -> Result<()> {
+pub fn run(topic: &str, ranked: bool, recent: bool) -> Result<()> {
     let db_path = get_tracking_db_path()?;
     let conn = open_database(&db_path)
         .with_context(|| format!("Failed to open tracking database at {:?}", db_path))?;
 
-    if ranked {
+    if recent {
+        show_recent(&conn)
+    } else if ranked {
         search_ranked(&conn, topic)
     } else {
         search_basic(&conn, topic)
@@ -49,6 +52,17 @@ fn search_basic(conn: &Connection, topic: &str) -> Result<()> {
         for (id, category, title, content, created_at) in &notes {
             println!("  #{} [{}] {} ({})", id, category, title.bold(), created_at);
             println!("     {}", truncate(content, 80));
+        }
+        found = true;
+    }
+
+    // Search git commits
+    let git_results = git::search_git_commits(conn, topic)?;
+    if !git_results.is_empty() {
+        println!();
+        println!("{}", "Git Commits".underline());
+        for (_id, short_hash, message, committed_at) in &git_results {
+            println!("  {} {} ({})", short_hash.dimmed(), message, committed_at);
         }
         found = true;
     }
@@ -101,6 +115,19 @@ fn search_ranked(conn: &Connection, topic: &str) -> Result<()> {
             id,
             title,
             content: content.clone(),
+            extra: None,
+            score,
+        });
+    }
+
+    let git_results = git::search_git_commits(conn, topic)?;
+    for (id, short_hash, message, committed_at) in git_results {
+        let score = calculate_score(&message, topic, &committed_at);
+        results.push(SearchResult {
+            result_type: "commit".to_string(),
+            id,
+            title: format!("{}: {}", short_hash, message),
+            content: message,
             extra: None,
             score,
         });
@@ -284,6 +311,105 @@ fn search_fts(conn: &Connection, topic: &str) -> Result<Vec<(String, i64, String
         }
         Err(_) => Ok(Vec::new()),
     }
+}
+
+/// Show the last N items chronologically across all tables
+fn show_recent(conn: &Connection) -> Result<()> {
+    println!("{}", "Recent Activity (last 10 items):".bold());
+    println!("{}", "=".repeat(60));
+
+    // Collect items from multiple tables with a unified date
+    let mut items: Vec<(String, String, String)> = Vec::new(); // (datetime, type, content)
+
+    // Recent decisions
+    let mut stmt = conn.prepare(
+        "SELECT created_at, topic, decision FROM decisions WHERE status = 'active' ORDER BY created_at DESC LIMIT 10",
+    )?;
+    let decisions: Vec<_> = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+    for (dt, topic, decision) in decisions {
+        items.push((dt, "decision".to_string(), format!("{}: {}", topic, decision)));
+    }
+
+    // Recent tasks
+    let mut stmt = conn.prepare(
+        "SELECT created_at, description, status FROM tasks ORDER BY created_at DESC LIMIT 10",
+    )?;
+    let tasks: Vec<_> = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+    for (dt, desc, status) in tasks {
+        items.push((dt, "task".to_string(), format!("[{}] {}", status, desc)));
+    }
+
+    // Recent notes
+    let mut stmt = conn.prepare(
+        "SELECT created_at, category, title FROM context_notes WHERE status = 'active' ORDER BY created_at DESC LIMIT 10",
+    )?;
+    let notes: Vec<_> = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+            ))
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+    for (dt, category, title) in notes {
+        items.push((dt, "note".to_string(), format!("[{}] {}", category, title)));
+    }
+
+    // Recent git commits
+    let commits = git::get_recent_commits(conn, 10)?;
+    for c in commits {
+        items.push((
+            c.committed_at,
+            "commit".to_string(),
+            format!("{}: {}", c.short_hash, c.message),
+        ));
+    }
+
+    // Sort by date descending, take top 10
+    items.sort_by(|a, b| b.0.cmp(&a.0));
+    items.truncate(10);
+
+    if items.is_empty() {
+        println!();
+        println!("No recent activity found.");
+        return Ok(());
+    }
+
+    println!();
+    for (dt, item_type, content) in &items {
+        let type_display = match item_type.as_str() {
+            "decision" => "decision".cyan(),
+            "task" => "task".yellow(),
+            "note" => "note".green(),
+            "commit" => "commit".magenta(),
+            _ => item_type.white(),
+        };
+        // Show just date portion for compact display
+        let date_short = if dt.len() >= 10 { &dt[..10] } else { dt };
+        println!("  {} {} {}", date_short.dimmed(), type_display, content);
+    }
+
+    Ok(())
 }
 
 /// Truncate a string to a maximum length

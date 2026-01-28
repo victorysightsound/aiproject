@@ -70,7 +70,7 @@ fn auto_close_session(conn: &Connection, session_id: i64) -> Result<()> {
 /// Gets the currently active session if one exists
 pub fn get_active_session(conn: &Connection) -> Result<Option<Session>> {
     let mut stmt = conn.prepare(
-        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown
+        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown, structured_summary
          FROM sessions
          WHERE status = 'active'
          ORDER BY started_at DESC
@@ -87,6 +87,7 @@ pub fn get_active_session(conn: &Connection) -> Result<Option<Session>> {
             files_touched: row.get(5)?,
             status: row.get(6)?,
             full_context_shown: row.get::<_, i32>(7)? != 0,
+            structured_summary: row.get(8)?,
         })
     });
 
@@ -108,7 +109,7 @@ pub fn create_session(conn: &Connection) -> Result<Session> {
 
     // Fetch the created session
     let mut stmt = conn.prepare(
-        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown
+        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown, structured_summary
          FROM sessions
          WHERE session_id = ?1"
     )?;
@@ -123,6 +124,7 @@ pub fn create_session(conn: &Connection) -> Result<Session> {
             files_touched: row.get(5)?,
             status: row.get(6)?,
             full_context_shown: row.get::<_, i32>(7)? != 0,
+            structured_summary: row.get(8)?,
         })
     })?;
 
@@ -130,10 +132,20 @@ pub fn create_session(conn: &Connection) -> Result<Session> {
 }
 
 /// Ends a session with a summary
+#[allow(dead_code)]
 pub fn end_session(conn: &Connection, session_id: i64, summary: &str) -> Result<()> {
     conn.execute(
         "UPDATE sessions SET ended_at = datetime('now'), status = 'completed', summary = ?1 WHERE session_id = ?2",
         rusqlite::params![summary, session_id],
+    )?;
+    Ok(())
+}
+
+/// Ends a session with both plain and structured summaries
+pub fn end_session_with_structured(conn: &Connection, session_id: i64, summary: &str, structured_summary: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE sessions SET ended_at = datetime('now'), status = 'completed', summary = ?1, structured_summary = ?2 WHERE session_id = ?3",
+        rusqlite::params![summary, structured_summary, session_id],
     )?;
     Ok(())
 }
@@ -150,7 +162,7 @@ pub fn mark_full_context_shown(conn: &Connection, session_id: i64) -> Result<()>
 /// Gets the last N completed sessions
 pub fn get_recent_sessions(conn: &Connection, limit: usize) -> Result<Vec<Session>> {
     let mut stmt = conn.prepare(
-        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown
+        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown, structured_summary
          FROM sessions
          ORDER BY started_at DESC
          LIMIT ?1"
@@ -166,6 +178,7 @@ pub fn get_recent_sessions(conn: &Connection, limit: usize) -> Result<Vec<Sessio
             files_touched: row.get(5)?,
             status: row.get(6)?,
             full_context_shown: row.get::<_, i32>(7)? != 0,
+            structured_summary: row.get(8)?,
         })
     })?;
 
@@ -177,7 +190,7 @@ pub fn get_recent_sessions(conn: &Connection, limit: usize) -> Result<Vec<Sessio
 /// Gets the last completed session
 pub fn get_last_completed_session(conn: &Connection) -> Result<Option<Session>> {
     let mut stmt = conn.prepare(
-        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown
+        "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown, structured_summary
          FROM sessions
          WHERE status = 'completed'
          ORDER BY ended_at DESC
@@ -194,6 +207,7 @@ pub fn get_last_completed_session(conn: &Connection) -> Result<Option<Session>> 
             files_touched: row.get(5)?,
             status: row.get(6)?,
             full_context_shown: row.get::<_, i32>(7)? != 0,
+            structured_summary: row.get(8)?,
         })
     });
 

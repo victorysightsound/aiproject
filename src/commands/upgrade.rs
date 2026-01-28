@@ -92,6 +92,47 @@ const UPGRADE_REGISTRY: &[SchemaUpgrade] = &[
             },
         ],
     },
+    SchemaUpgrade {
+        from_version: "1.3",
+        to_version: "1.4",
+        changes: &[
+            SchemaChange {
+                risk: "safe",
+                description: "Store git commit history for context",
+                sql: "CREATE TABLE IF NOT EXISTS git_commits (
+                    commit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    hash TEXT NOT NULL UNIQUE,
+                    short_hash TEXT NOT NULL,
+                    author TEXT,
+                    message TEXT NOT NULL,
+                    committed_at TEXT NOT NULL,
+                    files_changed INTEGER DEFAULT 0,
+                    insertions INTEGER DEFAULT 0,
+                    deletions INTEGER DEFAULT 0,
+                    synced_at TEXT DEFAULT (datetime('now'))
+                )",
+                verify: "SELECT 1 FROM sqlite_master WHERE type='table' AND name='git_commits'",
+            },
+            SchemaChange {
+                risk: "safe",
+                description: "Index git commits by hash",
+                sql: "CREATE INDEX IF NOT EXISTS idx_git_commits_hash ON git_commits(hash)",
+                verify: "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_git_commits_hash'",
+            },
+            SchemaChange {
+                risk: "safe",
+                description: "Index git commits by date",
+                sql: "CREATE INDEX IF NOT EXISTS idx_git_commits_date ON git_commits(committed_at)",
+                verify: "SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_git_commits_date'",
+            },
+            SchemaChange {
+                risk: "safe",
+                description: "Structured session summaries",
+                sql: "ALTER TABLE sessions ADD COLUMN structured_summary TEXT",
+                verify: "SELECT structured_summary FROM sessions LIMIT 0",
+            },
+        ],
+    },
 ];
 
 /// Upgrade compatibility result

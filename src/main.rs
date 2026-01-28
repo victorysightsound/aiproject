@@ -3,9 +3,11 @@
 mod auto_update;
 mod cli;
 mod commands;
+mod commit;
 mod config;
 mod database;
 mod docs_db;
+mod git;
 mod models;
 mod paths;
 mod schema;
@@ -21,7 +23,7 @@ use colored::control;
 
 /// Version constants
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-pub const SCHEMA_VERSION: &str = "1.3";
+pub const SCHEMA_VERSION: &str = "1.4";
 pub const MIN_SCHEMA_VERSION: &str = "1.0";
 
 fn main() -> Result<()> {
@@ -84,7 +86,7 @@ fn main() -> Result<()> {
         Commands::Log(cmd) => commands::log::run(cmd),
         Commands::Task(cmd) => commands::task::run(cmd),
         Commands::Tasks => commands::task::list(),
-        Commands::Context { topic, ranked } => commands::context::run(&topic, ranked),
+        Commands::Context { topic, ranked, recent } => commands::context::run(&topic, ranked, recent),
         Commands::Delta => commands::delta::run(),
         Commands::Compress { auto } => commands::compress::run(auto),
         Commands::Cleanup { auto, days } => commands::cleanup::run(auto, days),

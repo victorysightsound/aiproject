@@ -7,8 +7,9 @@ use rusqlite::Connection;
 use crate::commands::update_check;
 use crate::config::ProjectConfig;
 use crate::database::open_database;
+use crate::git;
 use crate::models::{Blocker, Decision, Question, Task};
-use crate::paths::{get_config_path, get_tracking_db_path};
+use crate::paths::{get_config_path, get_project_root, get_tracking_db_path};
 use crate::session::{
     get_last_completed_session, get_or_create_session_with_info, mark_full_context_shown,
 };
@@ -42,6 +43,11 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
     let db_path = get_tracking_db_path()?;
     let conn = open_database(&db_path)
         .with_context(|| format!("Failed to open tracking database at {:?}", db_path))?;
+
+    // Sync recent git commits if in a git repo
+    if let Ok(root) = get_project_root() {
+        let _ = git::sync_recent_commits(&conn, &root, 20);
+    }
 
     // Get or create session (handles stale session auto-close)
     let session_result = get_or_create_session_with_info(&conn)?;
@@ -235,6 +241,16 @@ fn output_tier2(
         println!();
     }
 
+    // Recent commits
+    let commits = git::get_recent_commits(conn, 3)?;
+    if !commits.is_empty() {
+        println!("Recent Commits ({}):", commits.len());
+        for c in &commits {
+            println!("  {} {}", c.short_hash.dimmed(), truncate(&c.message, 50));
+        }
+        println!();
+    }
+
     // Open questions
     let questions = get_open_questions(conn)?;
     if !questions.is_empty() {
@@ -285,6 +301,30 @@ fn output_tier3(
         }
         if let Some(summary) = &last.summary {
             println!("Summary: {}", summary);
+        }
+        // Show structured summary highlights if available
+        if let Some(ref structured) = last.structured_summary {
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(structured) {
+                let mut highlights = Vec::new();
+                if let Some(arr) = parsed.get("decisions").and_then(|v| v.as_array()) {
+                    if !arr.is_empty() {
+                        highlights.push(format!("{} decisions", arr.len()));
+                    }
+                }
+                if let Some(arr) = parsed.get("tasks_created").and_then(|v| v.as_array()) {
+                    if !arr.is_empty() {
+                        highlights.push(format!("{} tasks created", arr.len()));
+                    }
+                }
+                if let Some(arr) = parsed.get("git_commits").and_then(|v| v.as_array()) {
+                    if !arr.is_empty() {
+                        highlights.push(format!("{} commits", arr.len()));
+                    }
+                }
+                if !highlights.is_empty() {
+                    println!("Activity: {}", highlights.join(", "));
+                }
+            }
         }
         println!();
     }
@@ -392,6 +432,26 @@ fn output_tier3(
                 println!("  [{}]", current_category.to_uppercase());
             }
             println!("    • {}: {}", n.title, truncate(&n.content, 60));
+        }
+    }
+    println!();
+
+    // Git history
+    println!("{}", "-".repeat(40));
+    println!("GIT HISTORY:");
+    let commits = git::get_recent_commits(conn, 10)?;
+    if commits.is_empty() {
+        println!("  (none)");
+    } else {
+        for c in &commits {
+            println!(
+                "  {} {} ({} files, +{}/-{})",
+                c.short_hash.dimmed(),
+                c.message,
+                c.files_changed,
+                c.insertions,
+                c.deletions,
+            );
         }
     }
     println!();

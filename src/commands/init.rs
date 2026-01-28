@@ -178,6 +178,7 @@ fn run_non_interactive(
         auto_session: true,
         auto_commit: effective_auto_commit,
         auto_commit_mode: commit_mode,
+        auto_commit_on_task: false,
     };
 
     config.save()?;
@@ -385,6 +386,7 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
         auto_session: true,
         auto_commit,
         auto_commit_mode,
+        auto_commit_on_task: false,
     };
 
     config.save()?;
@@ -979,6 +981,23 @@ proj docs init --generate --doc-type architecture
 proj docs init --import --doc-type guide
 proj docs init --new --name "<name>" --description "<desc>"
 ```
+
+### Mid-Session Context Recall
+
+When you need to recall previous decisions, check context, or understand project history:
+- Use `proj context "<topic>"` to search decisions, notes, and git history
+- Use `proj context "<topic>" --ranked` for relevance-scored results
+- Use `proj context recent --recent` for the last 10 logged items
+- Prefer `proj context` over re-reading files - it uses fewer tokens
+
+Before making a decision that might duplicate or contradict a previous one, check:
+```bash
+proj context "<relevant topic>"
+```
+
+### Auto-Commit on Task Completion
+
+If the project has `auto_commit_on_task: true` in config, completing a task via `proj task update <id> --status completed` will auto-commit changes with message `[proj] Completed task #N: <description>`.
 "#;
 
 /// Ensure session management rule exists in global AGENTS.md
@@ -1076,7 +1095,8 @@ fn update_single_agents_file(path: &std::path::Path) -> Result<bool> {
     // Check if it has the latest rules by looking for the newest section
     // v1.7.4: "### Logging During Sessions"
     // v1.7.8: "### Running proj Commands in LLM CLIs"
-    if content.contains("### Running proj Commands in LLM CLIs") {
+    // v1.4 schema: "### Mid-Session Context Recall"
+    if content.contains("### Mid-Session Context Recall") {
         return Ok(false); // Already has latest rules
     }
 

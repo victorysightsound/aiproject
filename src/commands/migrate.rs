@@ -100,6 +100,7 @@ pub fn run() -> Result<()> {
         auto_session: true,
         auto_commit: false,
         auto_commit_mode: "prompt".to_string(),
+        auto_commit_on_task: false,
     };
 
     let config_path = tracking_path.join("config.json");
