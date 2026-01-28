@@ -936,9 +936,9 @@ proj session end "<summary of what was accomplished>"
 Interactive wizards don't work in LLM CLI environments (Claude Code, Codex, etc.). When running proj commands that normally have wizards, **ask the user first**, then use command-line flags.
 
 **proj init** (initializing a new project):
-Ask user: project name, type (rust/python/javascript/web/documentation/other), description, enable auto-commit?, install shell hook?
+Ask user: project name, type (rust/python/javascript/web/documentation/other), description, enable auto-commit?, install shell hook?, set up documentation database? (skip/generate/import/new + doc type if not skip)
 ```bash
-proj init --name "<name>" --type <type> --description "<desc>" [--auto-commit] [--shell-hook]
+proj init --name "<name>" --type <type> --description "<desc>" [--auto-commit] [--shell-hook] [--skip-docs | --docs-generate | --docs-import | --docs-new --docs-type <type>]
 ```
 
 **proj uninstall --project** (removing tracking):
