@@ -8,6 +8,12 @@ A VS Code extension that integrates **proj** project tracking with GitHub Copilo
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start Guide](#quick-start-guide)
+- [Using @proj in Copilot Chat](#using-proj-in-copilot-chat)
+  - [Three Ways to Use proj](#three-ways-to-use-proj-in-copilot)
+  - [Understanding Copilot Modes](#understanding-copilot-modes)
+  - [Recommended Workflow](#recommended-workflow)
+  - [Quick Reference](#quick-reference)
+  - [When Things Don't Work](#when-things-dont-work)
 - [Features In Detail](#features-in-detail)
   - [Session Notification](#1-session-notification)
   - [Status Bar Menu](#2-status-bar-menu)
@@ -40,6 +46,8 @@ When you work on a coding project, you make lots of decisions, create tasks, and
 - Never forget why you made a decision
 - Pick up exactly where you left off, even weeks later
 - AI assistants can read your project history and give better help
+
+> **What to Expect:** The `@proj` commands (like `@proj /status` or `@proj /log`) work reliably in any Copilot mode. Automatic logging (where Copilot detects and logs decisions on its own) depends on which Copilot mode you're in and which language model is active -- it may or may not happen. When in doubt, use `@proj` commands directly. See [Using @proj in Copilot Chat](#using-proj-in-copilot-chat) for the full picture.
 
 ---
 
@@ -217,15 +225,176 @@ Type: `@proj /status`
 
 You'll see your project status with tasks, blockers, and recent decisions.
 
-### Step 5: Let Copilot log automatically
+### Step 5: Try automatic logging (bonus)
 
-In Copilot Chat (without @proj), just have a normal conversation:
+In Copilot Chat **Ask mode** (without @proj), try a normal conversation:
 
 > You: "I think we should use PostgreSQL instead of MySQL for the database"
 
-Copilot may ask: "Would you like me to log this decision?"
+Copilot **may** ask: "Would you like me to log this decision?" If it does, click **Allow** and it will be saved to your project history.
 
-Click **Allow** and it will be saved to your project history.
+**Note:** Automatic logging only works in Ask mode and depends on the language model. It won't always happen. If it doesn't, just use `@proj` directly -- that always works. See [Using @proj in Copilot Chat](#using-proj-in-copilot-chat) for the full guide.
+
+---
+
+## Using @proj in Copilot Chat
+
+`@proj` is the most reliable way to interact with your project tracking from Copilot Chat. When you type `@proj`, you're talking directly to the proj chat participant -- it handles your request itself, so it works regardless of which Copilot mode you're in or which language model is active.
+
+This section covers everything you need to know about using proj in Copilot Chat, organized from most reliable to least reliable.
+
+### Three Ways to Use proj in Copilot
+
+#### 1. @proj Slash Commands (Always Works)
+
+Slash commands are direct shortcuts. Type `@proj` followed by the command. These always produce results, in any Copilot mode.
+
+| Command | What it does | Example |
+|---------|--------------|---------|
+| `/status` | Shows project status, session info, tasks, blockers | `@proj /status` |
+| `/tasks` | Lists all your tasks with status and priority | `@proj /tasks` |
+| `/decisions` | Shows recent decisions you've logged | `@proj /decisions` |
+| `/log` | Logs a decision, task, blocker, or note | `@proj /log decision "database" "Using SQLite" "Simpler for our needs"` |
+| `/end` | Ends session with your summary | `@proj /end Fixed the login bug and added tests` |
+| `/end-auto` | Ends session with an AI-generated summary | `@proj /end-auto` |
+
+**Examples:**
+
+```
+@proj /status
+```
+Shows your current project state -- session number, active tasks, blockers, and last session summary.
+
+```
+@proj /log decision "auth" "Using JWT tokens" "Stateless, works with our API gateway"
+```
+Logs a decision with topic, what was decided, and why.
+
+```
+@proj /log blocker "Waiting for API credentials from the client"
+```
+Logs a blocker.
+
+```
+@proj /end Refactored the authentication module and wrote unit tests
+```
+Ends your session with a specific summary.
+
+#### 2. @proj Natural Language (Always Works)
+
+You can also type `@proj` followed by a question or plain statement. The participant figures out what you mean and either routes to the right command, searches your project context, or auto-detects decisions/tasks/blockers.
+
+**Asking questions:**
+
+- `@proj where did I leave off?` -- Shows your status and last session summary
+- `@proj what are my tasks?` -- Lists active tasks
+- `@proj what did we decide about the database?` -- Searches your decision history
+- `@proj am I blocked on anything?` -- Shows current blockers
+
+**Auto-detection (logging by conversation):**
+
+When your message contains a decision, task, or blocker, the participant detects and logs it automatically:
+
+> You: `@proj Let's use TypeScript instead of JavaScript for better type safety`
+>
+> @proj: Logged decision: typescript -- Using TypeScript instead of JavaScript
+
+> You: `@proj I need to add error handling to the API later`
+>
+> @proj: Added task: Add error handling to the API
+
+> You: `@proj I'm stuck because the staging server is down`
+>
+> @proj: Logged blocker: Staging server is down
+
+This works in any Copilot mode because the @proj participant handles it directly.
+
+#### 3. Automatic Language Model Tools (Sometimes Works)
+
+Without the `@proj` prefix, Copilot itself may recognize decisions, tasks, or blockers and call proj tools on your behalf. This is the least reliable method:
+
+- **Only works in Ask mode** -- Agent mode does not support extension-provided Language Model Tools
+- **Depends on the model** -- Some models are better at recognizing when to use tools
+- **Requires permission clicks** -- VS Code shows a permission dialog each time (unless you chose "Always Allow")
+- **May not happen at all** -- Copilot may simply answer your question without calling any tools
+
+**When it works, it looks like this:**
+
+1. You say something like "Let's use Redis for caching" (without @proj)
+2. Copilot recognizes this as a decision
+3. VS Code asks: "Copilot wants to use: proj_log_decision" with Allow/Deny buttons
+4. You click Allow
+5. The decision is saved
+
+**Bottom line:** Think of automatic logging as a nice bonus when it happens, not something to rely on. Always use `@proj` when you want to make sure something gets logged.
+
+### Understanding Copilot Modes
+
+Copilot Chat has different modes that affect how proj works:
+
+| Mode | @proj Commands | @proj Natural Language | Automatic Language Model Tools | Notes |
+|------|:-:|:-:|:-:|-------|
+| **Ask mode** | Yes | Yes | Yes | Best mode for proj. All features work. |
+| **Agent mode** (Copilot Edits) | Yes | Yes | No | @proj still works, but Copilot won't call proj tools on its own. Agent mode may try to edit files instead. |
+| **Inline completions** | N/A | N/A | N/A | Code completions only -- no chat interaction. |
+
+**How to check your mode:** Look at the top of the Copilot Chat panel. You'll see a dropdown or toggle that says "Ask" or "Agent" (or similar). For the best proj experience, use **Ask mode**.
+
+### Recommended Workflow
+
+Here's the practical approach that works every time:
+
+1. **Start your session:** Open VS Code in a tracked project. The notification appears with your status. Click OK or View Full Status.
+
+2. **Check where you left off:** Type `@proj /status` in Copilot Chat.
+
+3. **Work normally.** Write code, debug, design -- whatever you need to do.
+
+4. **Log as you go.** When you make a decision, identify a task, or hit a blocker, use `@proj`:
+   - `@proj /log decision "routing" "Using file-based routing" "Matches Next.js conventions"`
+   - `@proj I need to refactor the auth middleware later`
+   - `@proj /log blocker "CI pipeline is broken, can't deploy"`
+
+5. **If Copilot logs automatically, great.** You may see permission dialogs pop up during regular conversation (Ask mode). Allow them -- it's a bonus. But don't count on it.
+
+6. **End your session:** Click the status bar and select "End Session", or type `@proj /end-auto` to let AI summarize what you did.
+
+### Quick Reference
+
+| I want to... | Do this |
+|---------------|---------|
+| See my project status | `@proj /status` |
+| List my tasks | `@proj /tasks` |
+| See recent decisions | `@proj /decisions` |
+| Log a decision | `@proj /log decision "topic" "what" "why"` |
+| Add a task | `@proj I need to do X later` |
+| Log a blocker | `@proj /log blocker "description"` |
+| Add a note | `@proj /log note "category" "title" "content"` |
+| Search project history | `@proj what did we decide about X?` |
+| End session (manual summary) | `@proj /end Did X, fixed Y, updated Z` |
+| End session (auto summary) | `@proj /end-auto` |
+| End session (status bar) | Click `proj (#5)` in status bar, select "End Session..." |
+
+### When Things Don't Work
+
+**"I typed @proj but nothing happened"**
+- Make sure the extension is installed (check Extensions panel)
+- Make sure you're in a workspace with a `.tracking` folder
+- Restart VS Code if needed
+
+**"Copilot isn't logging things automatically"**
+- This is normal. Automatic logging only works in Ask mode and depends on the model.
+- Switch to Ask mode if you're in Agent mode
+- Use `@proj` directly -- it's more reliable
+
+**"I see permission dialogs every time"**
+- Choose "Allow for this Session" or "Always Allow" to stop repeated prompts
+- See [Understanding Permissions](#understanding-permissions) for details
+
+**"@proj gives an error about the CLI"**
+- Run `which proj` in your terminal to find the path
+- Update `proj.cliPath` in VS Code settings to match
+- See [Troubleshooting](#troubleshooting) for more
 
 ---
 
