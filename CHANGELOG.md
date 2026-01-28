@@ -2,6 +2,13 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.26] - 2026-01-28
+
+### Changed
+- **@proj participant is now sticky**: Once invoked, @proj stays active for the rest of the chat thread
+- **Assertive tool descriptions**: `modelDescription` fields now use ALWAYS/IMPORTANT language and trigger-word lists to encourage Copilot to proactively call proj tools instead of writing to files
+- **Added `.github/copilot-instructions.md` template**: Workspace-level instructions that tell Copilot to use proj tools for decisions, tasks, and blockers (created in projtest as reference)
+
 ## [1.7.25] - 2026-01-28
 
 ### Fixed
