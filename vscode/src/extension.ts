@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import * as cli from './cli';
 import { registerParticipant } from './participant';
 import * as statusBar from './statusBar';
-import { registerTools } from './tools';
+import { registerTools, formatSessionActivity } from './tools';
 
 /**
  * Extension activation
@@ -252,17 +252,44 @@ function registerCommands(context: vscode.ExtensionContext): void {
                     vscode.window.showErrorMessage(`Failed to end session: ${result.stderr}`);
                 }
             } else {
-                // Auto: open Copilot Chat WITHOUT @proj so Copilot uses the Language Model Tools directly
-                // This triggers Copilot to use proj_get_session_activity and proj_end_session tools
+                // Auto: get session activity directly and ask Copilot to summarize
+                const result = cli.runProjSync(['resume', '--for-ai']);
+
+                if (!result.success) {
+                    vscode.window.showErrorMessage(`Failed to get session activity: ${result.stderr}`);
+                    return;
+                }
+
+                let activityText: string;
+                try {
+                    const data = JSON.parse(result.stdout);
+                    activityText = formatSessionActivity(data);
+                } catch {
+                    activityText = result.stdout;
+                }
+
+                // Open Copilot Chat with the activity included in the query
                 try {
                     await vscode.commands.executeCommand('workbench.action.chat.open', {
-                        query: 'I want to end my proj tracking session. Please use the proj_get_session_activity tool to see what I accomplished, then generate a concise 1-2 sentence summary and call proj_end_session with that summary.'
+                        query: `Based on this session activity, generate a concise 1-2 sentence summary of what was accomplished. Then I'll use that summary to end the session.\n\n${activityText}`
                     });
                 } catch {
-                    // Fallback if chat command doesn't support query parameter
-                    vscode.window.showInformationMessage(
-                        'Open Copilot Chat and say: "End my proj session and generate a summary"'
-                    );
+                    // Fallback: show activity and ask user to summarize
+                    const summary = await vscode.window.showInputBox({
+                        prompt: 'AI summary unavailable. Enter session summary manually',
+                        placeHolder: 'What did you accomplish?',
+                        value: ''
+                    });
+
+                    if (summary) {
+                        const endResult = await cli.endSession(summary);
+                        if (endResult.success) {
+                            vscode.window.showInformationMessage(`Session ended: ${summary}`);
+                            statusBar.refresh();
+                        } else {
+                            vscode.window.showErrorMessage(`Failed to end session: ${endResult.stderr}`);
+                        }
+                    }
                 }
             }
         })

@@ -304,8 +304,9 @@ export class ProjGetSessionActivityTool implements vscode.LanguageModelTool<{}> 
 
 /**
  * Format session activity for summary generation
+ * Exported so extension.ts can use it for auto-summary
  */
-function formatSessionActivity(data: any): string {
+export function formatSessionActivity(data: any): string {
     const lines: string[] = [];
 
     lines.push('=== SESSION ACTIVITY FOR SUMMARY ===\n');

@@ -2,6 +2,14 @@
 
 All notable changes to proj are documented here.
 
+## [1.7.10] - 2026-01-28
+
+### Fixed
+- **VS Code auto-summary now works**: Fixed issue where AI couldn't access tools when generating session summaries
+  - Previously opened Copilot Chat expecting it to call Language Model Tools
+  - Now gets session activity directly and passes it to Copilot for summarization
+  - Falls back to manual input if Copilot unavailable
+
 ## [1.7.9] - 2026-01-28
 
 ### Changed
