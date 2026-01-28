@@ -203,8 +203,9 @@ pub fn run(version: Option<String>, check_only: bool) -> Result<()> {
     println!("\n{}", "Step 4b: Updating VS Code extension".bold());
     if std::path::Path::new("vscode/package.json").exists() {
         update_vscode_version(&new_version)?;
+        update_vscode_readme_version(&current_version, &new_version)?;
         println!(
-            "{} Updated vscode/package.json to version {}",
+            "{} Updated vscode/package.json and README.md to version {}",
             "✓".green(),
             new_version
         );
@@ -231,7 +232,7 @@ pub fn run(version: Option<String>, check_only: bool) -> Result<()> {
     let commit_msg = format!("Release v{}", new_version);
 
     // Add all relevant files
-    run_command("git", &["add", "Cargo.toml", "Cargo.lock", "CHANGELOG.md", "vscode/package.json", "packaging/npm/package.json", "packaging/npm/scripts/install.js"])?;
+    run_command("git", &["add", "Cargo.toml", "Cargo.lock", "CHANGELOG.md", "vscode/package.json", "vscode/README.md", "packaging/npm/package.json", "packaging/npm/scripts/install.js"])?;
 
     // Also add any other uncommitted changes if user approved
     if !uncommitted.is_empty() {
@@ -658,6 +659,38 @@ fn update_npm_install_version(new_version: &str) -> Result<()> {
         .join("\n");
 
     std::fs::write(path, new_content + "\n")?;
+
+    Ok(())
+}
+
+/// Update version references in VS Code README.md
+fn update_vscode_readme_version(current_version: &str, new_version: &str) -> Result<()> {
+    let path = "vscode/README.md";
+    if !std::path::Path::new(path).exists() {
+        return Ok(());
+    }
+
+    let content = std::fs::read_to_string(path)?;
+
+    // Update version patterns by replacing current version with new version:
+    // 1. "proj-X.Y.Z.vsix" -> "proj-NEW_VERSION.vsix"
+    // 2. "version number like `X.Y.Z`" -> "version number like `NEW_VERSION`"
+    let mut new_content = content.clone();
+
+    // Replace VSIX filenames
+    let old_vsix = format!("proj-{}.vsix", current_version);
+    let new_vsix = format!("proj-{}.vsix", new_version);
+    new_content = new_content.replace(&old_vsix, &new_vsix);
+
+    // Replace "version number like" references
+    let old_like = format!("version number like `{}`", current_version);
+    let new_like = format!("version number like `{}`", new_version);
+    new_content = new_content.replace(&old_like, &new_like);
+
+    // Only write if changes were made
+    if new_content != content {
+        std::fs::write(path, new_content)?;
+    }
 
     Ok(())
 }
