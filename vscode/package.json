@@ -2,7 +2,7 @@
   "name": "proj",
   "displayName": "proj - AI Project Tracker",
   "description": "Project tracking and context management for AI-assisted development",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "publisher": "victorysightsound",
   "license": "MIT",
   "icon": "icon.png",
@@ -60,6 +60,10 @@
           {
             "name": "end-auto",
             "description": "End session with an AI-generated summary"
+          },
+          {
+            "name": "review",
+            "description": "Review session for missed logging (cleanup pass)"
           }
         ]
       }

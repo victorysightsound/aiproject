@@ -101,6 +101,9 @@ async function handleCommand(
         case 'end-auto':
             return await handleEndAutoCommand(response);
 
+        case 'review':
+            return await handleReviewCommand(response);
+
         default:
             response.markdown(`Unknown command: /${command}`);
             return { metadata: { command: 'unknown' } };
@@ -404,6 +407,26 @@ async function handleEndAutoCommand(
 }
 
 /**
+ * Handle /review command - cleanup pass for missed logging
+ */
+async function handleReviewCommand(
+    response: vscode.ChatResponseStream
+): Promise<ProjChatResult> {
+    const result = cli.runProjSync(['review']);
+
+    if (!result.success) {
+        response.markdown(`**Error:** ${result.stderr}\n`);
+        return { metadata: { command: 'review' } };
+    }
+
+    // Parse and format the review output
+    response.markdown('## Session Review\n\n');
+    response.markdown(result.stdout + '\n');
+
+    return { metadata: { command: 'review' } };
+}
+
+/**
  * Handle natural language queries
  */
 async function handleQuery(
@@ -428,6 +451,11 @@ async function handleQuery(
 
     if (lowerPrompt.includes('block') || lowerPrompt.includes('stuck') || lowerPrompt.includes('waiting')) {
         return handleBlockersQuery(response);
+    }
+
+    // Handle review requests
+    if (lowerPrompt.includes('review') || lowerPrompt.includes('missed') || lowerPrompt.includes('cleanup')) {
+        return handleReviewCommand(response);
     }
 
     // Handle end session requests

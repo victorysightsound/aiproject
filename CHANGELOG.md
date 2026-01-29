@@ -4,6 +4,8 @@ All notable changes to proj are documented here.
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-01-29
+
 ### Changed
 - **Session auto-start feedback**: When `proj log` or `proj task add` auto-creates a session (or closes a stale one), a message is now displayed so you know a new session started.
 - **Proactive stale session warning**: Shell hook now checks for stale sessions on every prompt. If your session expired while the terminal was idle, you'll see a warning before you start typing. Warns once per stale session, then stays quiet until you run `proj status`.
@@ -16,6 +18,7 @@ All notable changes to proj are documented here.
 - **Auto-create AGENTS.md on session start**: `proj status` now checks if AGENTS.md exists and creates it (with symlinks) if missing. This catches existing projects initialized before this feature was added.
 - **Self-update with `--apply` flag**: `proj update --apply` downloads and applies updates in one command. When permission is denied (e.g., binary in `/usr/local/bin/`), shows clear instructions with the exact `sudo cp` command needed to complete the update.
 - **`--check` flag for `proj update`**: Check for updates without starting background download.
+- **VS Code: `/review` command**: Added `/review` slash command to the chat participant (`@proj /review`) for session review directly in Copilot Chat.
 
 ## [1.8.0] - 2026-01-28
 
