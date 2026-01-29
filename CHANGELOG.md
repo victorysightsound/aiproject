@@ -4,6 +4,12 @@ All notable changes to proj are documented here.
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-01-29
+
+### Changed
+- **AI instructions for mid-conversation project switching**: SESSION_RULE now instructs AI agents to run `proj status` when switching to a different project directory mid-conversation, ensuring proper session tracking across projects.
+- **Explicit commit instructions for AI agents**: SESSION_RULE now explicitly instructs AI to commit after completing tasks and before ending sessions. Previously only mentioned proj's auto-commit feature without telling AI to commit manually.
+
 ## [1.8.1] - 2026-01-29
 
 ### Changed

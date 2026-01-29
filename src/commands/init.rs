@@ -903,6 +903,10 @@ pub const SESSION_RULE: &str = r#"
 
 If no `.tracking/` folder exists, skip this step.
 
+**When switching projects mid-conversation** (e.g., user runs a command to change to a different project directory):
+1. If the new directory has a `.tracking/` folder, run `proj status`
+2. This ensures each project has proper session tracking even when moving between projects within the same conversation
+
 ### Logging During Sessions (IMPORTANT)
 
 You MUST actively log decisions, tasks, and blockers as they occur. Do not wait until the end.
@@ -937,7 +941,9 @@ proj log blocker "<what is blocking progress>"
 
 ### Ending Sessions
 
-Before ending, the session activity will be displayed. Review it to ensure nothing was missed.
+**Before ending a session**, you MUST:
+1. **Commit any uncommitted changes** - Run `git status` to check for changes, then commit with a descriptive message
+2. Review the session activity to ensure nothing was missed
 
 **If session activity is empty:**
 When `proj session end` shows "No activity was logged", you have three options:
@@ -1017,9 +1023,17 @@ Before making a decision that might duplicate or contradict a previous one, chec
 proj context "<relevant topic>"
 ```
 
-### Auto-Commit on Task Completion
+### Committing Changes
 
-If the project has `auto_commit_on_task: true` in config, completing a task via `proj task update <id> --status completed` will auto-commit changes with message `[proj] Completed task #N: <description>`.
+**After completing a task:**
+1. Commit the changes related to that task with a descriptive message
+2. Then mark the task as completed: `proj task update <id> --status completed`
+
+**Before ending a session:**
+1. Ensure all changes are committed
+2. Use `git status` to verify no uncommitted work remains
+
+If the project has `auto_commit_on_task: true` in config, proj will auto-commit when tasks are marked completed. Otherwise, commit manually.
 "#;
 
 /// Template for project-local AGENTS.md file
