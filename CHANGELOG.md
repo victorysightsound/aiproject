@@ -8,6 +8,8 @@ All notable changes to proj are documented here.
 - **Session auto-start feedback**: When `proj log` or `proj task add` auto-creates a session (or closes a stale one), a message is now displayed so you know a new session started.
 - **Proactive stale session warning**: Shell hook now checks for stale sessions on every prompt. If your session expired while the terminal was idle, you'll see a warning before you start typing. Warns once per stale session, then stays quiet until you run `proj status`.
 - **`proj shell check` command**: New lightweight command used by the shell prompt hook to detect stale sessions.
+- **`proj review` command**: Cleanup pass for missed logging. Shows git commits alongside logged items, helps identify decisions/tasks that weren't logged during the session.
+- **Status nudge for review**: `proj status` now shows a nudge when there are commits but no decisions logged, prompting you to run `proj review`.
 
 ### Added
 - **Project-local AGENTS.md creation**: `proj init` now creates an AGENTS.md file in the project directory with proj tracking instructions, plus CLAUDE.md and GEMINI.md symlinks pointing to it. If CLAUDE.md or GEMINI.md already exist as real files, they are promoted to AGENTS.md and the symlinks are created. This ensures all LLM platforms (Claude, Gemini, Codex) use unified project context.

@@ -95,6 +95,8 @@ pub enum Commands {
         #[arg(long)]
         recent: bool,
     },
+    /// Review session for missed logging (cleanup pass)
+    Review,
     /// Show changes since last status
     Delta,
     /// Compress old sessions

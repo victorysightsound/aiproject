@@ -103,8 +103,46 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
         }
     }
 
+    // Show review nudge if commits > decisions (only for non-quiet modes)
+    if effective_tier != StatusTier::Micro {
+        show_review_nudge(&conn, session.session_id, &session.started_at)?;
+    }
+
     // Check for updates (cached, runs at most once per day)
     update_check::check_and_notify();
+
+    Ok(())
+}
+
+/// Show a nudge to review session if there are commits but few decisions logged
+fn show_review_nudge(
+    conn: &Connection,
+    session_id: i64,
+    started_at: &chrono::DateTime<chrono::Utc>,
+) -> Result<()> {
+    // Count decisions logged this session
+    let decision_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM decisions WHERE session_id = ?",
+            [session_id],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+
+    // Get commit count since session start
+    let session_start = started_at.format("%Y-%m-%d %H:%M:%S").to_string();
+    let commit_count = crate::git::get_commit_count_since(conn, &session_start).unwrap_or(0);
+
+    // Show nudge if there are commits but no decisions
+    if commit_count > 2 && decision_count == 0 {
+        println!(
+            "{} {} commits, 0 decisions logged. Run '{}' to catch up.",
+            "💡".yellow(),
+            commit_count,
+            "proj review".cyan()
+        );
+        println!();
+    }
 
     Ok(())
 }

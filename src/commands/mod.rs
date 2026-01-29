@@ -20,6 +20,7 @@ pub mod register;
 pub mod registered;
 pub mod release;
 pub mod resume;
+pub mod review;
 pub mod rollback;
 pub mod session;
 pub mod shell;

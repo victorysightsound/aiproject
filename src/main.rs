@@ -91,6 +91,7 @@ fn main() -> Result<()> {
             ranked,
             recent,
         } => commands::context::run(&topic, ranked, recent),
+        Commands::Review => commands::review::run(),
         Commands::Delta => commands::delta::run(),
         Commands::Compress { auto } => commands::compress::run(auto),
         Commands::Cleanup { auto, days } => commands::cleanup::run(auto, days),
