@@ -210,6 +210,17 @@ fn run_non_interactive(
         } else {
             println!("  {} Session rule in global AGENTS.md", "✓".green());
         }
+
+        // Create project-local AGENTS.md with CLAUDE.md/GEMINI.md symlinks
+        if let Err(e) = setup_project_agents(&project_root) {
+            println!(
+                "  {} Could not setup project AGENTS.md: {}",
+                "⚠".yellow(),
+                e
+            );
+        } else {
+            println!("  {} Project AGENTS.md + symlinks created", "✓".green());
+        }
     }
 
     // Documentation setup
@@ -416,6 +427,17 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
         );
     } else {
         println!("  {} Session rule in global AGENTS.md", "✓".green());
+    }
+
+    // Create project-local AGENTS.md with CLAUDE.md/GEMINI.md symlinks
+    if let Err(e) = setup_project_agents(&project_root) {
+        println!(
+            "  {} Could not setup project AGENTS.md: {}",
+            "⚠".yellow(),
+            e
+        );
+    } else {
+        println!("  {} Project AGENTS.md + symlinks created", "✓".green());
     }
 
     // Documentation database setup
@@ -999,6 +1021,190 @@ proj context "<relevant topic>"
 
 If the project has `auto_commit_on_task: true` in config, completing a task via `proj task update <id> --status completed` will auto-commit changes with message `[proj] Completed task #N: <description>`.
 "#;
+
+/// Template for project-local AGENTS.md file
+const PROJECT_AGENTS_TEMPLATE: &str = r#"# Project Context & Rules
+This file is the single source of truth for Gemini, Claude, and Codex agents.
+
+## Project Tracking
+
+This project uses `proj` for session and decision tracking. Follow these instructions to maintain project continuity.
+
+### Session Management
+
+**At session start:**
+```bash
+proj status
+```
+This shows current project state and automatically starts a session if needed. Review the output to understand:
+- Where the last session left off
+- Current active tasks
+- Recent decisions
+- Any open blockers or questions
+
+**During the session:**
+- Log significant decisions: `proj log decision "topic" "what was decided" "why"`
+- Update task status: `proj task update <id> --status in_progress`
+- Note blockers: `proj log blocker "description"`
+- Add context notes: `proj log note "category" "title" "content"`
+- Check context before duplicating decisions: `proj context "<relevant topic>"`
+- Quick recall of recent activity: `proj context recent --recent`
+
+**At session end:**
+```bash
+proj session end "Implemented X, fixed Y, updated Z"
+```
+Write substantive summaries (1-3 sentences) that answer "what was accomplished?" Avoid generic summaries like "reviewed status" - future sessions need specific context to resume effectively.
+
+### Quick Reference
+
+| Command | Purpose |
+|---------|---------|
+| `proj status` | Current state + auto-start session (syncs git commits) |
+| `proj resume` | Detailed "where we left off" context |
+| `proj context <topic>` | Query decisions, notes, and git commits |
+| `proj context <topic> --ranked` | Relevance-scored search results |
+| `proj context recent --recent` | Last 10 items across all tables |
+| `proj tasks` | List current tasks |
+| `proj log decision "topic" "decision" "rationale"` | Record a decision |
+| `proj session end "summary"` | Close session with summary + structured summary |
+
+### Database Queries (for AI agents)
+
+For direct database access when more efficient:
+
+```sql
+-- Get last session summary (with structured data if available)
+SELECT summary, structured_summary FROM sessions WHERE status = 'completed' ORDER BY ended_at DESC LIMIT 1;
+
+-- Get active tasks
+SELECT task_id, description, status, priority FROM tasks WHERE status NOT IN ('completed', 'cancelled') ORDER BY priority, created_at;
+
+-- Get recent decisions on a topic
+SELECT decision, rationale, created_at FROM decisions WHERE topic LIKE '%keyword%' AND status = 'active';
+
+-- Get recent git commits
+SELECT short_hash, message, files_changed, committed_at FROM git_commits ORDER BY committed_at DESC LIMIT 10;
+
+-- Search all tracked content (decisions, notes, tasks, commit messages)
+SELECT * FROM tracking_fts WHERE tracking_fts MATCH 'search term';
+```
+
+Tracking database: `.tracking/tracking.db`
+
+### Principles
+
+1. **Start with `proj status`** - never guess project state
+2. **Log decisions when made** - not later when you might forget the rationale
+3. **Keep task status current** - update as you work, not in batches
+4. **End sessions with summaries** - future you (or another agent) will thank you
+5. **Query before re-reading** - a SQL query uses fewer tokens than re-reading files
+"#;
+
+/// Setup project-local AGENTS.md with CLAUDE.md and GEMINI.md symlinks
+/// This creates the unified agent configuration in the project directory
+fn setup_project_agents(project_root: &std::path::Path) -> Result<()> {
+    let agents_path = project_root.join("AGENTS.md");
+    let claude_path = project_root.join("CLAUDE.md");
+    let gemini_path = project_root.join("GEMINI.md");
+
+    // Check if AGENTS.md already exists
+    if agents_path.exists() {
+        // Check if it already has proj tracking section
+        let content = std::fs::read_to_string(&agents_path)?;
+        if !content.contains("## Project Tracking") {
+            // Append the project tracking section
+            let new_content = format!(
+                "{}\n\n{}",
+                content.trim_end(),
+                PROJECT_AGENTS_TEMPLATE
+                    .trim_start_matches("# Project Context & Rules\n")
+                    .trim_start_matches("This file is the single source of truth for Gemini, Claude, and Codex agents.\n\n")
+            );
+            std::fs::write(&agents_path, new_content)?;
+        }
+    } else {
+        // Check if CLAUDE.md or GEMINI.md exist as real files (not symlinks)
+        // If so, promote one to AGENTS.md (like unify-agents does)
+        if claude_path.exists() && !claude_path.is_symlink() {
+            std::fs::rename(&claude_path, &agents_path)?;
+            // Append proj tracking if not present
+            let content = std::fs::read_to_string(&agents_path)?;
+            if !content.contains("## Project Tracking") {
+                let new_content = format!(
+                    "{}\n\n{}",
+                    content.trim_end(),
+                    PROJECT_AGENTS_TEMPLATE
+                        .trim_start_matches("# Project Context & Rules\n")
+                        .trim_start_matches("This file is the single source of truth for Gemini, Claude, and Codex agents.\n\n")
+                );
+                std::fs::write(&agents_path, new_content)?;
+            }
+        } else if gemini_path.exists() && !gemini_path.is_symlink() {
+            std::fs::rename(&gemini_path, &agents_path)?;
+            // Append proj tracking if not present
+            let content = std::fs::read_to_string(&agents_path)?;
+            if !content.contains("## Project Tracking") {
+                let new_content = format!(
+                    "{}\n\n{}",
+                    content.trim_end(),
+                    PROJECT_AGENTS_TEMPLATE
+                        .trim_start_matches("# Project Context & Rules\n")
+                        .trim_start_matches("This file is the single source of truth for Gemini, Claude, and Codex agents.\n\n")
+                );
+                std::fs::write(&agents_path, new_content)?;
+            }
+        } else {
+            // Create fresh AGENTS.md
+            std::fs::write(&agents_path, PROJECT_AGENTS_TEMPLATE)?;
+        }
+    }
+
+    // Create/update symlinks for CLAUDE.md and GEMINI.md
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::symlink;
+
+        // Handle CLAUDE.md
+        if claude_path.exists() {
+            if claude_path.is_symlink() {
+                // Already a symlink, update it
+                std::fs::remove_file(&claude_path)?;
+            } else {
+                // Real file - back it up
+                let backup = project_root.join("CLAUDE.md.bak");
+                std::fs::rename(&claude_path, &backup)?;
+            }
+        }
+        symlink("AGENTS.md", &claude_path)?;
+
+        // Handle GEMINI.md
+        if gemini_path.exists() {
+            if gemini_path.is_symlink() {
+                // Already a symlink, update it
+                std::fs::remove_file(&gemini_path)?;
+            } else {
+                // Real file - back it up
+                let backup = project_root.join("GEMINI.md.bak");
+                std::fs::rename(&gemini_path, &backup)?;
+            }
+        }
+        symlink("AGENTS.md", &gemini_path)?;
+    }
+
+    #[cfg(windows)]
+    {
+        // On Windows, create copies instead of symlinks (symlinks require admin)
+        if !claude_path.exists() {
+            std::fs::copy(&agents_path, &claude_path)?;
+        }
+        if !gemini_path.exists() {
+            std::fs::copy(&agents_path, &gemini_path)?;
+        }
+    }
+
+    Ok(())
+}
 
 /// Ensure session management rule exists in global AGENTS.md
 fn ensure_agents_session_rule() -> Result<()> {
