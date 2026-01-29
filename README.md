@@ -54,17 +54,18 @@ After init, AI assistants will run `proj status` at the start of each conversati
 
 ## Does It Actually Help?
 
-Yes. We ran a controlled test comparing AI agents working with and without proj:
+Yes. We've run controlled tests comparing AI agents working with and without proj:
 
-| Metric | With proj | Without proj | Improvement |
-|--------|-----------|--------------|-------------|
-| Files read | 11 | 34 | **68% reduction** |
-| Token usage | ~10K | ~20K | **50% reduction** |
-| Context recovery | 100% | 0% | **Critical** |
+| Study | Files Read | Token Savings | Context Recovery |
+|-------|------------|---------------|------------------|
+| Inventory CLI | 11 vs 34 | **50% reduction** | 100% vs 0% |
+| Bookmarks CLI | 12 vs 36 | **26% reduction** | 100% vs 100%* |
 
-The biggest finding: without tracking, AI agents literally cannot recover what the previous session was working on. With proj, they pick up exactly where you left off.
+*Second test compared proj vs. code comments (both prescribed). When documentation is required, accuracy is equal - but proj is more efficient.
 
-**[Read the full case study (PDF)](docs/CASE_STUDY.pdf)** | **[Markdown version](docs/CASE_STUDY.md)**
+The key finding: **some form of tracking is essential** for multi-session AI work. Without any tracking, AI agents cannot recover what the previous session was working on.
+
+**[View all case studies](case-studies/README.md)**
 
 ## Documentation
 
