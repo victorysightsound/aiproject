@@ -1064,11 +1064,22 @@ This shows current project state and automatically starts a session if needed. R
 - Check context before duplicating decisions: `proj context "<relevant topic>"`
 - Quick recall of recent activity: `proj context recent --recent`
 
-**At session end:**
+**Before ending a session:**
+1. Commit any uncommitted changes with a descriptive message
+2. Run `git status` to verify no uncommitted work remains
+
 ```bash
 proj session end "Implemented X, fixed Y, updated Z"
 ```
 Write substantive summaries (1-3 sentences) that answer "what was accomplished?" Avoid generic summaries like "reviewed status" - future sessions need specific context to resume effectively.
+
+### Committing Changes
+
+**After completing a task:**
+1. Commit the changes related to that task with a descriptive message
+2. Then mark the task as completed: `proj task update <id> --status completed`
+
+If the project has `auto_commit_on_task: true` in config, proj will auto-commit when tasks are marked completed. Otherwise, commit manually.
 
 ### Quick Reference
 
