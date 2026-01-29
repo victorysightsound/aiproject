@@ -114,7 +114,7 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
     Ok(())
 }
 
-/// Show a nudge to review session if there are commits but few decisions logged
+/// Show a nudge to review session if no decisions are logged
 fn show_review_nudge(
     conn: &Connection,
     session_id: i64,
@@ -129,16 +129,25 @@ fn show_review_nudge(
         )
         .unwrap_or(0);
 
-    // Get commit count since session start
-    let session_start = started_at.format("%Y-%m-%d %H:%M:%S").to_string();
-    let commit_count = crate::git::get_commit_count_since(conn, &session_start).unwrap_or(0);
+    // Count tasks added this session (for potential future use)
+    let _task_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM tasks WHERE session_id = ?",
+            [session_id],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
 
-    // Show nudge if there are commits but no decisions
-    if commit_count > 2 && decision_count == 0 {
+    // Check session age - only nudge after some work has likely been done (30+ minutes)
+    let session_age = chrono::Utc::now() - *started_at;
+    let session_minutes = session_age.num_minutes();
+
+    // Show nudge if session is 30+ minutes old and no decisions logged
+    if session_minutes >= 30 && decision_count == 0 {
         println!(
-            "{} {} commits, 0 decisions logged. Run '{}' to catch up.",
+            "{} Session active {}+ min, 0 decisions logged. Run '{}' to review.",
             "💡".yellow(),
-            commit_count,
+            session_minutes,
             "proj review".cyan()
         );
         println!();
