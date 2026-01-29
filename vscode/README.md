@@ -120,7 +120,7 @@ sudo cp target/release/proj /usr/local/bin/
 proj --version
 ```
 
-You should see a version number like `1.7.28`.
+You should see a version number like `1.8.0`.
 
 ### 2. Initialize proj in your project
 
@@ -178,7 +178,7 @@ cd vscode
 npm install
 npm run compile
 npm run package
-code --install-extension proj-1.7.28.vsix
+code --install-extension proj-1.8.0.vsix
 ```
 
 ---
@@ -842,7 +842,7 @@ Creates a `.vsix` file you can install or distribute.
 
 ```bash
 npm run package
-code --install-extension proj-1.7.28.vsix --force
+code --install-extension proj-1.8.0.vsix --force
 ```
 
 Then restart VS Code.
@@ -851,7 +851,7 @@ Then restart VS Code.
 
 ## Version History
 
-### 1.7.28
+### 1.8.0
 
 - Added comprehensive "Using @proj in Copilot Chat" guide covering slash commands, natural language, and automatic tools ranked by reliability
 - Added "What to Expect" note setting honest expectations about @proj vs automatic logging

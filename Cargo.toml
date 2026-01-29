@@ -1,6 +1,6 @@
 [package]
 name = "aiproject"
-version = "1.7.28"
+version = "1.8.0"
 edition = "2021"
 authors = ["John Deaton <john@victorysightsound.com>"]
 description = "Project tracking and context management for AI-assisted development"

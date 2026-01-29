@@ -2,7 +2,7 @@
 
 All notable changes to proj are documented here.
 
-## [Unreleased] - Schema v1.4
+## [1.8.0] - 2026-01-28
 
 ### Added
 - **Git history integration**: Recent git commits are synced into the tracking database and shown in `proj status` output (Tier 2 shows 3 commits, Tier 3 shows 10 with file stats). Commits are also searchable via `proj context`.
