@@ -1103,7 +1103,10 @@ Tracking database: `.tracking/tracking.db`
 
 /// Setup project-local AGENTS.md with CLAUDE.md and GEMINI.md symlinks
 /// This creates the unified agent configuration in the project directory
-fn setup_project_agents(project_root: &std::path::Path) -> Result<()> {
+/// Setup project-local AGENTS.md with CLAUDE.md and GEMINI.md symlinks
+/// This creates the unified agent configuration in the project directory
+/// Public so it can be called from status.rs to ensure AGENTS.md exists
+pub fn setup_project_agents(project_root: &std::path::Path) -> Result<()> {
     let agents_path = project_root.join("AGENTS.md");
     let claude_path = project_root.join("CLAUDE.md");
     let gemini_path = project_root.join("GEMINI.md");

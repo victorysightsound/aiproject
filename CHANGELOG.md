@@ -6,6 +6,7 @@ All notable changes to proj are documented here.
 
 ### Added
 - **Project-local AGENTS.md creation**: `proj init` now creates an AGENTS.md file in the project directory with proj tracking instructions, plus CLAUDE.md and GEMINI.md symlinks pointing to it. If CLAUDE.md or GEMINI.md already exist as real files, they are promoted to AGENTS.md and the symlinks are created. This ensures all LLM platforms (Claude, Gemini, Codex) use unified project context.
+- **Auto-create AGENTS.md on session start**: `proj status` now checks if AGENTS.md exists and creates it (with symlinks) if missing. This catches existing projects initialized before this feature was added.
 - **Self-update with `--apply` flag**: `proj update --apply` downloads and applies updates in one command. When permission is denied (e.g., binary in `/usr/local/bin/`), shows clear instructions with the exact `sudo cp` command needed to complete the update.
 - **`--check` flag for `proj update`**: Check for updates without starting background download.
 

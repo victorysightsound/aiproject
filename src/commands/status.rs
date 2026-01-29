@@ -45,8 +45,18 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
         .with_context(|| format!("Failed to open tracking database at {:?}", db_path))?;
 
     // Sync recent git commits if in a git repo
+    // Also ensure AGENTS.md exists (for projects initialized before this feature)
     if let Ok(root) = get_project_root() {
         let _ = git::sync_recent_commits(&conn, &root, 20);
+
+        // Check if AGENTS.md exists, create if not
+        let agents_path = root.join("AGENTS.md");
+        if !agents_path.exists() {
+            if let Err(e) = crate::commands::init::setup_project_agents(&root) {
+                // Silent fail - don't block status for this
+                eprintln!("{} Could not create AGENTS.md: {}", "⚠".yellow(), e);
+            }
+        }
     }
 
     // Get or create session (handles stale session auto-close)
