@@ -104,7 +104,7 @@ fn main() -> Result<()> {
         Commands::Check => commands::check::run(),
         Commands::Extend { extension_type } => commands::extend::run(extension_type),
         Commands::Archive => commands::archive::run(),
-        Commands::Update => commands::update_check::run(),
+        Commands::Update { apply, check } => commands::update_check::run(apply, check),
         Commands::Release { version, check } => commands::release::run(version, check),
         Commands::Rollback {
             version,

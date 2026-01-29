@@ -142,8 +142,15 @@ pub enum Commands {
     },
     /// Archive completed project
     Archive,
-    /// Check for updates
-    Update,
+    /// Check for updates and optionally apply them
+    Update {
+        /// Download and apply the update immediately
+        #[arg(long)]
+        apply: bool,
+        /// Just check, don't start background download
+        #[arg(long)]
+        check: bool,
+    },
     /// Release a new version (maintainer only)
     Release {
         /// Version to release (e.g., 1.4.0) - skips version selection prompt

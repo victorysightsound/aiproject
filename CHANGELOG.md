@@ -2,6 +2,12 @@
 
 All notable changes to proj are documented here.
 
+## [Unreleased]
+
+### Added
+- **Self-update with `--apply` flag**: `proj update --apply` downloads and applies updates in one command. When permission is denied (e.g., binary in `/usr/local/bin/`), shows clear instructions with the exact `sudo cp` command needed to complete the update.
+- **`--check` flag for `proj update`**: Check for updates without starting background download.
+
 ## [1.8.0] - 2026-01-28
 
 ### Added

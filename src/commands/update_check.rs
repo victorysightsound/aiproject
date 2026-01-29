@@ -325,8 +325,123 @@ pub fn check_schema_upgrade(project_schema: &str, session_full_context_shown: bo
     }
 }
 
+/// Apply a downloaded update, with proper permission error handling
+fn apply_update(version: &str) -> Result<()> {
+    let staging = get_pending_update_dir()?;
+    let pending_binary = staging.join("proj");
+
+    if !pending_binary.exists() {
+        return Err(anyhow!("No staged update found"));
+    }
+
+    let current_exe = std::env::current_exe()?;
+    let current_version = env!("CARGO_PKG_VERSION");
+
+    println!(
+        "Applying update: {} → {}",
+        current_version.yellow(),
+        version.green()
+    );
+
+    // Try to replace the binary
+    let apply_result = (|| -> Result<()> {
+        // First try atomic rename
+        if let Err(_) = fs::rename(&pending_binary, &current_exe) {
+            // Rename failed, try copy
+            fs::copy(&pending_binary, &current_exe)
+                .map_err(|e| anyhow!("Failed to copy binary: {}", e))?;
+        }
+
+        // Set executable permission (Unix)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&current_exe)?.permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&current_exe, perms)?;
+        }
+
+        Ok(())
+    })();
+
+    match apply_result {
+        Ok(()) => {
+            // Cleanup staging
+            let _ = fs::remove_dir_all(&staging);
+
+            println!("{} Update applied successfully!", "✓".green());
+            println!();
+
+            // Check if schema upgrade is needed
+            println!("Checking for schema upgrades...");
+            println!(
+                "  Run: {} to upgrade project databases",
+                "proj upgrade --auto".cyan()
+            );
+
+            Ok(())
+        }
+        Err(e) => {
+            // Check if it's a permission error
+            let error_str = e.to_string().to_lowercase();
+            let is_permission_error = error_str.contains("permission denied")
+                || error_str.contains("operation not permitted")
+                || error_str.contains("access is denied");
+
+            if is_permission_error {
+                println!();
+                println!(
+                    "{} Permission denied - the binary location requires elevated privileges.",
+                    "⚠".yellow()
+                );
+                println!();
+                println!("To complete the update, run one of these commands:");
+                println!();
+
+                // Show the appropriate sudo command based on binary location
+                let exe_path = current_exe.display();
+
+                #[cfg(unix)]
+                {
+                    println!(
+                        "  {}",
+                        format!("sudo cp {} {}", pending_binary.display(), exe_path).cyan()
+                    );
+                    println!("  {}", format!("sudo chmod +x {}", exe_path).cyan());
+                    println!();
+                    println!("Or update via package manager:");
+                    println!("  {}", "brew upgrade proj".cyan());
+                    println!("  {}", "npm update -g create-aiproj".cyan());
+                }
+
+                #[cfg(windows)]
+                {
+                    println!("  Run Command Prompt as Administrator and execute:");
+                    println!(
+                        "  {}",
+                        format!("copy /Y \"{}\" \"{}\"", pending_binary.display(), exe_path).cyan()
+                    );
+                }
+
+                println!();
+                println!(
+                    "The update has been downloaded to: {}",
+                    pending_binary.display().to_string().dimmed()
+                );
+
+                // Don't clean up staging so user can apply manually
+                Ok(())
+            } else {
+                // Clean up on other errors
+                let _ = fs::remove_dir_all(&staging);
+                Err(e)
+            }
+        }
+    }
+}
+
 /// Force a version check (for manual `proj update` command)
-pub fn run() -> Result<()> {
+pub fn run(apply: bool, check_only: bool) -> Result<()> {
     let current_version = env!("CARGO_PKG_VERSION");
     println!("Current version: {}", current_version.cyan());
     println!("Checking for updates...");
@@ -337,15 +452,36 @@ pub fn run() -> Result<()> {
                 println!();
                 println!("{} New version available: {}", "⬆".green(), latest.green());
                 println!();
-                println!("Install options:");
-                println!("  • Homebrew:  {}", "brew upgrade proj".cyan());
-                println!("  • npm:       {}", "npm update -g create-aiproj".cyan());
-                println!(
-                    "  • From source: {}",
-                    "cargo install --path ~/projects/global/tools/proj".cyan()
-                );
-                println!();
-                println!("Release notes: {}", url);
+
+                if apply {
+                    // Download and apply immediately
+                    println!("Downloading update...");
+                    download_update(&latest)?;
+                    println!("{} Download complete.", "✓".green());
+                    println!();
+                    apply_update(&latest)?;
+                } else {
+                    // Show install options
+                    if !check_only && get_platform_target().is_some() {
+                        // Start background download
+                        if !is_update_staged(&latest) {
+                            println!("  {} Downloading in background...", "↓".dimmed());
+                            download_update_background(latest.clone());
+                        }
+                        println!();
+                    }
+
+                    println!("Install options:");
+                    println!("  • Auto:      {}", "proj update --apply".cyan());
+                    println!("  • Homebrew:  {}", "brew upgrade proj".cyan());
+                    println!("  • npm:       {}", "npm update -g create-aiproj".cyan());
+                    println!(
+                        "  • From source: {}",
+                        "cargo install --path ~/projects/global/tools/proj".cyan()
+                    );
+                    println!();
+                    println!("Release notes: {}", url);
+                }
             } else {
                 println!("{} You're on the latest version!", "✓".green());
             }
