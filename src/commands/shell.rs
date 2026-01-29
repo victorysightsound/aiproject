@@ -301,8 +301,8 @@ pub fn check() -> Result<()> {
         _ => return Ok(()), // No active session, nothing to warn about
     };
 
-    // Check if session is stale (24+ hours)
-    let stale_hours: i64 = 24;
+    // Check if session is stale (8+ hours)
+    let stale_hours: i64 = 8;
     let now = Utc::now();
     let session_age = now - session.started_at;
 

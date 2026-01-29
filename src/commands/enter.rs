@@ -17,7 +17,7 @@ use crate::paths::get_tracking_db_path;
 use crate::session::{get_active_session, get_or_create_session_with_info};
 
 /// Stale session threshold in hours (matches session.rs)
-const STALE_SESSION_HOURS: i64 = 24;
+const STALE_SESSION_HOURS: i64 = 8;
 
 pub fn run() -> Result<()> {
     // Open the tracking database
@@ -43,7 +43,7 @@ pub fn run() -> Result<()> {
     // If a stale session was auto-closed, notify the user
     if let Some(closed) = session_result.auto_closed_session {
         println!(
-            "{} Previous session #{} was stale (24+ hours). Auto-closed.",
+            "{} Previous session #{} was stale (8+ hours). Auto-closed.",
             "⚠".yellow(),
             closed.session_id
         );

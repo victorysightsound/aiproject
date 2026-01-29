@@ -899,7 +899,7 @@ pub const SESSION_RULE: &str = r#"
 **At the start of every conversation**, if the current directory has a `.tracking/` folder:
 1. Run `proj status` BEFORE responding to the user's first message
 2. This loads project context and starts session tracking
-3. Stale sessions (24+ hours) auto-close automatically
+3. Stale sessions (8+ hours) auto-close automatically
 
 If no `.tracking/` folder exists, skip this step.
 

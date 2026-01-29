@@ -66,7 +66,7 @@ pub fn run(quiet: bool, verbose: bool, full: bool) -> Result<()> {
     // If a stale session was auto-closed, notify the user
     if let Some(closed) = session_result.auto_closed_session {
         println!(
-            "{} Previous session #{} was stale (24+ hours). Auto-closed.",
+            "{} Previous session #{} was stale (8+ hours). Auto-closed.",
             "⚠".yellow(),
             closed.session_id
         );
