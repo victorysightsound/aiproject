@@ -7,6 +7,8 @@ All notable changes to proj are documented here.
 ### Changed
 - **Stale session timeout extended to 24 hours** (was 8 hours). Sessions now auto-close after 24 hours of inactivity instead of 8.
 - **Session auto-start feedback**: When `proj log` or `proj task add` auto-creates a session (or closes a stale one), a message is now displayed so you know a new session started.
+- **Proactive stale session warning**: Shell hook now checks for stale sessions on every prompt. If your session expired while the terminal was idle, you'll see a warning before you start typing. Warns once per stale session, then stays quiet until you run `proj status`.
+- **`proj shell check` command**: New lightweight command used by the shell prompt hook to detect stale sessions.
 
 ### Added
 - **Project-local AGENTS.md creation**: `proj init` now creates an AGENTS.md file in the project directory with proj tracking instructions, plus CLAUDE.md and GEMINI.md symlinks pointing to it. If CLAUDE.md or GEMINI.md already exist as real files, they are promoted to AGENTS.md and the symlinks are created. This ensures all LLM platforms (Claude, Gemini, Codex) use unified project context.

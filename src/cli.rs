@@ -209,6 +209,8 @@ pub enum ShellSubcommand {
     Uninstall,
     /// Show shell integration status
     Status,
+    /// Check for stale session (used by shell prompt hook)
+    Check,
 }
 
 #[derive(Parser)]

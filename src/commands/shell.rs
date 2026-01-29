@@ -11,25 +11,39 @@ use dialoguer::Confirm;
 const HOOK_MARKER_START: &str = "# >>> proj shell integration >>>";
 const HOOK_MARKER_END: &str = "# <<< proj shell integration <<<";
 
-/// Zsh hook code - uses chpwd which fires on directory change
+/// Zsh hook code - uses precmd (every prompt) and chpwd (directory change)
 const ZSH_HOOK: &str = r#"# >>> proj shell integration >>>
-# Automatically runs proj enter when cd'ing into a project with tracking
+# Runs proj enter on directory change, checks for stale sessions on every prompt
 _proj_auto_enter() {
     if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
         proj enter
     fi
 }
-# Add to chpwd hooks if not already present
+_proj_check_stale() {
+    if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
+        proj shell check 2>/dev/null
+    fi
+}
+# Run enter on directory change
 if [[ -z "${chpwd_functions[(r)_proj_auto_enter]}" ]]; then
     chpwd_functions+=(_proj_auto_enter)
 fi
+# Check for stale session on every prompt
+if [[ -z "${precmd_functions[(r)_proj_check_stale]}" ]]; then
+    precmd_functions+=(_proj_check_stale)
+fi
 # <<< proj shell integration <<<"#;
 
-/// Bash hook code - uses PROMPT_COMMAND with directory tracking
+/// Bash hook code - uses PROMPT_COMMAND for both directory change and stale check
 const BASH_HOOK: &str = r#"# >>> proj shell integration >>>
-# Automatically runs proj enter when cd'ing into a project with tracking
+# Runs proj enter on directory change, checks for stale sessions on every prompt
 _proj_last_dir=""
-_proj_auto_enter() {
+_proj_prompt_hook() {
+    # Check for stale session on every prompt
+    if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
+        proj shell check 2>/dev/null
+    fi
+    # Run enter on directory change
     if [[ "$PWD" != "$_proj_last_dir" ]]; then
         _proj_last_dir="$PWD"
         if [[ -d ".tracking" ]] && command -v proj &> /dev/null; then
@@ -38,8 +52,8 @@ _proj_auto_enter() {
     fi
 }
 # Add to PROMPT_COMMAND if not already present
-if [[ "$PROMPT_COMMAND" != *"_proj_auto_enter"* ]]; then
-    PROMPT_COMMAND="_proj_auto_enter${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
+if [[ "$PROMPT_COMMAND" != *"_proj_prompt_hook"* ]]; then
+    PROMPT_COMMAND="_proj_prompt_hook${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
 fi
 # <<< proj shell integration <<<"#;
 
@@ -255,6 +269,84 @@ fn remove_hook(path: &PathBuf) -> Result<()> {
 
     fs::write(path, new_content).with_context(|| format!("Failed to write to {:?}", path))?;
     Ok(())
+}
+
+/// Check for stale session - used by shell prompt hook
+/// This runs on every prompt, so it must be fast and only print once per stale session
+pub fn check() -> Result<()> {
+    use crate::database::open_database;
+    use crate::paths::get_tracking_db_path;
+    use crate::session::get_active_session;
+    use chrono::{Duration, Utc};
+
+    // Quick exit if not in a proj directory
+    let tracking_dir = std::path::Path::new(".tracking");
+    if !tracking_dir.exists() {
+        return Ok(());
+    }
+
+    // Open database
+    let db_path = match get_tracking_db_path() {
+        Ok(p) => p,
+        Err(_) => return Ok(()), // Silent fail
+    };
+    let conn = match open_database(&db_path) {
+        Ok(c) => c,
+        Err(_) => return Ok(()), // Silent fail
+    };
+
+    // Check for active session
+    let session = match get_active_session(&conn) {
+        Ok(Some(s)) => s,
+        _ => return Ok(()), // No active session, nothing to warn about
+    };
+
+    // Check if session is stale (24+ hours)
+    let stale_hours: i64 = 24;
+    let now = Utc::now();
+    let session_age = now - session.started_at;
+
+    if session_age <= Duration::hours(stale_hours) {
+        return Ok(()); // Session is fine, exit silently
+    }
+
+    // Session is stale - check if we've already warned
+    let warned_marker = tracking_dir.join(format!(".warned_stale_{}", session.session_id));
+    if warned_marker.exists() {
+        return Ok(()); // Already warned for this session
+    }
+
+    // Get last session summary for context
+    let summary = session.summary.as_deref().unwrap_or("(no summary)");
+    let hours_stale = session_age.num_hours();
+
+    // Print warning
+    eprintln!();
+    eprintln!(
+        "{} Session #{} expired (inactive {} hours)",
+        "⚠ proj:".yellow().bold(),
+        session.session_id,
+        hours_stale
+    );
+    if summary != "(no summary)" && summary != "(auto-closed)" {
+        eprintln!("  Last: \"{}\"", truncate_str(summary, 60));
+    }
+    eprintln!("  Run '{}' to start a new session.", "proj status".cyan());
+    eprintln!();
+
+    // Create marker so we don't warn again
+    let _ = fs::write(&warned_marker, "");
+
+    Ok(())
+}
+
+/// Truncate a string to max length with ellipsis
+fn truncate_str(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
+    }
 }
 
 /// Check if shell integration is installed (for use by other commands)

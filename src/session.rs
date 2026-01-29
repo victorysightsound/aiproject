@@ -107,6 +107,9 @@ pub fn create_session(conn: &Connection) -> Result<Session> {
 
     let session_id = conn.last_insert_rowid();
 
+    // Clean up any stale session warning markers
+    cleanup_warned_markers();
+
     // Fetch the created session
     let mut stmt = conn.prepare(
         "SELECT session_id, started_at, ended_at, agent, summary, files_touched, status, full_context_shown, structured_summary
@@ -162,6 +165,25 @@ pub fn mark_full_context_shown(conn: &Connection, session_id: i64) -> Result<()>
         [session_id],
     )?;
     Ok(())
+}
+
+/// Clean up stale session warning markers from .tracking directory
+fn cleanup_warned_markers() {
+    let tracking_dir = std::path::Path::new(".tracking");
+    if !tracking_dir.exists() {
+        return;
+    }
+
+    // Remove any .warned_stale_* files
+    if let Ok(entries) = std::fs::read_dir(tracking_dir) {
+        for entry in entries.flatten() {
+            if let Some(name) = entry.file_name().to_str() {
+                if name.starts_with(".warned_stale_") {
+                    let _ = std::fs::remove_file(entry.path());
+                }
+            }
+        }
+    }
 }
 
 /// Gets the last N completed sessions

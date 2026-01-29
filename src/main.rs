@@ -117,6 +117,7 @@ fn main() -> Result<()> {
                 ShellSubcommand::Install { force } => commands::shell::install(force),
                 ShellSubcommand::Uninstall => commands::shell::uninstall(),
                 ShellSubcommand::Status => commands::shell::status(),
+                ShellSubcommand::Check => commands::shell::check(),
             }
         }
         Commands::Uninstall {
