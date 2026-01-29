@@ -86,7 +86,11 @@ fn main() -> Result<()> {
         Commands::Log(cmd) => commands::log::run(cmd),
         Commands::Task(cmd) => commands::task::run(cmd),
         Commands::Tasks => commands::task::list(),
-        Commands::Context { topic, ranked, recent } => commands::context::run(&topic, ranked, recent),
+        Commands::Context {
+            topic,
+            ranked,
+            recent,
+        } => commands::context::run(&topic, ranked, recent),
         Commands::Delta => commands::delta::run(),
         Commands::Compress { auto } => commands::compress::run(auto),
         Commands::Cleanup { auto, days } => commands::cleanup::run(auto, days),

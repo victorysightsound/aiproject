@@ -336,7 +336,11 @@ fn show_recent(conn: &Connection) -> Result<()> {
         .filter_map(|r| r.ok())
         .collect();
     for (dt, topic, decision) in decisions {
-        items.push((dt, "decision".to_string(), format!("{}: {}", topic, decision)));
+        items.push((
+            dt,
+            "decision".to_string(),
+            format!("{}: {}", topic, decision),
+        ));
     }
 
     // Recent tasks

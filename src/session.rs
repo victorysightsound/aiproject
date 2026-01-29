@@ -142,7 +142,12 @@ pub fn end_session(conn: &Connection, session_id: i64, summary: &str) -> Result<
 }
 
 /// Ends a session with both plain and structured summaries
-pub fn end_session_with_structured(conn: &Connection, session_id: i64, summary: &str, structured_summary: &str) -> Result<()> {
+pub fn end_session_with_structured(
+    conn: &Connection,
+    session_id: i64,
+    summary: &str,
+    structured_summary: &str,
+) -> Result<()> {
     conn.execute(
         "UPDATE sessions SET ended_at = datetime('now'), status = 'completed', summary = ?1, structured_summary = ?2 WHERE session_id = ?3",
         rusqlite::params![summary, structured_summary, session_id],

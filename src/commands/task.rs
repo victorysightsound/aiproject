@@ -237,8 +237,7 @@ fn cmd_task_update(
                     )
                     .unwrap_or_else(|_| format!("task #{}", task_id));
 
-                let commit_message =
-                    format!("[proj] Completed task #{}: {}", task_id, task_desc);
+                let commit_message = format!("[proj] Completed task #{}: {}", task_id, task_desc);
                 if let Err(e) = crate::commit::auto_commit(&commit_message, &config) {
                     println!("  {} Auto-commit skipped: {}", "⚠".yellow(), e);
                 }

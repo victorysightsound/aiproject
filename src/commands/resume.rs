@@ -111,7 +111,10 @@ fn output_json(conn: &Connection, config: &ProjectConfig) -> Result<()> {
                 .ended_at
                 .map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
             summary: session.summary.clone(),
-            structured_summary: session.structured_summary.as_ref().and_then(|s| serde_json::from_str(s).ok()),
+            structured_summary: session
+                .structured_summary
+                .as_ref()
+                .and_then(|s| serde_json::from_str(s).ok()),
         }),
         last_session: last_session.map(|s| SessionInfo {
             session_id: s.session_id,
@@ -120,7 +123,10 @@ fn output_json(conn: &Connection, config: &ProjectConfig) -> Result<()> {
                 .ended_at
                 .map(|e| e.format("%Y-%m-%d %H:%M:%S").to_string()),
             summary: s.summary.clone(),
-            structured_summary: s.structured_summary.as_ref().and_then(|ss| serde_json::from_str(ss).ok()),
+            structured_summary: s
+                .structured_summary
+                .as_ref()
+                .and_then(|ss| serde_json::from_str(ss).ok()),
         }),
         active_blockers: get_active_blockers(conn)?
             .into_iter()

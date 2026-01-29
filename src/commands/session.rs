@@ -10,7 +10,9 @@ use crate::config::ProjectConfig;
 use crate::database::open_database;
 use crate::git;
 use crate::paths::get_tracking_db_path;
-use crate::session::{create_session, end_session_with_structured, get_active_session, get_recent_sessions};
+use crate::session::{
+    create_session, end_session_with_structured, get_active_session, get_recent_sessions,
+};
 
 pub fn run(cmd: SessionCommands) -> Result<()> {
     let db_path = get_tracking_db_path()?;
@@ -57,7 +59,11 @@ fn cmd_end(conn: &rusqlite::Connection, summary: &str, force: bool) -> Result<()
     display_session_activity(conn, session.session_id)?;
 
     // Display session review hints
-    display_session_hints(conn, session.session_id, &session.started_at.format("%Y-%m-%d %H:%M:%S").to_string())?;
+    display_session_hints(
+        conn,
+        session.session_id,
+        &session.started_at.format("%Y-%m-%d %H:%M:%S").to_string(),
+    )?;
 
     // If no activity and not forced, show options and exit
     if !has_activity && !force {
@@ -355,10 +361,7 @@ fn display_session_hints(
     {
         let now = chrono::Utc::now().naive_utc();
         let duration = now - started;
-        if duration.num_hours() >= 1
-            && decision_count == 0
-            && task_count == 0
-            && blocker_count == 0
+        if duration.num_hours() >= 1 && decision_count == 0 && task_count == 0 && blocker_count == 0
         {
             hints.push(
                 "Session lasted 1+ hours with no activity logged. Consider reviewing what was accomplished.".to_string()
@@ -417,9 +420,8 @@ fn build_structured_summary(
         .collect();
 
     // Gather blockers
-    let mut stmt = conn.prepare(
-        "SELECT description FROM blockers WHERE session_id = ? ORDER BY created_at",
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT description FROM blockers WHERE session_id = ? ORDER BY created_at")?;
     let blockers: Vec<String> = stmt
         .query_map([session_id], |row| row.get(0))?
         .filter_map(|r| r.ok())
@@ -490,17 +492,20 @@ fn get_files_touched_since(since: &str) -> Vec<String> {
         .output();
 
     match output {
-        Ok(o) if o.status.success() => {
-            String::from_utf8_lossy(&o.stdout)
-                .lines()
-                .filter(|l| !l.is_empty())
-                .map(|l| l.to_string())
-                .collect()
-        }
+        Ok(o) if o.status.success() => String::from_utf8_lossy(&o.stdout)
+            .lines()
+            .filter(|l| !l.is_empty())
+            .map(|l| l.to_string())
+            .collect(),
         _ => {
             // Fallback: try git log --name-only
             let output = Command::new("git")
-                .args(["log", "--name-only", "--pretty=format:", &format!("--since={}", since)])
+                .args([
+                    "log",
+                    "--name-only",
+                    "--pretty=format:",
+                    &format!("--since={}", since),
+                ])
                 .current_dir(&project_root)
                 .output();
 

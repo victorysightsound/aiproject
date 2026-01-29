@@ -11,10 +11,10 @@ pub struct Session {
     pub ended_at: Option<DateTime<Utc>>,
     pub agent: Option<String>,
     pub summary: Option<String>,
-    pub files_touched: Option<String>,        // JSON array
-    pub status: String,                       // active, completed, abandoned
+    pub files_touched: Option<String>, // JSON array
+    pub status: String,                // active, completed, abandoned
     pub full_context_shown: bool,
-    pub structured_summary: Option<String>,   // JSON structured summary (v1.4)
+    pub structured_summary: Option<String>, // JSON structured summary (v1.4)
 }
 
 /// Decision record
