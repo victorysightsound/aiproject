@@ -8,7 +8,7 @@ use crate::cli::{TaskCommands, TaskSubcommand};
 use crate::database::open_database;
 use crate::models::Task;
 use crate::paths::get_tracking_db_path;
-use crate::session::get_or_create_session;
+use crate::session::get_or_create_session_with_info;
 
 pub fn run(cmd: TaskCommands) -> Result<()> {
     let db_path = get_tracking_db_path()?;
@@ -20,7 +20,19 @@ pub fn run(cmd: TaskCommands) -> Result<()> {
             description,
             priority,
         } => {
-            let session = get_or_create_session(&conn)?;
+            let session_result = get_or_create_session_with_info(&conn)?;
+            let session = session_result.session;
+
+            // Notify if a stale session was closed
+            if let Some(closed) = session_result.auto_closed_session {
+                eprintln!(
+                    "{} Previous session #{} was stale. Started new session #{}",
+                    "⚠".yellow(),
+                    closed.session_id,
+                    session.session_id
+                );
+            }
+
             cmd_task_add(&conn, session.session_id, &description, &priority)
         }
         TaskSubcommand::Update {

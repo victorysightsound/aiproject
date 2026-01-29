@@ -7,7 +7,7 @@ use rusqlite::Connection;
 use crate::models::Session;
 
 /// Stale session threshold in hours
-const STALE_SESSION_HOURS: i64 = 8;
+const STALE_SESSION_HOURS: i64 = 24;
 
 /// Result of get_or_create_session that indicates if a stale session was closed
 pub struct SessionResult {
@@ -16,7 +16,7 @@ pub struct SessionResult {
 }
 
 /// Gets the currently active session, or creates a new one if none exists.
-/// If an active session is stale (8+ hours old), it will be auto-closed.
+/// If an active session is stale (24+ hours old), it will be auto-closed.
 pub fn get_or_create_session(conn: &Connection) -> Result<Session> {
     let result = get_or_create_session_with_info(conn)?;
     Ok(result.session)
@@ -26,7 +26,7 @@ pub fn get_or_create_session(conn: &Connection) -> Result<Session> {
 pub fn get_or_create_session_with_info(conn: &Connection) -> Result<SessionResult> {
     // Try to get active session first
     if let Some(session) = get_active_session(conn)? {
-        // Check if session is stale (8+ hours since started)
+        // Check if session is stale (24+ hours since started)
         let now = Utc::now();
         let session_age = now - session.started_at;
 
