@@ -54,6 +54,34 @@ proj session end "Worked on auth"
 
 Good summaries help future you (or another AI assistant) pick up exactly where you left off.
 
+### Structured Summaries
+
+When you end a session, proj automatically builds a structured summary behind the scenes. This is a JSON object containing:
+
+- **Decisions** made during the session
+- **Tasks** created and completed
+- **Blockers** logged
+- **Notes** added
+- **Git commits** since the session started
+- **Files touched** (from git)
+
+You don't have to do anything extra - it happens automatically alongside your plain text summary. The structured data helps `proj status` and `proj resume` show richer context like "Last session: 3 decisions, 5 commits, 2 tasks created."
+
+### Session Review
+
+Before ending a session, proj shows a quick review:
+
+```
+Session Review:
+  Logged: 2 decisions, 1 task, 0 blockers
+  Git: 5 commits since session start
+
+  Hints:
+    5 commits were made but no decisions logged. Consider logging key decisions.
+```
+
+The hints are advisory - they don't block you from ending the session. They just nudge you to capture things you might have missed. If you made 5 git commits but logged zero decisions, there's a good chance some decisions were made that are worth recording.
+
 ### Auto-Close
 
 If you forget to end your session (power outage, got distracted, life happened), proj handles it. After 8 hours of inactivity, it automatically closes the session when you next run `proj status`:
@@ -136,6 +164,24 @@ Priority Tasks:
 ```
 
 You (and your AI assistant) always know what's next.
+
+### Auto-Commit on Completion
+
+If you enable `auto_commit_on_task` in your project config, completing a task also creates a git commit:
+
+```bash
+proj task update 1 --status completed
+# → ✓ Updated task #1: status → completed
+# → ✓ Committed: [proj] Completed task #1: Implement login endpoint
+```
+
+This is opt-in (disabled by default) and separate from the session-end auto-commit. To enable:
+
+```json
+{
+  "auto_commit_on_task": true
+}
+```
 
 ## Blockers
 
@@ -224,6 +270,55 @@ Session #5
 
 When you end the session, you summarize what happened. When you start the next one, you see the full picture.
 
+## Git History
+
+proj syncs recent git commits into the tracking database so AI assistants can see what code changed without running `git log` themselves.
+
+Every time you run `proj status`, proj calls `git log` behind the scenes and stores the commits in a `git_commits` table. This is idempotent - running it multiple times doesn't create duplicates.
+
+### What Gets Stored
+
+For each commit:
+- **Hash** and short hash
+- **Author**
+- **Commit message**
+- **Date**
+- **File stats** - files changed, insertions, deletions
+
+### Where It Shows Up
+
+- **`proj status`** (verbose/full) - shows recent commits with file change stats
+- **`proj context "topic"`** - searches commit messages alongside decisions and notes
+- **`proj context recent --recent`** - includes commits in the chronological activity view
+- **Session end** - commits since session start are included in the structured summary
+
+### Why It Matters
+
+When an AI assistant starts a new session, it can see not just "what was decided" but also "what code actually changed." This is especially useful when:
+- Someone worked on the project outside of an AI session
+- Multiple commits were made and the AI needs to understand the scope of recent work
+- You want to search for when a particular change was made
+
+```sql
+-- Query git commits directly
+SELECT short_hash, message, committed_at, files_changed
+FROM git_commits ORDER BY committed_at DESC LIMIT 10;
+```
+
+## Mid-Session Context Recall
+
+During a session, you (or your AI assistant) can recall previous decisions and context without re-reading files:
+
+```bash
+proj context "authentication"       # Search decisions, notes, and commits
+proj context "auth" --ranked        # Results scored by relevance
+proj context recent --recent        # Last 10 items across everything
+```
+
+This uses fewer tokens than re-reading source files and gives targeted results. The `--ranked` mode scores results by match quality and recency (newer items score higher with a 30-day half-life decay).
+
+Before making a decision that might duplicate or contradict a previous one, checking context first avoids wasted effort.
+
 ## The Tracking Database
 
 All of this lives in a SQLite database at `.tracking/tracking.db`. You can query it directly:
@@ -238,7 +333,11 @@ ORDER BY created_at DESC LIMIT 5;
 SELECT task_id, description, priority FROM tasks
 WHERE status IN ('pending', 'in_progress');
 
--- Full-text search across all tracking data
+-- Recent git commits
+SELECT short_hash, message, files_changed, committed_at
+FROM git_commits ORDER BY committed_at DESC LIMIT 10;
+
+-- Full-text search across all tracking data (including commit messages)
 SELECT * FROM tracking_fts WHERE tracking_fts MATCH 'authentication';
 ```
 
@@ -312,6 +411,8 @@ Understanding how proj integrates with AI assistants is important for setting ex
 | Component | How It's Tracked |
 |-----------|------------------|
 | **Sessions** | Automatic - `proj status` starts one, 8-hour timeout auto-closes |
+| **Git commits** | Automatic - synced from `git log` on every `proj status` |
+| **Structured summaries** | Automatic - built from session activity on `proj session end` |
 | **Decisions** | Manual - AI must run `proj log decision` |
 | **Tasks** | Manual - AI must run `proj task add` |
 | **Blockers** | Manual - AI must run `proj log blocker` |
@@ -365,6 +466,19 @@ Session Activity:
 ```
 
 This helps you verify nothing was missed before finalizing the session summary.
+
+After the activity display, proj shows a session review with counts and hints:
+
+```
+Session Review:
+  Logged: 2 decisions, 1 task, 0 blockers
+  Git: 5 commits since session start
+
+  Hints:
+    5 commits were made but no decisions logged. Consider logging key decisions.
+```
+
+The hints compare your logged activity against git history to catch gaps. They're advisory - they don't prevent ending the session.
 
 ### Empty Session Handling
 

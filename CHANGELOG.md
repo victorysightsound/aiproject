@@ -2,6 +2,33 @@
 
 All notable changes to proj are documented here.
 
+## [Unreleased] - Schema v1.4
+
+### Added
+- **Git history integration**: Recent git commits are synced into the tracking database and shown in `proj status` output (Tier 2 shows 3 commits, Tier 3 shows 10 with file stats). Commits are also searchable via `proj context`.
+- **Structured session summaries**: When a session ends, a JSON-structured summary is built automatically containing decisions, tasks created/completed, blockers, notes, git commits, and files touched. Stored alongside the plain text summary for richer context on resume.
+- **Session end review hints**: Before ending a session, proj now displays a review showing logged activity counts and git commit counts, with advisory hints when activity appears under-logged (e.g., "5 commits but no decisions logged").
+- **`--recent` flag for `proj context`**: `proj context recent --recent` shows the last 10 items chronologically across decisions, tasks, notes, and git commits for quick "what happened recently?" recall.
+- **Auto-commit on task completion**: New `auto_commit_on_task` config option (default: false). When enabled, completing a task via `proj task update <id> --status completed` auto-commits with message `[proj] Completed task #N: <description>`.
+- **New `src/git.rs` module**: Git log parsing, commit syncing to SQLite, query helpers for recent commits, commits since session start, and commit message search.
+- **New `src/commit.rs` module**: Shared auto-commit logic extracted from session end, now reused by both session end and task completion.
+- **Mid-Session Context Recall instructions**: Updated AGENTS.md SESSION_RULE with guidance for LLMs to use `proj context` mid-session before making decisions that might duplicate or contradict previous ones.
+
+### Changed
+- **Schema version**: v1.3 -> v1.4
+  - New `git_commits` table with indexes on hash and committed_at
+  - New `structured_summary TEXT` column on sessions table
+- **`proj status`**: Now syncs git commits on every run. Tier 2 (Working) shows recent commits section. Tier 3 (Full) shows GIT HISTORY section with file change stats and structured summary highlights from the last session.
+- **`proj resume`**: Shows structured summary details (decisions list, commit count) from the last session when available.
+- **`proj context`**: Now searches git commit messages in both basic and ranked modes.
+- **`proj session end`**: Builds structured JSON summary before ending. Displays session review with hints about potentially missed logging.
+- **`proj task update --status completed`**: Triggers auto-commit when `auto_commit_on_task: true` in config.
+- **Session auto-commit**: Refactored into shared `commit.rs` module used by both session end and task completion.
+- **AGENTS.md outdated-rules detection**: Now checks for `### Mid-Session Context Recall` marker (previously checked for `### Running proj Commands in LLM CLIs`).
+
+### Configuration
+- New field `auto_commit_on_task` (bool, default: false) in `.tracking/config.json`
+
 ## [1.7.28] - 2026-01-28
 
 ### Added

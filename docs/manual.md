@@ -110,7 +110,9 @@ proj status --full       # Everything
 - Active blockers
 - Pending tasks
 - Recent decisions
+- Recent git commits (synced from git log on each run)
 - Open questions
+- Structured summary highlights from last session (decisions count, tasks, commits)
 
 ---
 
@@ -123,22 +125,29 @@ proj resume              # Human-readable
 proj resume --for-ai     # JSON format for AI consumption
 ```
 
-Similar to `proj status` but focused on "where did I leave off?"
+Similar to `proj status` but focused on "where did I leave off?" When the last session has a structured summary, resume shows detailed breakdowns including decisions made and recent commits.
 
 ---
 
 ### proj context
 
-Search decisions and notes.
+Search decisions, notes, and git history.
 
 ```bash
 proj context "database"           # Basic search
 proj context "auth" --ranked      # Results sorted by relevance
+proj context recent --recent      # Last 10 items across all tables
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--ranked` | Sort results by relevance score (recency + match quality) |
+| `--recent` | Show last 10 items chronologically across decisions, tasks, notes, and git commits |
 
 Searches:
 - Decision topics and content
 - Note titles and content
+- Git commit messages
 - Full-text search index
 
 ---
@@ -222,6 +231,25 @@ Session Activity:
 
 ──────────────────────────────────────────────────
 ```
+
+**Session Review:**
+
+Before ending, proj displays a review summary showing what was logged and comparing against git activity:
+
+```
+Session Review:
+  Logged: 2 decisions, 1 task, 0 blockers
+  Git: 5 commits since session start
+
+  Hints:
+    Consider logging any decisions or tasks that may have been missed.
+```
+
+Hints are advisory only and don't block ending the session. They appear when git commits suggest work happened that wasn't captured in the tracking database.
+
+**Structured Summary:**
+
+When a session ends, proj automatically builds a JSON-structured summary containing all decisions, tasks created/completed, blockers, notes, git commits, and files touched during the session. This is stored alongside the plain text summary and used by `proj status` and `proj resume` to provide richer context.
 
 **Empty Session Handling:**
 
@@ -397,6 +425,8 @@ proj task update 1 --status completed
 proj task update 2 --notes "Blocked by API issue"
 proj task update 3 --priority urgent --status in_progress
 ```
+
+**Auto-commit on completion:** If `auto_commit_on_task` is enabled in config, marking a task as completed also creates a git commit with message `[proj] Completed task #N: <description>`. Uses the same commit mode (prompt/auto) as session-end auto-commit.
 
 ---
 
@@ -588,7 +618,10 @@ Upgrade database schema to latest version.
 proj upgrade              # Upgrade current project
 proj upgrade --info       # Show what would be upgraded
 proj upgrade --all        # Upgrade all registered projects
+proj upgrade --auto       # Upgrade without interactive confirmation
 ```
+
+**Schema upgrade path:** 1.0 -> 1.1 -> 1.2 -> 1.3 -> 1.4. Backups are created automatically before upgrades. The v1.4 upgrade adds the `git_commits` table with indexes and a `structured_summary` column to the sessions table. Running `proj upgrade` also updates AGENTS.md files with the latest session management instructions.
 
 ---
 
@@ -671,12 +704,12 @@ Registered Projects (3):
   ✓ my-app
       Type: rust
       Path: /Users/me/projects/my-app
-      Schema: v1.3
+      Schema: v1.4
 
   ✓ website
       Type: web
       Path: /Users/me/projects/website
-      Schema: v1.3
+      Schema: v1.4
 ```
 
 ---
@@ -874,11 +907,12 @@ The `.tracking/config.json` file contains project settings:
   "name": "my-project",
   "project_type": "rust",
   "description": "My awesome project",
-  "schema_version": "1.3",
+  "schema_version": "1.4",
   "auto_backup": true,
   "auto_session": true,
   "auto_commit": false,
-  "auto_commit_mode": "prompt"
+  "auto_commit_mode": "prompt",
+  "auto_commit_on_task": false
 }
 ```
 
@@ -887,8 +921,9 @@ The `.tracking/config.json` file contains project settings:
 | `name` | string | - | Project name |
 | `project_type` | string | - | rust, python, javascript, web, documentation, other |
 | `description` | string | null | Optional description |
-| `schema_version` | string | "1.3" | Database schema version |
+| `schema_version` | string | "1.4" | Database schema version |
 | `auto_backup` | bool | true | Auto-backup on session end |
 | `auto_session` | bool | true | Auto-start sessions on status |
 | `auto_commit` | bool | false | Git commit on session end |
 | `auto_commit_mode` | string | "prompt" | "prompt" (ask) or "auto" (silent) |
+| `auto_commit_on_task` | bool | false | Git commit when task marked completed |

@@ -11,6 +11,7 @@ When you work with AI assistants, a lot happens: decisions get made, tasks pile 
 - What tasks are pending
 - What's blocking you
 - Where you left off
+- Recent git commits and what changed
 - Project documentation (architecture, API, concepts)
 
 Next session, your AI assistant runs `proj status` automatically and picks up exactly where you stopped.
@@ -34,9 +35,9 @@ proj shell install
 
 The init wizard walks you through:
 1. **Project type** - Software (Rust, Python, etc.), documentation, writing, or other
-2. **Tracking database** - For sessions, decisions, tasks, blockers
+2. **Tracking database** - For sessions, decisions, tasks, blockers, and git history
 3. **Documentation database** - Optional project docs with search
-4. **Auto-commit** - Optionally commit changes when sessions end (git repos)
+4. **Auto-commit** - Optionally commit changes when sessions end or tasks complete (git repos)
 5. **AGENTS.md rules** - So AI assistants use proj automatically
 
 After init, AI assistants will run `proj status` at the start of each conversation and pick up where you left off.
@@ -115,10 +116,18 @@ proj log blocker "Need API keys"
 proj task add "Implement auth" --priority high
 ```
 
+And recall context mid-session:
+
+```bash
+proj context "authentication"       # Search decisions, notes, and git commits
+proj context recent --recent        # Last 10 items across all tables
+```
+
 Or query the database directly:
 
 ```sql
 SELECT topic, decision FROM decisions WHERE status = 'active';
+SELECT short_hash, message FROM git_commits ORDER BY committed_at DESC LIMIT 5;
 ```
 
 Database location: `.tracking/tracking.db`

@@ -72,7 +72,9 @@ After install, just cd into your project and sessions start silently.
 
 | Command | What It Does |
 |---------|--------------|
-| `proj context "topic"` | Search decisions/notes |
+| `proj context "topic"` | Search decisions, notes, and git commits |
+| `proj context "topic" --ranked` | Relevance-scored search results |
+| `proj context recent --recent` | Last 10 items across all tables |
 | `proj delta` | What changed since last check |
 | `proj snapshot` | JSON dump for AI |
 
@@ -108,7 +110,10 @@ SELECT topic, decision FROM decisions WHERE status='active';
 -- Open tasks
 SELECT task_id, description FROM tasks WHERE status='pending';
 
--- Search everything
+-- Recent git commits
+SELECT short_hash, message, files_changed FROM git_commits ORDER BY committed_at DESC LIMIT 10;
+
+-- Search everything (decisions, notes, tasks, commit messages)
 SELECT * FROM tracking_fts WHERE tracking_fts MATCH 'keyword';
 ```
 
@@ -182,9 +187,16 @@ Config in `.tracking/config.json`:
 ```json
 {
   "auto_commit": true,
-  "auto_commit_mode": "prompt"  // or "auto"
+  "auto_commit_mode": "prompt",
+  "auto_commit_on_task": false
 }
 ```
+
+| Field | What It Does |
+|-------|--------------|
+| `auto_commit` | Commit on session end |
+| `auto_commit_mode` | "prompt" (ask) or "auto" (silent) |
+| `auto_commit_on_task` | Commit when a task is marked completed |
 
 ---
 
@@ -250,7 +262,7 @@ proj docs init --import docs/         # Import markdown files
 | Location | What It Is |
 |----------|------------|
 | `.tracking/config.json` | Project settings |
-| `.tracking/tracking.db` | Sessions, decisions, tasks |
+| `.tracking/tracking.db` | Sessions, decisions, tasks, git commits |
 | `<project>_docs.db` | Documentation (optional) |
 | `~/.proj/registry.json` | Global project list |
 | `~/.proj/backups/` | Schema backups (1 per project) |
