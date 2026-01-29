@@ -1,28 +1,28 @@
 class Aiproject < Formula
   desc "Project tracking and context management for AI-assisted development"
   homepage "https://github.com/victorysightsound/aiproject"
-  version "1.8.0"
+  version "1.8.1"
   license "MIT"
 
   on_macos do
     on_arm do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-aarch64-apple-darwin.tar.gz"
-      sha256 "ddb1752600312bc91e228f16e78f2c9ef0d69cdd821caba02be39705987b75c6"
+      sha256 "bcf0e93dd8ed197a45e7b974f6eea82a71d3aca1ff51292adce7f0b314b31444"
     end
     on_intel do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-x86_64-apple-darwin.tar.gz"
-      sha256 "4aa5a65a312f7751ab37fd9fea49f569e9eaa7f17feca33e76d5e29e57fc3758"
+      sha256 "613f914196bd0c8eacb7816f99cbc94e093bdbd4627f85ff3010d71a6bfa70d3"
     end
   end
 
   on_linux do
     on_arm do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "b7c8f2588768188f3cfab8f7daeeb38a7c94189bd276bc8af894cb181b2e528c"
+      sha256 "f755221cb4d83af36ffe36785c14d19b5fe51cb40608001bf9a9f6401a1c3038"
     end
     on_intel do
       url "https://github.com/victorysightsound/aiproject/releases/download/v#{version}/proj-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "2f8dec558418691afebd8cec9872639fe75fe10119665d4d58a1e49ae11940ed"
+      sha256 "2c3041f6a73f8a323efeea7abf9d33d4104eda45d12806924003d2954ac64526"
     end
   end
 
