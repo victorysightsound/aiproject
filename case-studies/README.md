@@ -58,6 +58,32 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 | Claude | $1.68 | Efficient, concise |
 | Codex | $18.41 | Verbose, thorough |
 
+### 04. Long-term Context Tracking (January 29-30, 2026)
+
+**Test:** 12-session deep dive comparing proj vs. code comments vs. no instructions (Claude only)
+
+**Finding:** proj's efficiency advantages compound over time. After session 6-7, proj becomes both faster AND cheaper than alternatives.
+
+- [Full Case Study (Markdown)](04-long-term-context-jan30.md)
+
+| Metric | proj | Comments | Nothing |
+|--------|------|----------|---------|
+| Total time (12 sessions) | 44.5 min | 51.5 min | 41.6 min |
+| Total cost | **$0.48** | $0.59 | $0.53 |
+| Decisions tracked | 17 | 22 | 0 explicit |
+| Contradictions | 0 | 0 | 7 (self-corrected) |
+
+**The Crossover Effect:**
+
+| Phase | Sessions | Fastest Approach |
+|-------|----------|------------------|
+| Foundation | 1-3 | nothing (no overhead) |
+| Growth | 4-6 | nothing (minimal context) |
+| Complexity | 7-9 | **proj** (context recovery wins) |
+| Maturity | 10-12 | **proj** (advantage maintained) |
+
+**Key insight:** For projects spanning 7+ sessions, proj pays for itself in both time and cost. The tracking overhead is constant; the context recovery savings compound.
+
 ## Future Studies
 
 ## Summary
@@ -67,8 +93,10 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 | 01 | proj vs. nothing | Context recovery impossible without tracking |
 | 02 | proj vs. code comments | Equal accuracy, proj more efficient |
 | 03 | Multi-model comparison | proj efficiency is 6-10x faster, not accuracy |
+| 04 | Long-term (12 sessions) | **proj becomes cheapest after session 6-7** |
 
 The combined findings suggest:
 1. **Some form of tracking is essential** for multi-session AI work
 2. **proj provides efficiency gains** over manual documentation methods
 3. **Accuracy depends on documentation discipline**, not the specific tool
+4. **proj's advantages compound** - for longer projects, it saves both time and money
