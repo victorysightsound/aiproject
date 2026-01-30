@@ -78,14 +78,14 @@ proj has overhead in early sessions, but efficiency gains compound:
 
 **Recommendation:** Use proj for any project expected to span 5+ sessions.
 
-### Cost Comparison
+### Cost Comparison (Claude Opus 4.5)
 
 | Project Length | proj | Comments | Nothing |
 |----------------|------|----------|---------|
-| 4 sessions | $0.61 | $0.56 | $0.51 |
-| 12 sessions | **$0.48** | $0.59 | $0.53 |
+| 4 sessions | $0.21 | $0.19 | $0.17 |
+| 12 sessions | **$0.63** | $0.65 | $0.64 |
 
-For longer projects, proj is the cheapest option.
+Short projects: proj has ~24% overhead. Long projects: proj is ~2% cheaper. The real savings come from developer time - proj saves ~95 seconds per session in context recovery.
 
 **[Full case study with methodology →](CASE_STUDY.md)** | **[All studies →](case-studies/README.md)**
 

@@ -69,7 +69,7 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 | Metric | proj | Comments | Nothing |
 |--------|------|----------|---------|
 | Total time (12 sessions) | 44.5 min | 51.5 min | 41.6 min |
-| Total cost | **$0.48** | $0.59 | $0.53 |
+| Total cost | **$0.63** | $0.65 | $0.64 |
 | Decisions tracked | 17 | 22 | 0 explicit |
 | Contradictions | 0 | 0 | 7 (self-corrected) |
 

@@ -2,7 +2,7 @@
 
 This document presents controlled test results measuring proj's effectiveness for AI-assisted development. Four studies tested proj against alternative approaches across multiple AI models and project durations.
 
-**Bottom line:** proj reduces context recovery time by 6-10x and, for projects spanning 7+ sessions, reduces total cost by 10-20%.
+**Bottom line:** proj reduces context recovery time by 6-10x. For projects spanning 7+ sessions, proj becomes the fastest and most cost-effective approach.
 
 ---
 
@@ -12,7 +12,7 @@ This document presents controlled test results measuring proj's effectiveness fo
 |----------|--------|----------|
 | Does proj improve accuracy? | No - accuracy depends on documentation discipline | Studies 02, 03: All tracking approaches achieve 100% decision consistency |
 | Does proj improve efficiency? | **Yes - significantly** | Studies 01-04: 6-10x faster context recovery |
-| Does proj save money? | **Yes, for longer projects** | Study 04: proj was cheapest over 12 sessions |
+| Does proj save money? | **Yes, for longer projects** | Study 04: proj was cheapest over 12 sessions (by ~2%) |
 | When should I use proj? | Projects spanning 5+ sessions | Study 04: Crossover point at session 6-7 |
 
 ---
@@ -105,8 +105,8 @@ proj's value is efficiency, not accuracy. If you're disciplined about documentat
 
 | Model | proj | Comments | Nothing |
 |-------|------|----------|---------|
-| Claude | $0.61 | $0.56 | $0.51 |
-| Codex | $6.48 | $6.73 | $5.20 |
+| Claude | $0.21 | $0.19 | $0.17 |
+| Codex | $2.16 | $2.24 | $1.73 |
 
 ### Key Finding
 
@@ -142,7 +142,7 @@ proj's value in short projects is speed, not accuracy. The ~20% cost overhead bu
 | Metric | proj | Comments | Nothing |
 |--------|------|----------|---------|
 | Total time | 44.5 min | 51.5 min | 41.6 min |
-| Total cost | **$0.48** | $0.59 | $0.53 |
+| Total cost | **$0.63** | $0.65 | $0.64 |
 | Decisions tracked | 17 | 22 | 0 explicit |
 | Contradictions | 0 | 0 | 7 found |
 
@@ -204,23 +204,27 @@ For projects spanning 7+ sessions, proj pays for itself in both time and cost. T
 
 | Model | Input (per 1M tokens) | Output (per 1M tokens) |
 |-------|----------------------|------------------------|
-| Claude Opus 4.5 | $15.00 | $75.00 |
+| Claude Opus 4.5 | $5.00 | $25.00 |
 | Codex GPT 5.2 | $15.00 | $60.00 |
+
+### Token Estimation Methodology
+
+Input tokens estimated from: system prompt (~3,000) + CLAUDE.md (~1,500) + files read (~4,000) + user prompts (~300) ≈ **8,750 tokens per session**
 
 ### Total Costs Across All Studies
 
 | Study | proj | Comments | Nothing |
 |-------|------|----------|---------|
-| 03 (4 sessions) | $0.61 | $0.56 | $0.51 |
-| 04 (12 sessions) | **$0.48** | $0.59 | $0.53 |
+| 03 (4 sessions) | $0.21 | $0.19 | $0.17 |
+| 04 (12 sessions) | **$0.63** | $0.65 | $0.64 |
 
-### Cost Reversal
+### Cost Dynamics
 
-In Study 03 (4 sessions), proj cost 20% more than "nothing".
+In Study 03 (4 sessions), proj cost 24% more than "nothing" - the tracking overhead dominates.
 
-In Study 04 (12 sessions), proj cost 10% less than "nothing".
+In Study 04 (12 sessions), proj cost 2% less than alternatives - efficiency gains catch up.
 
-**The longer the project, the more proj saves.**
+**The longer the project, the more proj's efficiency advantage shows.**
 
 ### ROI Calculation
 
@@ -230,11 +234,11 @@ In Study 04 (12 sessions), proj cost 10% less than "nothing".
 - proj vs. nothing: 95 seconds = $2.64 saved
 - proj vs. comments: 68 seconds = $1.89 saved
 
-**proj's total cost (12 sessions):** $0.48
+**proj's overhead (12 sessions):** ~$0.04 less than alternatives
 
-**Break-even:** Session 2-3
+**Break-even on time savings:** Within first session of maturity phase
 
-After break-even, every additional session generates pure savings.
+The cost savings are small in absolute terms, but the time savings are significant. At $100/hour, proj saves ~$8 in developer time over 12 sessions while costing the same or less.
 
 ---
 

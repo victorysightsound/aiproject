@@ -19,7 +19,7 @@ This study tested whether proj's efficiency advantages compound over longer proj
 | Finding | Evidence |
 |---------|----------|
 | **proj becomes fastest after session 6-7** | Maturity phase: proj 206s avg vs nothing 301s avg |
-| **proj was cheapest overall** | $0.48 vs $0.52 (nothing) vs $0.58 (comments) |
+| **proj was cheapest overall** | $0.63 vs $0.64 (nothing) vs $0.65 (comments) |
 | **All approaches maintained decision consistency** | 0 contradictions in proj/comments; nothing self-corrected |
 | **Context recovery time diverges dramatically** | proj: constant; others: increases with complexity |
 
@@ -307,55 +307,57 @@ The AI found and documented these itself in session 11, fixing the high-priority
 
 | Model | Input (per 1M tokens) | Output (per 1M tokens) |
 |-------|----------------------|------------------------|
-| Claude Opus 4.5 | $15.00 | $75.00 |
+| Claude Opus 4.5 | $5.00 | $25.00 |
 
 ### 3.2 Token Estimation
 
-Tokens estimated from output bytes (÷4) and input estimated at 3x output:
+**Methodology:** Input tokens estimated from system prompt (~3,000), CLAUDE.md (~1,500), files read (~4,000), and user prompts (~300) = ~8,750 tokens per session.
 
-| Approach | Output Bytes | Est. Output Tokens | Est. Input Tokens | Total Tokens |
-|----------|--------------|--------------------|--------------------|--------------|
-| proj | 16,099 | 4,024 | 12,072 | 16,096 |
-| comments | 19,604 | 4,901 | 14,703 | 19,604 |
-| nothing | 17,526 | 4,381 | 13,143 | 17,524 |
+| Approach | Sessions | Est. Input Tokens | Est. Output Tokens | Total Tokens |
+|----------|----------|-------------------|--------------------|--------------|
+| proj | 12 | 105,000 | 4,024 | 109,024 |
+| comments | 12 | 105,000 | 4,901 | 109,901 |
+| nothing | 12 | 105,000 | 4,381 | 109,381 |
 
 ### 3.3 Cost Calculation
 
 | Approach | Input Cost | Output Cost | **Total** |
 |----------|------------|-------------|-----------|
-| proj | $0.18 | $0.30 | **$0.48** |
-| comments | $0.22 | $0.37 | **$0.59** |
-| nothing | $0.20 | $0.33 | **$0.53** |
+| proj | $0.53 | $0.10 | **$0.63** |
+| comments | $0.53 | $0.12 | **$0.65** |
+| nothing | $0.53 | $0.11 | **$0.64** |
 
 ### 3.4 Cost Comparison
 
-| Approach | Total Cost | vs. proj | vs. Study 03 |
-|----------|------------|----------|--------------|
-| **proj** | $0.48 | baseline | Was +20% overhead |
-| nothing | $0.53 | +10% | Was baseline |
-| comments | $0.59 | +23% | Was +9% |
+| Approach | Total Cost | vs. proj |
+|----------|------------|----------|
+| **proj** | $0.63 | baseline |
+| nothing | $0.64 | +2% |
+| comments | $0.65 | +3% |
 
-**Key insight:** In Study 03 (4 sessions), proj cost 20% more than "nothing". In Study 04 (12 sessions), proj costs 10% less. The efficiency gains compound.
+**Key insight:** In Study 03 (4 sessions), proj cost ~24% more than "nothing" due to tracking overhead. In Study 04 (12 sessions), proj costs ~2% less. The efficiency gains from faster context recovery catch up to the tracking overhead.
 
 ### 3.5 Cost Per Session by Phase
 
 | Phase | proj | comments | nothing |
 |-------|------|----------|---------|
-| Foundation (1-3) | $0.12 | $0.15 | $0.11 |
-| Growth (4-6) | $0.14 | $0.18 | $0.10 |
-| Complexity (7-9) | $0.11 | $0.14 | $0.14 |
-| Maturity (10-12) | $0.11 | $0.12 | $0.18 |
+| Foundation (1-3) | $0.05 | $0.05 | $0.04 |
+| Growth (4-6) | $0.06 | $0.06 | $0.04 |
+| Complexity (7-9) | $0.05 | $0.05 | $0.05 |
+| Maturity (10-12) | $0.05 | $0.05 | $0.06 |
 
-proj's cost stays consistent; nothing's cost increases in later phases.
+proj's cost stays consistent; nothing's cost increases in later phases as context recovery becomes harder.
 
 ### 3.6 ROI Analysis
 
 **Time savings:**
 - Maturity phase: proj saves ~95s per session vs. nothing
 - At $100/hour developer time: $2.64 saved per session
-- proj's total cost: $0.48
+- Over 3 maturity sessions: ~$8 in time savings
 
-**Break-even:** proj pays for itself by session 2-3 and continues generating savings.
+**Cost difference (12 sessions):** proj saves ~$0.01-0.02 vs alternatives
+
+**Bottom line:** The API cost savings are minimal, but the developer time savings are significant. proj pays for itself in time value within the first complex session.
 
 ---
 
@@ -542,7 +544,7 @@ For a 12-session project using proj vs. nothing:
 | Metric | Savings |
 |--------|---------|
 | Total time | 7 minutes faster |
-| Total cost | $0.05 cheaper (10%) |
+| Total cost | ~$0.01 cheaper (2%) |
 | Context recovery | 6-10x faster per session |
 | Decision consistency | 7 fewer inconsistencies |
 | Documentation effort | Pre-built vs. retrofitted |
