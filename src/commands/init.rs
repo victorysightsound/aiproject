@@ -178,7 +178,7 @@ fn run_non_interactive(
         auto_session: true,
         auto_commit: effective_auto_commit,
         auto_commit_mode: commit_mode,
-        auto_commit_on_task: false,
+        auto_commit_on_task: true,
     };
 
     config.save()?;
@@ -199,19 +199,8 @@ fn run_non_interactive(
         println!("  {} Registered in global registry", "✓".green());
     }
 
-    // Ensure session rule in global AGENTS.md
+    // Create project-local AGENTS.md with CLAUDE.md/GEMINI.md symlinks
     if !no_agents {
-        if let Err(e) = ensure_agents_session_rule() {
-            println!(
-                "  {} Could not update global AGENTS.md: {}",
-                "⚠".yellow(),
-                e
-            );
-        } else {
-            println!("  {} Session rule in global AGENTS.md", "✓".green());
-        }
-
-        // Create project-local AGENTS.md with CLAUDE.md/GEMINI.md symlinks
         if let Err(e) = setup_project_agents(&project_root) {
             println!(
                 "  {} Could not setup project AGENTS.md: {}",
@@ -397,7 +386,7 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
         auto_session: true,
         auto_commit,
         auto_commit_mode,
-        auto_commit_on_task: false,
+        auto_commit_on_task: true,
     };
 
     config.save()?;
@@ -416,17 +405,6 @@ fn run_interactive(mut project_root: PathBuf, mut tracking_path: PathBuf) -> Res
         println!("  {} Could not register project: {}", "⚠".yellow(), e);
     } else {
         println!("  {} Registered in global registry", "✓".green());
-    }
-
-    // Ensure session rule in global AGENTS.md
-    if let Err(e) = ensure_agents_session_rule() {
-        println!(
-            "  {} Could not update global AGENTS.md: {}",
-            "⚠".yellow(),
-            e
-        );
-    } else {
-        println!("  {} Session rule in global AGENTS.md", "✓".green());
     }
 
     // Create project-local AGENTS.md with CLAUDE.md/GEMINI.md symlinks
@@ -891,10 +869,16 @@ fn register_project(path: &PathBuf, name: &str, project_type: &str) -> Result<()
     Ok(())
 }
 
-/// Session management rule to add to global AGENTS.md
-/// This is public so upgrade.rs can access it for updating outdated rules
-pub const SESSION_RULE: &str = r#"
-## Session Management (proj)
+/// Template for project-local AGENTS.md file with complete proj instructions
+/// This is the single source of truth for AI agent instructions
+pub const PROJECT_AGENTS_TEMPLATE: &str = r#"# Project Context & Rules
+This file is the single source of truth for Gemini, Claude, and Codex agents.
+
+## Project Tracking
+
+This project uses `proj` for session and decision tracking. Follow these instructions to maintain project continuity.
+
+### Session Management
 
 **At the start of every conversation**, if the current directory has a `.tracking/` folder:
 1. Run `proj status` BEFORE responding to the user's first message
@@ -938,6 +922,21 @@ proj task add "<description>" --priority <urgent|high|normal|low>
 ```bash
 proj log blocker "<what is blocking progress>"
 ```
+
+### Two-Pass Logging
+
+Use a two-pass approach to minimize data loss:
+
+1. **First pass (during work):** Log decisions, tasks, and blockers as they happen
+2. **Second pass (before ending):** Run `proj review` to catch anything missed
+
+```bash
+proj review
+```
+
+This shows what was logged vs git activity, with suggestions for items that may need logging.
+
+If `proj status` shows a nudge like "Session active 30+ min, 0 decisions logged", either log decisions or run `proj review`.
 
 ### Ending Sessions
 
@@ -1026,60 +1025,13 @@ proj context "<relevant topic>"
 ### Committing Changes
 
 **After completing a task:**
-1. Commit the changes related to that task with a descriptive message
-2. Then mark the task as completed: `proj task update <id> --status completed`
+Mark the task as completed and proj will automatically commit the changes:
+```bash
+proj task update <id> --status completed
+```
 
 **Before ending a session:**
-1. Ensure all changes are committed
-2. Use `git status` to verify no uncommitted work remains
-
-If the project has `auto_commit_on_task: true` in config, proj will auto-commit when tasks are marked completed. Otherwise, commit manually.
-"#;
-
-/// Template for project-local AGENTS.md file
-const PROJECT_AGENTS_TEMPLATE: &str = r#"# Project Context & Rules
-This file is the single source of truth for Gemini, Claude, and Codex agents.
-
-## Project Tracking
-
-This project uses `proj` for session and decision tracking. Follow these instructions to maintain project continuity.
-
-### Session Management
-
-**At session start:**
-```bash
-proj status
-```
-This shows current project state and automatically starts a session if needed. Review the output to understand:
-- Where the last session left off
-- Current active tasks
-- Recent decisions
-- Any open blockers or questions
-
-**During the session:**
-- Log significant decisions: `proj log decision "topic" "what was decided" "why"`
-- Update task status: `proj task update <id> --status in_progress`
-- Note blockers: `proj log blocker "description"`
-- Add context notes: `proj log note "category" "title" "content"`
-- Check context before duplicating decisions: `proj context "<relevant topic>"`
-- Quick recall of recent activity: `proj context recent --recent`
-
-**Before ending a session:**
-1. Commit any uncommitted changes with a descriptive message
-2. Run `git status` to verify no uncommitted work remains
-
-```bash
-proj session end "Implemented X, fixed Y, updated Z"
-```
-Write substantive summaries (1-3 sentences) that answer "what was accomplished?" Avoid generic summaries like "reviewed status" - future sessions need specific context to resume effectively.
-
-### Committing Changes
-
-**After completing a task:**
-1. Commit the changes related to that task with a descriptive message
-2. Then mark the task as completed: `proj task update <id> --status completed`
-
-If the project has `auto_commit_on_task: true` in config, proj will auto-commit when tasks are marked completed. Otherwise, commit manually.
+Run `git status` to verify no uncommitted changes remain.
 
 ### Quick Reference
 
@@ -1091,8 +1043,9 @@ If the project has `auto_commit_on_task: true` in config, proj will auto-commit 
 | `proj context <topic> --ranked` | Relevance-scored search results |
 | `proj context recent --recent` | Last 10 items across all tables |
 | `proj tasks` | List current tasks |
+| `proj review` | Cleanup pass - shows logged items vs git activity |
 | `proj log decision "topic" "decision" "rationale"` | Record a decision |
-| `proj session end "summary"` | Close session with summary + structured summary |
+| `proj session end "summary"` | Close session with summary |
 
 ### Database Queries (for AI agents)
 
@@ -1234,74 +1187,19 @@ pub fn setup_project_agents(project_root: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
-/// Ensure session management rule exists in global AGENTS.md
-fn ensure_agents_session_rule() -> Result<()> {
-    // Try common locations for global AGENTS.md
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
 
-    let possible_paths = [
-        home.join("projects/global/AGENTS.md"),
-        home.join("AGENTS.md"),
-    ];
-
-    let agents_path = possible_paths.iter().find(|p| p.exists());
-
-    let agents_path = match agents_path {
-        Some(p) => p.clone(),
-        None => return Ok(()), // No global AGENTS.md found, skip silently
-    };
-
-    // Read current content
-    let content = std::fs::read_to_string(&agents_path)?;
-
-    // Check if rule already exists
-    if content.contains("## Session Management (proj)") {
-        return Ok(()); // Already has the rule
-    }
-
-    // Find insertion point (after the initial instructions, before "## About Me" if it exists)
-    let new_content = if let Some(pos) = content.find("## About Me") {
-        let (before, after) = content.split_at(pos);
-        format!("{}{}\n{}", before.trim_end(), SESSION_RULE, after)
-    } else {
-        // Append to end
-        format!("{}\n{}", content.trim_end(), SESSION_RULE)
-    };
-
-    std::fs::write(&agents_path, new_content)?;
-
-    Ok(())
-}
-
-/// Update AGENTS.md session rules if they're outdated
+/// Update project-local AGENTS.md if its proj instructions are outdated
 /// Called during `proj upgrade` to ensure AI logging instructions are current
-/// Returns true if any files were updated
+/// Returns list of updated file paths
 pub fn update_agents_rules_if_outdated() -> Result<Vec<String>> {
     let mut updated_files = Vec::new();
 
-    // Check global AGENTS.md locations
-    let home = dirs::home_dir().ok_or_else(|| anyhow::anyhow!("Could not find home directory"))?;
-
-    let possible_paths = [
-        home.join("projects/global/AGENTS.md"),
-        home.join("AGENTS.md"),
-    ];
-
-    for agents_path in possible_paths.iter() {
-        if agents_path.exists() {
-            if update_single_agents_file(agents_path)? {
-                updated_files.push(agents_path.display().to_string());
-            }
-        }
-    }
-
-    // Also check for project-local CLAUDE.md that might have been created by symlinks
-    // These are typically symlinked to the global file, but some might be standalone copies
+    // Only update the current project's AGENTS.md
     if let Ok(cwd) = std::env::current_dir() {
-        let local_claude = cwd.join("CLAUDE.md");
-        if local_claude.exists() && !is_symlink(&local_claude) {
-            if update_single_agents_file(&local_claude)? {
-                updated_files.push(local_claude.display().to_string());
+        let agents_path = cwd.join("AGENTS.md");
+        if agents_path.exists() {
+            if update_single_agents_file(&agents_path)? {
+                updated_files.push(agents_path.display().to_string());
             }
         }
     }
@@ -1309,57 +1207,52 @@ pub fn update_agents_rules_if_outdated() -> Result<Vec<String>> {
     Ok(updated_files)
 }
 
-/// Check if a path is a symbolic link
-fn is_symlink(path: &std::path::Path) -> bool {
-    path.symlink_metadata()
-        .map(|m| m.file_type().is_symlink())
-        .unwrap_or(false)
-}
-
-/// Update a single AGENTS.md file if its session rules are outdated
+/// Update a single AGENTS.md file if its proj instructions are outdated
 /// Returns true if the file was updated
 fn update_single_agents_file(path: &std::path::Path) -> Result<bool> {
     let content = std::fs::read_to_string(path)?;
 
-    // Check if the file has session management rules at all
-    if !content.contains("## Session Management (proj)") {
-        return Ok(false); // No rules to update
+    // Check if the file has proj tracking section at all
+    if !content.contains("## Project Tracking") {
+        return Ok(false); // No proj section to update
     }
 
-    // Check if it has the latest rules by looking for the newest section
-    // v1.7.4: "### Logging During Sessions"
-    // v1.7.8: "### Running proj Commands in LLM CLIs"
-    // v1.4 schema: "### Mid-Session Context Recall"
-    if content.contains("### Mid-Session Context Recall") {
-        return Ok(false); // Already has latest rules
+    // Check if it has the latest instructions by looking for key sections
+    // v1.8.3+: "### Two-Pass Logging" and "### Mid-Session Context Recall"
+    if content.contains("### Two-Pass Logging") && content.contains("### Mid-Session Context Recall") {
+        return Ok(false); // Already has latest instructions
     }
 
-    // Rules are outdated - need to replace the entire section
-    // Find the section boundaries
-    let section_start = match content.find("## Session Management (proj)") {
+    // Instructions are outdated - need to replace the entire Project Tracking section
+    let section_start = match content.find("## Project Tracking") {
         Some(pos) => pos,
         None => return Ok(false),
     };
 
     // Find where the section ends (next ## heading or end of file)
-    let after_header = section_start + "## Session Management (proj)".len();
+    let after_header = section_start + "## Project Tracking".len();
     let section_end = content[after_header..]
         .find("\n## ")
         .map(|pos| after_header + pos)
         .unwrap_or(content.len());
+
+    // Extract just the Project Tracking section from the template
+    let tracking_section = PROJECT_AGENTS_TEMPLATE
+        .trim_start_matches("# Project Context & Rules\n")
+        .trim_start_matches("This file is the single source of truth for Gemini, Claude, and Codex agents.\n\n");
 
     // Build new content
     let before_section = &content[..section_start];
     let after_section = &content[section_end..];
 
     let new_content = format!(
-        "{}{}{}",
+        "{}\n\n{}{}",
         before_section.trim_end(),
-        SESSION_RULE,
+        tracking_section.trim(),
         if after_section.trim().is_empty() {
-            String::new()
+            String::from("\n")
         } else {
-            format!("\n{}", after_section.trim_start())
+            format!("\n\n{}", after_section.trim_start())
         }
     );
 

@@ -17,13 +17,17 @@ pub struct ProjectConfig {
     /// How to handle auto-commit: "auto" (silent) or "prompt" (ask each time)
     #[serde(default = "default_auto_commit_mode")]
     pub auto_commit_mode: String,
-    /// Whether to auto-commit when a task is completed (opt-in, default false)
-    #[serde(default)]
+    /// Whether to auto-commit when a task is completed (default true)
+    #[serde(default = "default_true")]
     pub auto_commit_on_task: bool,
 }
 
 fn default_auto_commit_mode() -> String {
     "prompt".to_string()
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl Default for ProjectConfig {
@@ -37,7 +41,7 @@ impl Default for ProjectConfig {
             auto_session: true,
             auto_commit: false,
             auto_commit_mode: "prompt".to_string(),
-            auto_commit_on_task: false,
+            auto_commit_on_task: true,
         }
     }
 }
