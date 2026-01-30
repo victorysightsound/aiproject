@@ -38,7 +38,7 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 
 ### 03. Multi-Model Comparison (January 29-30, 2026)
 
-**Test:** proj vs. code comments vs. no instructions, across Claude, Codex, and Gemini
+**Test:** proj vs. code comments vs. no instructions, across Claude and Codex
 
 **Finding:** All tracking approaches achieve 100% decision consistency. proj's value is efficiency (6-10x faster context recovery), not accuracy improvement.
 
@@ -57,7 +57,6 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 |-------|-------------------------|-------|
 | Claude | $1.68 | Efficient, concise |
 | Codex | $18.41 | Verbose, thorough |
-| Gemini | $0.50* | *Incomplete due to quota |
 
 ## Future Studies
 

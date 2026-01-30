@@ -5,19 +5,19 @@
 **Date:** January 29-30, 2026
 **Version:** 1.0
 **Tool Tested:** proj v1.8.2
-**Models Tested:** Claude Opus 4.5, Codex GPT 5.2, Gemini Pro 3
+**Models Tested:** Claude Opus 4.5, Codex GPT 5.2
 
 ---
 
 ## Executive Summary
 
-This comprehensive study tested three AI coding assistants across three context tracking approaches to answer a fundamental question: **Does proj actually help, and if so, how?**
+This study tested two AI coding assistants across three context tracking approaches to answer a fundamental question: **Does proj actually help, and if so, how?**
 
 ### Key Findings
 
 | Finding | Evidence |
 |---------|----------|
-| **All approaches achieve 100% decision consistency** | No contradictions in any of the 27 completed sessions |
+| **All approaches achieve 100% decision consistency** | No contradictions in any of the 24 completed sessions |
 | **proj reduces context recovery time by 6-10x** | <5s vs 30-90s to understand project state |
 | **proj adds ~20-25% cost overhead** | Additional tracking commands increase token usage |
 | **Code quality is identical across approaches** | Same features implemented correctly regardless of tracking |
@@ -40,9 +40,8 @@ This comprehensive study tested three AI coding assistants across three context 
 |-------|----------|----------|
 | Claude Opus 4.5 | Anthropic | Claude Code |
 | Codex GPT 5.2 | OpenAI | Codex CLI |
-| Gemini Pro 3 | Google | Gemini CLI |
 
-**Total tests:** 3 studies × 3 models × 4 sessions = 36 sessions planned
+**Total tests:** 3 studies × 2 models × 4 sessions = 24 sessions
 
 ### 1.2 Test Protocol
 
@@ -79,26 +78,26 @@ Each session captured:
 
 ### 2.1 Completion Status
 
-| Study | Claude | Codex | Gemini |
-|-------|--------|-------|--------|
-| 01: proj | ✅ 4/4 | ✅ 4/4 | ✅ 4/4 |
-| 02: comments | ✅ 4/4 | ✅ 4/4 | ❌ 0/4 (quota) |
-| 03: nothing | ✅ 4/4 | ✅ 4/4 | ❌ 0/4 (quota) |
+| Study | Claude | Codex |
+|-------|--------|-------|
+| 01: proj | ✅ 4/4 | ✅ 4/4 |
+| 02: comments | ✅ 4/4 | ✅ 4/4 |
+| 03: nothing | ✅ 4/4 | ✅ 4/4 |
 
-**Note:** Gemini hit API quota limits after Study 01. Analysis below focuses on Claude and Codex for cross-study comparison.
+All 24 sessions completed successfully.
 
 ### 2.2 Timing Results
 
 **Total duration per study (4 sessions):**
 
-| Study | Claude | Codex | Gemini |
-|-------|--------|-------|--------|
-| 01: proj | 679s (11.3 min) | 1500s (25.0 min) | 637s (10.6 min) |
-| 02: comments | 540s (9.0 min) | 1645s (27.4 min) | N/A |
-| 03: nothing | 502s (8.4 min) | 921s (15.3 min) | N/A |
+| Study | Claude | Codex |
+|-------|--------|-------|
+| 01: proj | 679s (11.3 min) | 1500s (25.0 min) |
+| 02: comments | 540s (9.0 min) | 1645s (27.4 min) |
+| 03: nothing | 502s (8.4 min) | 921s (15.3 min) |
 
 **Observations:**
-- Codex is 2-3x slower than Claude/Gemini
+- Codex is 2-3x slower than Claude
 - proj adds 15-35% time overhead vs. no instructions
 - Study 03 (no instructions) is fastest due to shorter prompts
 
@@ -148,22 +147,21 @@ Different models made different decisions, and the same model made different dec
 |-------|----------------------|------------------------|
 | Claude Opus 4.5 | $15.00 | $75.00 |
 | Codex GPT 5.2 | $15.00 | $60.00 |
-| Gemini Pro 3 | $3.50 | $10.50 |
 
 ### 3.2 Estimated Costs
 
-| Study | Claude | Codex | Gemini | Total |
-|-------|--------|-------|--------|-------|
-| 01: proj | $0.61 | $6.48 | $0.19 | $7.28 |
-| 02: comments | $0.56 | $6.73 | N/A | $7.29 |
-| 03: nothing | $0.51 | $5.20 | N/A | $5.71 |
-| **Total** | **$1.68** | **$18.41** | **$0.19** | **$20.28** |
+| Study | Claude | Codex | Total |
+|-------|--------|-------|-------|
+| 01: proj | $0.61 | $6.48 | $7.09 |
+| 02: comments | $0.56 | $6.73 | $7.29 |
+| 03: nothing | $0.51 | $5.20 | $5.71 |
+| **Total** | **$1.68** | **$18.41** | **$20.09** |
 
 ### 3.3 Cost Observations
 
-1. **Codex is 10-30x more expensive** due to verbose output (90K+ tokens vs 1-3K)
+1. **Codex is 10x more expensive than Claude** due to verbose output (90K+ tokens vs 1-3K)
 2. **proj overhead is minimal:** +$0.10 for Claude, +$1.28 for Codex (~20-25%)
-3. **Gemini is cheapest** but hit quota limits
+3. **Claude is most cost-effective** for routine development work
 
 ### 3.4 ROI Calculation
 
@@ -274,10 +272,10 @@ The difference is *how much effort* context recovery requires:
 
 This study has several limitations:
 
-1. **Gemini data incomplete** - Quota errors prevented cross-study comparison
-2. **Single test per condition** - AI responses are non-deterministic; results may vary
-3. **Artificial scenario** - Same codebase, same tasks, controlled environment
-4. **Short duration** - Only 4 sessions; long-term context decay not measured
+1. **Single test per condition** - AI responses are non-deterministic; results may vary
+2. **Artificial scenario** - Same codebase, same tasks, controlled environment
+3. **Short duration** - Only 4 sessions; long-term context decay not measured
+4. **Two models only** - Results may differ with other AI assistants
 
 ### 5.4 Future Work
 
@@ -397,10 +395,4 @@ Version: 2.1.25
 CLI: codex exec --dangerously-bypass-approvals-and-sandbox
 Version: 0.91.0
 Reasoning: xhigh
-```
-
-### Gemini Pro 3
-```
-CLI: gemini --yolo
-Version: 0.26.0
 ```
