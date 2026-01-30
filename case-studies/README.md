@@ -36,19 +36,30 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 
 **Important context:** The "without proj" AI was explicitly instructed to use code comments as the tracking alternative. This tests two documentation methods, not tracking vs. nothing.
 
-## Planned Studies
+### 03. Multi-Model Comparison (January 29-30, 2026)
 
-### 03. No Instructions Test (Planned)
+**Test:** proj vs. code comments vs. no instructions, across Claude, Codex, and Gemini
 
-**Question:** What happens when AI agents receive no tracking or documentation instructions at all?
+**Finding:** All tracking approaches achieve 100% decision consistency. proj's value is efficiency (6-10x faster context recovery), not accuracy improvement.
 
-**Metrics to measure:**
-- Does AI spontaneously create documentation?
-- How much context is lost between sessions?
-- What accuracy degradation occurs?
-- When does the AI contradict itself?
+- [Full Case Study (Markdown)](03-multi-model-comparison-jan30.md)
 
-This will provide the clearest measurement of proj's value proposition.
+| Metric | proj | Comments | Nothing |
+|--------|------|----------|---------|
+| Context recovery time | <5s | 30-60s | 45-90s |
+| Decision consistency | 100% | 100% | 100% |
+| Cost overhead | +20-25% | baseline | lowest |
+| Code quality | Equal | Equal | Equal |
+
+**Key insight:** AIs adapt creatively without instructions (Claude read output files, Codex added code comments spontaneously), but proj provides the fastest and most reliable context recovery.
+
+| Model | Total Cost (all studies) | Notes |
+|-------|-------------------------|-------|
+| Claude | $1.68 | Efficient, concise |
+| Codex | $18.41 | Verbose, thorough |
+| Gemini | $0.50* | *Incomplete due to quota |
+
+## Future Studies
 
 ## Summary
 
@@ -56,7 +67,7 @@ This will provide the clearest measurement of proj's value proposition.
 |-------|------------|-------------|
 | 01 | proj vs. nothing | Context recovery impossible without tracking |
 | 02 | proj vs. code comments | Equal accuracy, proj more efficient |
-| 03 | No instructions | (planned) |
+| 03 | Multi-model comparison | proj efficiency is 6-10x faster, not accuracy |
 
 The combined findings suggest:
 1. **Some form of tracking is essential** for multi-session AI work
