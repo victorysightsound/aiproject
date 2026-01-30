@@ -145,23 +145,24 @@ Different models made different decisions, and the same model made different dec
 
 | Model | Input (per 1M tokens) | Output (per 1M tokens) |
 |-------|----------------------|------------------------|
-| Claude Opus 4.5 | $15.00 | $75.00 |
+| Claude Opus 4.5 | $5.00 | $25.00 |
 | Codex GPT 5.2 | $15.00 | $60.00 |
 
 ### 3.2 Estimated Costs
 
 | Study | Claude | Codex | Total |
 |-------|--------|-------|-------|
-| 01: proj | $0.61 | $6.48 | $7.09 |
-| 02: comments | $0.56 | $6.73 | $7.29 |
-| 03: nothing | $0.51 | $5.20 | $5.71 |
-| **Total** | **$1.68** | **$18.41** | **$20.09** |
+| 01: proj | $0.20 | $6.47 | $6.67 |
+| 02: comments | $0.19 | $6.73 | $6.92 |
+| 03: nothing | $0.17 | $5.20 | $5.37 |
+| **Total** | **$0.56** | **$18.40** | **$18.96** |
 
 ### 3.3 Cost Observations
 
-1. **Codex is 10x more expensive than Claude** due to verbose output (90K+ tokens vs 1-3K)
-2. **proj overhead is minimal:** +$0.10 for Claude, +$1.28 for Codex (~20-25%)
+1. **Codex is 30x more expensive than Claude** due to verbose output (90K+ tokens vs 1-3K)
+2. **proj overhead for Claude:** +$0.03 (~18%) - small but present for short projects
 3. **Claude is most cost-effective** for routine development work
+4. **Time savings outweigh cost:** proj's context recovery speed saves developer time
 
 ### 3.4 ROI Calculation
 
@@ -170,8 +171,8 @@ Different models made different decisions, and the same model made different dec
 - At $100/hour developer time: $1.11 saved per session
 
 **Break-even analysis:**
-- Claude: proj overhead ($0.10) vs time saved ($1.11) → ROI after 1 session
-- Codex: proj overhead ($1.28) vs time saved ($1.11) → ROI after 2 sessions
+- Claude: proj overhead ($0.03) vs time saved ($1.11) → ROI immediately
+- Codex: proj overhead ($1.27) vs time saved ($1.11) → ROI after 2 sessions
 
 ---
 

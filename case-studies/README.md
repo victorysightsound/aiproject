@@ -48,15 +48,15 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 |--------|------|----------|---------|
 | Context recovery time | <5s | 30-60s | 45-90s |
 | Decision consistency | 100% | 100% | 100% |
-| Cost overhead | +20-25% | baseline | lowest |
+| Cost overhead (4 sessions) | +18% | +12% | baseline |
 | Code quality | Equal | Equal | Equal |
 
 **Key insight:** AIs adapt creatively without instructions (Claude read output files, Codex added code comments spontaneously), but proj provides the fastest and most reliable context recovery.
 
-| Model | Total Cost (all studies) | Notes |
-|-------|-------------------------|-------|
-| Claude | $1.68 | Efficient, concise |
-| Codex | $18.41 | Verbose, thorough |
+| Model | Total Cost (Study 03) | Notes |
+|-------|----------------------|-------|
+| Claude | $0.56 | Efficient, concise |
+| Codex | $18.40 | Verbose, thorough |
 
 ### 04. Long-term Context Tracking (January 29-30, 2026)
 
@@ -82,7 +82,7 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 | Complexity | 7-9 | **proj** (context recovery wins) |
 | Maturity | 10-12 | **proj** (advantage maintained) |
 
-**Key insight:** For projects spanning 7+ sessions, proj pays for itself in both time and cost. The tracking overhead is constant; the context recovery savings compound.
+**Key insight:** For projects spanning 7+ sessions, proj becomes fastest. Cost differences are minimal (~2%), but time savings are significant (~95 seconds per session in later phases).
 
 ## Future Studies
 
@@ -93,10 +93,10 @@ Controlled tests measuring proj's effectiveness for AI-assisted development.
 | 01 | proj vs. nothing | Context recovery impossible without tracking |
 | 02 | proj vs. code comments | Equal accuracy, proj more efficient |
 | 03 | Multi-model comparison | proj efficiency is 6-10x faster, not accuracy |
-| 04 | Long-term (12 sessions) | **proj becomes cheapest after session 6-7** |
+| 04 | Long-term (12 sessions) | **proj becomes fastest after session 6-7** |
 
 The combined findings suggest:
 1. **Some form of tracking is essential** for multi-session AI work
 2. **proj provides efficiency gains** over manual documentation methods
 3. **Accuracy depends on documentation discipline**, not the specific tool
-4. **proj's advantages compound** - for longer projects, it saves both time and money
+4. **proj's time savings compound** - for longer projects, it's both fastest and slightly cheaper

@@ -98,15 +98,15 @@ proj's value is efficiency, not accuracy. If you're disciplined about documentat
 |--------|------|----------|---------|
 | Context recovery time | <5s | 30-60s | 45-90s |
 | Decision consistency | 100% | 100% | 100% |
-| Cost overhead | +20-25% | baseline | lowest |
+| Cost overhead (Claude) | +18% | +12% | baseline |
 | Code quality | Equal | Equal | Equal |
 
-### Cost Comparison
+### Cost Comparison (Study 03 - 4 sessions)
 
 | Model | proj | Comments | Nothing |
 |-------|------|----------|---------|
-| Claude | $0.21 | $0.19 | $0.17 |
-| Codex | $2.16 | $2.24 | $1.73 |
+| Claude | $0.20 | $0.19 | $0.17 |
+| Codex | $6.47 | $6.73 | $5.20 |
 
 ### Key Finding
 
