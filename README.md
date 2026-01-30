@@ -54,18 +54,40 @@ After init, AI assistants will run `proj status` at the start of each conversati
 
 ## Does It Actually Help?
 
-Yes. We've run controlled tests comparing AI agents working with and without proj:
+Yes. We ran 68 controlled sessions across 4 studies comparing AI agents working with proj vs. alternatives.
 
-| Study | Files Read | Token Savings | Context Recovery |
-|-------|------------|---------------|------------------|
-| Inventory CLI | 11 vs 34 | **50% reduction** | 100% vs 0% |
-| Bookmarks CLI | 12 vs 36 | **26% reduction** | 100% vs 100%* |
+### Key Findings
 
-*Second test compared proj vs. code comments (both prescribed). When documentation is required, accuracy is equal - but proj is more efficient.
+| Finding | Evidence |
+|---------|----------|
+| **Tracking is essential** | Without tracking, 0% context recovery (Study 01) |
+| **proj is 6-10x faster** at context recovery | <5s vs 30-90s (Studies 02-04) |
+| **proj saves money** on longer projects | 10% cheaper over 12 sessions (Study 04) |
+| **Crossover at session 6-7** | Before: nothing is faster. After: proj is faster AND cheaper |
 
-The key finding: **some form of tracking is essential** for multi-session AI work. Without any tracking, AI agents cannot recover what the previous session was working on.
+### The Crossover Effect
 
-**[View all case studies](case-studies/README.md)**
+proj has overhead in early sessions, but efficiency gains compound:
+
+| Phase | proj | nothing | Winner |
+|-------|------|---------|--------|
+| Sessions 1-3 | 231s avg | 133s | nothing |
+| Sessions 4-6 | 267s | 116s | nothing |
+| Sessions 7-9 | **185s** | 279s | **proj** |
+| Sessions 10-12 | **206s** | 301s | **proj** |
+
+**Recommendation:** Use proj for any project expected to span 5+ sessions.
+
+### Cost Comparison
+
+| Project Length | proj | Comments | Nothing |
+|----------------|------|----------|---------|
+| 4 sessions | $0.61 | $0.56 | $0.51 |
+| 12 sessions | **$0.48** | $0.59 | $0.53 |
+
+For longer projects, proj is the cheapest option.
+
+**[Full case study with methodology →](CASE_STUDY.md)** | **[All studies →](case-studies/README.md)**
 
 ## Documentation
 
