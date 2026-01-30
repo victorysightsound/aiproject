@@ -1187,7 +1187,6 @@ pub fn setup_project_agents(project_root: &std::path::Path) -> Result<()> {
     Ok(())
 }
 
-
 /// Update project-local AGENTS.md if its proj instructions are outdated
 /// Called during `proj upgrade` to ensure AI logging instructions are current
 /// Returns list of updated file paths
@@ -1219,7 +1218,9 @@ fn update_single_agents_file(path: &std::path::Path) -> Result<bool> {
 
     // Check if it has the latest instructions by looking for key sections
     // v1.8.3+: "### Two-Pass Logging" and "### Mid-Session Context Recall"
-    if content.contains("### Two-Pass Logging") && content.contains("### Mid-Session Context Recall") {
+    if content.contains("### Two-Pass Logging")
+        && content.contains("### Mid-Session Context Recall")
+    {
         return Ok(false); // Already has latest instructions
     }
 
@@ -1239,7 +1240,9 @@ fn update_single_agents_file(path: &std::path::Path) -> Result<bool> {
     // Extract just the Project Tracking section from the template
     let tracking_section = PROJECT_AGENTS_TEMPLATE
         .trim_start_matches("# Project Context & Rules\n")
-        .trim_start_matches("This file is the single source of truth for Gemini, Claude, and Codex agents.\n\n");
+        .trim_start_matches(
+            "This file is the single source of truth for Gemini, Claude, and Codex agents.\n\n",
+        );
 
     // Build new content
     let before_section = &content[..section_start];
