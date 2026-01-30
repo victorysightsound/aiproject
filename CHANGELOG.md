@@ -4,6 +4,18 @@ All notable changes to proj are documented here.
 
 ## [Unreleased]
 
+## [1.8.3] - 2026-01-30
+
+### Changed
+- **Simplified AGENTS.md management**: proj now only manages project-local AGENTS.md files. Removed all code that touched global AGENTS.md files (e.g., `~/projects/global/AGENTS.md`). One template, one location, easier maintenance.
+- **Single comprehensive template**: Merged `SESSION_RULE` (for global) and `PROJECT_AGENTS_TEMPLATE` (for local) into a single `PROJECT_AGENTS_TEMPLATE` with all instructions.
+- **Auto-commit on task completion now default**: `auto_commit_on_task` defaults to `true` for new projects. When you mark a task complete, proj automatically commits.
+- **Simpler commit instructions**: Template now just says "mark task complete and proj will auto-commit" instead of manual commit + mark complete flow.
+
+### Removed
+- `ensure_agents_session_rule()` function - no longer updates global AGENTS.md
+- Global AGENTS.md path scanning in `update_agents_rules_if_outdated()`
+
 ## [1.8.2] - 2026-01-29
 
 ### Changed
